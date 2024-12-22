@@ -1,5 +1,6 @@
 use godot::prelude::*;
 
+mod traits;
 
 struct MyExtension;
 
