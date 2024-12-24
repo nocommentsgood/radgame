@@ -5,6 +5,7 @@ use godot::{
 
 use crate::traits::{
     character_resources::CharacterResources, damageable::Damageable, damaging::Damaging,
+    player_moveable::PlayerMoveable,
 };
 
 #[derive(GodotClass)]
@@ -21,7 +22,13 @@ pub struct MainCharacter {
     base: Base<CharacterBody2D>,
 }
 
-impl MainCharacter {}
+#[godot_api]
+impl MainCharacter {
+    // #[func]
+    // fn move_main_character(&mut self) {
+    //     self.move_character();
+    // }
+}
 
 #[godot_api]
 impl ICharacterBody2D for MainCharacter {
@@ -33,6 +40,15 @@ impl ICharacterBody2D for MainCharacter {
             mana: 50,
             base,
         }
+    }
+
+    fn physics_process(&mut self, delta: f64) {}
+}
+
+impl PlayerMoveable for MainCharacter {
+    fn move_character(&mut self, velocity: Vector2) {
+        self.base_mut().set_velocity(velocity);
+        self.base_mut().move_and_slide();
     }
 }
 

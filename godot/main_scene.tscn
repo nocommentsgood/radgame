@@ -1,0 +1,12 @@
+[gd_scene load_steps=2 format=3 uid="uid://csphx4r51adby"]
+
+[ext_resource type="PackedScene" uid="uid://dmnvgp7j5vtfe" path="res://main_character.tscn" id="1_olv1o"]
+
+[node name="Node2D" type="Node2D"]
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+
+[node name="MainCharacterManager" type="MainCharacterManager" parent="WorldEnvironment"]
+
+[node name="MainCharacter" parent="WorldEnvironment/MainCharacterManager" instance=ExtResource("1_olv1o")]
+position = Vector2(330, 214)
