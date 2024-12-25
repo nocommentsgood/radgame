@@ -34,15 +34,13 @@ impl MainCharacter {
 impl ICharacterBody2D for MainCharacter {
     fn init(base: Base<CharacterBody2D>) -> Self {
         Self {
-            speed: 200.0,
+            speed: 5000.0,
             health: 50,
             energy: 50,
             mana: 50,
             base,
         }
     }
-
-    fn physics_process(&mut self, delta: f64) {}
 }
 
 impl PlayerMoveable for MainCharacter {

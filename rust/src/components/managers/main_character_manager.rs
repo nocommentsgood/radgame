@@ -32,7 +32,7 @@ impl INode for MainCharacterManager {
 impl MainCharacterManager {
     #[func]
     fn get_input_direction(&self) -> Vector2 {
-        Input::singleton().get_vector("left", "down", "up", "right")
+        Input::singleton().get_vector("left", "right", "up", "down")
     }
 
     // TODO: input handling should be moved to a singleton
@@ -40,7 +40,8 @@ impl MainCharacterManager {
     fn move_main_character(&mut self) {
         let input_direction = self.get_input_direction();
         if let Some(main) = &mut self.main_character {
-            main.bind_mut().move_character(input_direction);
+            let velocity = main.bind().get_speed() * input_direction;
+            main.bind_mut().move_character(velocity);
             self.main_character_state = CharacterState::MOVING;
         }
     }
