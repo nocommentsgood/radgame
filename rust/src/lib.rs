@@ -1,9 +1,13 @@
 use godot::prelude::*;
 
-mod components {
-    mod characters;
+mod classes {
+    pub mod characters;
     mod enemies;
+}
+
+mod components {
     mod managers;
+    pub mod state_machines;
 }
 mod traits;
 

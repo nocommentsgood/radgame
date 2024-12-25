@@ -34,7 +34,7 @@ impl MainCharacter {
 impl ICharacterBody2D for MainCharacter {
     fn init(base: Base<CharacterBody2D>) -> Self {
         Self {
-            speed: 2.0,
+            speed: 200.0,
             health: 50,
             energy: 50,
             mana: 50,
