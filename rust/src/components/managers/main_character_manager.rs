@@ -6,11 +6,15 @@ use crate::{
     traits::player_moveable::PlayerMoveable,
 };
 
+use super::input_manager::InputManager;
+
 #[derive(GodotClass)]
 #[class(init, base=Node)]
 struct MainCharacterManager {
     main_character: Option<Gd<MainCharacter>>,
     main_character_state: CharacterState,
+    #[export]
+    input_manager: Gd<InputManager>,
     base: Base<Node>,
 }
 
@@ -21,6 +25,9 @@ impl INode for MainCharacterManager {
             .base()
             .try_get_node_as::<MainCharacter>("MainCharacter");
         self.main_character = char;
+
+        let input_handler = self.base().get_node_as::<InputManager>("InputManager");
+        self.input_manager = input_handler;
     }
 
     fn physics_process(&mut self, delta: f64) {
