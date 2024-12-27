@@ -8,4 +8,6 @@ pub enum Movements {
     SPRINT_RIGHT,
     SPRINT_UP,
     SPRINT_DOWN,
+    JUMP,
+    IDLE,
 }

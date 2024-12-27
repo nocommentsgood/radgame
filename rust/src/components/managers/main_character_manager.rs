@@ -1,9 +1,8 @@
-use godot::prelude::*;
+use godot::{classes::AnimatedSprite2D, prelude::*};
 
 use crate::{
     classes::characters::main_character::MainCharacter,
     components::state_machines::main_character_state::CharacterState,
-    traits::player_moveable::PlayerMoveable,
 };
 
 use super::input_manager::InputManager;
@@ -13,8 +12,7 @@ use super::input_manager::InputManager;
 struct MainCharacterManager {
     main_character: Option<Gd<MainCharacter>>,
     main_character_state: CharacterState,
-    #[export]
-    input_manager: Gd<InputManager>,
+    input_manager: Option<Gd<InputManager>>,
     base: Base<Node>,
 }
 
@@ -26,11 +24,11 @@ impl INode for MainCharacterManager {
             .try_get_node_as::<MainCharacter>("MainCharacter");
         self.main_character = char;
 
-        let input_handler = self.base().get_node_as::<InputManager>("InputManager");
-        self.input_manager = input_handler;
+        let input_handler = self.base().get_node_as("InputManager");
+        self.input_manager = Some(input_handler);
     }
 
-    fn physics_process(&mut self, delta: f64) {
+    fn process(&mut self, _delta: f64) {
         self.move_main_character();
     }
 }
@@ -45,10 +43,31 @@ impl MainCharacterManager {
     // TODO: input handling should be moved to a singleton
     #[func]
     fn move_main_character(&mut self) {
-        let input_direction = self.get_input_direction();
+        let velocity = self.get_input_direction();
+        let mut animated_sprite = self
+            .base()
+            .get_node_as::<AnimatedSprite2D>("MainCharacter/AnimatedSprite2D");
+        let animation;
+
+        // TODO: add 8 way animations
+        if velocity.x > 0.0 {
+            animated_sprite.set_flip_h(false);
+            animation = "run_right";
+        } else if velocity.x < 0.0 {
+            animated_sprite.set_flip_h(true);
+            animation = "run_left";
+        } else if velocity.y < 0.0 {
+            animation = "jump";
+        } else {
+            animation = "idle";
+        }
+
         if let Some(main) = &mut self.main_character {
-            let velocity = main.bind().get_speed() * input_direction;
-            main.bind_mut().move_character(velocity);
+            let velocity = main.bind().get_speed() * velocity;
+            main.bind_mut().base_mut().set_velocity(velocity);
+            main.bind_mut().base_mut().move_and_slide();
+
+            animated_sprite.play_ex().name(animation).done();
             self.main_character_state = CharacterState::MOVING;
         }
     }

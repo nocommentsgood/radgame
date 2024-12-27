@@ -10,3 +10,5 @@
 
 [node name="MainCharacter" parent="WorldEnvironment/MainCharacterManager" instance=ExtResource("1_olv1o")]
 position = Vector2(330, 214)
+
+[node name="InputManager" type="InputManager" parent="WorldEnvironment/MainCharacterManager"]
