@@ -7,7 +7,7 @@ pub trait CharacterResources {
 
     fn set_energy(&mut self, amount: i32);
 
-    fn get_mana(&self);
+    fn get_mana(&self) -> i32;
 
     fn set_mana(&mut self, amount: i32);
 }
