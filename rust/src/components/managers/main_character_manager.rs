@@ -1,4 +1,7 @@
-use godot::{classes::AnimatedSprite2D, prelude::*};
+use godot::{
+    classes::{AnimatedSprite2D, ProjectSettings},
+    prelude::*,
+};
 
 use crate::{
     classes::characters::main_character::MainCharacter,
@@ -43,6 +46,7 @@ impl MainCharacterManager {
     // TODO: input handling should be moved to a singleton
     #[func]
     fn move_main_character(&mut self) {
+        let terminal_velocity = 600;
         let velocity = self.get_input_direction();
         let mut animated_sprite = self
             .base()
@@ -64,6 +68,11 @@ impl MainCharacterManager {
 
         if let Some(main) = &mut self.main_character {
             let velocity = main.bind().get_speed() * velocity;
+
+            if !main.bind().base().is_on_floor() {
+                main.set_velocity(Vector2::DOWN);
+            }
+
             main.bind_mut().base_mut().set_velocity(velocity);
             main.bind_mut().base_mut().move_and_slide();
 
@@ -71,4 +80,6 @@ impl MainCharacterManager {
             self.main_character_state = CharacterState::MOVING;
         }
     }
+
+    fn jump(&mut self) {}
 }

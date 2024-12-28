@@ -557,6 +557,9 @@ animations = [{
 
 [node name="MainCharacter" type="MainCharacter"]
 speed = 200.0
+slide_on_ceiling = false
+floor_constant_speed = true
+platform_on_leave = 2
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 position = Vector2(-1, 9.5)
@@ -565,3 +568,6 @@ shape = SubResource("RectangleShape2D_eqfgp")
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
 sprite_frames = SubResource("SpriteFrames_l7c3s")
 animation = &"jump"
+
+[node name="Camera2D" type="Camera2D" parent="."]
+editor_draw_drag_margin = true
