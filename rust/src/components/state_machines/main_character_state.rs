@@ -1,9 +1,13 @@
-#[derive(Default)]
+#[derive(Default, PartialEq, Clone, Debug)]
 pub enum CharacterState {
     #[default]
-    DEFAULT,
-    MOVING,
-    ATTACKING,
-    JUMPING,
-    CASTING_SPELL,
+    Default,
+    RunningLeft,
+    RunningRight,
+    RunningUp,
+    RunningDown,
+    LightAttackLeft,
+    LightAttackRight,
+    Jumping,
+    CastingSpell,
 }

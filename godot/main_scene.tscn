@@ -1,14 +1,19 @@
-[gd_scene load_steps=2 format=3 uid="uid://csphx4r51adby"]
+[gd_scene load_steps=4 format=3 uid="uid://csphx4r51adby"]
 
 [ext_resource type="PackedScene" uid="uid://dmnvgp7j5vtfe" path="res://main_character.tscn" id="1_olv1o"]
+[ext_resource type="PackedScene" uid="uid://cypfxvpiapsp3" path="res://ground.tscn" id="2_ainao"]
+
+[sub_resource type="Environment" id="Environment_2k8wa"]
+background_mode = 2
+ambient_light_source = 3
+ambient_light_color = Color(0.910094, 0.850183, 0.435241, 1)
+ambient_light_energy = 2.52
 
 [node name="Node2D" type="Node2D"]
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_2k8wa")
 
-[node name="MainCharacterManager" type="MainCharacterManager" parent="WorldEnvironment"]
+[node name="TileMapLayer" parent="WorldEnvironment" instance=ExtResource("2_ainao")]
 
-[node name="MainCharacter" parent="WorldEnvironment/MainCharacterManager" instance=ExtResource("1_olv1o")]
-position = Vector2(330, 214)
-
-[node name="InputManager" type="InputManager" parent="WorldEnvironment/MainCharacterManager"]
+[node name="MainCharacter" parent="WorldEnvironment" instance=ExtResource("1_olv1o")]

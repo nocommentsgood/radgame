@@ -77,7 +77,7 @@ impl MainCharacterManager {
             main.bind_mut().base_mut().move_and_slide();
 
             animated_sprite.play_ex().name(animation).done();
-            self.main_character_state = CharacterState::MOVING;
+            self.main_character_state = CharacterState::Default;
         }
     }
 
