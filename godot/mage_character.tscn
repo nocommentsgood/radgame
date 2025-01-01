@@ -1,0 +1,14 @@
+[gd_scene load_steps=2 format=3 uid="uid://1gvaf6ghvyex"]
+
+[ext_resource type="Texture2D" uid="uid://div7dxaocrsfo" path="res://assets/entities/mage/Mage-Sheet.png" id="1_stasx"]
+
+[node name="MainCharacter" type="MainCharacter"]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="."]
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+texture = ExtResource("1_stasx")
+hframes = 6
+vframes = 24
