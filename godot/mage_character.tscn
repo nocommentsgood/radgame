@@ -1134,11 +1134,13 @@ animations = [{
 }],
 "loop": true,
 "name": &"walk_west",
-"speed": 5.0
+"speed": 10.0
 }]
 
 [node name="MainCharacter" type="MainCharacter"]
-speed = 200.0
+running_speed = 5000.0
+motion_mode = 1
+slide_on_ceiling = false
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 position = Vector2(0, 6)
@@ -1146,5 +1148,14 @@ shape = SubResource("CapsuleShape2D_wynde")
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
 sprite_frames = SubResource("SpriteFrames_stikj")
-animation = &"idle_north"
-frame_progress = 0.686869
+animation = &"attack_east"
+
+[node name="Camera2D" type="Camera2D" parent="."]
+process_callback = 0
+position_smoothing_enabled = true
+position_smoothing_speed = 10.0
+
+[node name="DodgingTimer" type="Timer" parent="."]
+one_shot = true
+
+[node name="AttackAnimationTimer" type="Timer" parent="."]
