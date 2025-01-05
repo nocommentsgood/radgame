@@ -972,7 +972,7 @@ animations = [{
 "texture": SubResource("AtlasTexture_ryp2t")
 }],
 "loop": true,
-"name": &"walk_east",
+"name": &"run_east",
 "speed": 10.0
 }, {
 "frames": [{
@@ -995,7 +995,7 @@ animations = [{
 "texture": SubResource("AtlasTexture_kkwo5")
 }],
 "loop": true,
-"name": &"walk_north",
+"name": &"run_north",
 "speed": 10.0
 }, {
 "frames": [{
@@ -1018,7 +1018,7 @@ animations = [{
 "texture": SubResource("AtlasTexture_b3cnx")
 }],
 "loop": true,
-"name": &"walk_north_east",
+"name": &"run_north_east",
 "speed": 10.0
 }, {
 "frames": [{
@@ -1041,7 +1041,7 @@ animations = [{
 "texture": SubResource("AtlasTexture_6flbb")
 }],
 "loop": true,
-"name": &"walk_north_west",
+"name": &"run_north_west",
 "speed": 10.0
 }, {
 "frames": [{
@@ -1064,7 +1064,7 @@ animations = [{
 "texture": SubResource("AtlasTexture_3t20l")
 }],
 "loop": true,
-"name": &"walk_south",
+"name": &"run_south",
 "speed": 10.0
 }, {
 "frames": [{
@@ -1087,7 +1087,7 @@ animations = [{
 "texture": SubResource("AtlasTexture_jjtd4")
 }],
 "loop": true,
-"name": &"walk_south_east",
+"name": &"run_south_east",
 "speed": 10.0
 }, {
 "frames": [{
@@ -1110,7 +1110,7 @@ animations = [{
 "texture": SubResource("AtlasTexture_qn86t")
 }],
 "loop": true,
-"name": &"walk_south_west",
+"name": &"run_south_west",
 "speed": 10.0
 }, {
 "frames": [{
@@ -1133,7 +1133,7 @@ animations = [{
 "texture": SubResource("AtlasTexture_2epwb")
 }],
 "loop": true,
-"name": &"walk_west",
+"name": &"run_west",
 "speed": 10.0
 }]
 
@@ -1148,7 +1148,7 @@ shape = SubResource("CapsuleShape2D_wynde")
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
 sprite_frames = SubResource("SpriteFrames_stikj")
-animation = &"attack_east"
+animation = &"run_west"
 
 [node name="Camera2D" type="Camera2D" parent="."]
 process_callback = 0

@@ -98,27 +98,41 @@ impl MainCharacter {
     fn run(&mut self, vel: Vector2, delta: f32) {
         self.state = CharacterState::Running;
         let vel = vel.normalized() * self.running_speed * delta;
+        godot_print!("Vel is {}", vel);
         self.velocity = vel;
+        self.set_direction();
+        self.base_mut().set_velocity(vel);
+        self.base_mut().move_and_slide();
     }
 
     #[func]
-    fn dodge(&mut self) {
-        let mut collision = self
-            .base_mut()
-            .get_node_as::<CollisionShape2D>("CollisionShape2D");
-        let mut velocity = self.base().get_velocity();
+    fn dodge(&mut self, vel: Vector2, delta: f32) {
+        if self.state != CharacterState::Dodging {
+            self.state = CharacterState::Dodging;
+            // let mut collision = self
+            //     .base_mut()
+            //     .get_node_as::<CollisionShape2D>("CollisionShape2D");
+            let vel = vel.normalized() * self.dodging_speed * delta;
+            // collision.set_deferred("disabled", &true.to_variant());
 
-        self.state = CharacterState::Dodging;
-        collision.set_deferred("disabled", &true.to_variant());
-        velocity *= self.dodging_speed;
-        self.base_mut().set_velocity(velocity);
-        self.dodging_timer.start();
+            self.velocity = vel;
+            self.set_direction();
+            self.base_mut().set_velocity(vel);
+            godot_print!("Dodging {:?}", self.direction.to_string());
+            self.base_mut().move_and_slide();
+            // self.dodging_timer.start();
+        }
     }
 
     fn walk(&mut self, vel: Vector2, delta: f32) {
         self.state = CharacterState::Walking;
         let vel = vel.normalized() * self.walking_speed * delta;
         self.velocity = vel;
+    }
+
+    fn idle(&mut self) {
+        self.state = CharacterState::Idle;
+        self.velocity = Vector2::ZERO;
     }
 
     #[func]
@@ -132,31 +146,42 @@ impl MainCharacter {
         self.state = CharacterState::Walking;
     }
 }
+
 impl PlayerMoveable for MainCharacter {
     fn move_character(&mut self, delta: f32) {
         let input = Input::singleton();
-        let move_direction = input.get_vector("left", "right", "up", "down");
+        // let move_direction = input.get_vector("left", "right", "up", "down");
         let mouse_position = self.base().get_global_mouse_position();
-        let mut vel = move_direction * delta;
-        self.base_mut().set_velocity(vel);
+        let mut vel = Vector2::new(0.0, 0.0);
 
-        if vel.length() == 0.0 {
-            self.state = CharacterState::Idle;
-        } else if input.is_action_pressed("dodge") {
-            self.dodge();
-        } else if input.is_action_pressed("walk") {
-            vel *= self.get_walking_speed();
-            self.state = CharacterState::Walking;
-        } else {
-            self.state = CharacterState::Running;
-            vel *= self.get_running_speed();
+        self.idle();
+
+        if input.is_action_pressed("east") {
+            vel += Vector2::RIGHT;
+        }
+        if input.is_action_pressed("west") {
+            vel += Vector2::LEFT;
+        }
+        if input.is_action_pressed("north") {
+            vel += Vector2::UP;
+        }
+        if input.is_action_pressed("south") {
+            vel += Vector2::DOWN;
+        }
+        if input.is_action_pressed("dodge") {
+            if input.is_action_pressed("east") {
+                self.dodge(vel, delta);
+            }
+        }
+        if vel.length() != 0.0 && self.state != CharacterState::Dodging {
+            self.run(vel, delta);
         }
 
         // self.base_mut().look_at(mouse_position);
 
-        self.set_state();
-        self.set_direction();
-        self.base_mut().move_and_slide();
+        // self.set_state();
+        // self.set_direction();
+        // self.base_mut().move_and_slide();
     }
 
     fn get_movement_animation(&mut self) -> String {
