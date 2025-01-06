@@ -6,29 +6,29 @@
 radius = 8.0
 height = 34.0
 
-[sub_resource type="AtlasTexture" id="AtlasTexture_k7sqc"]
+[sub_resource type="AtlasTexture" id="AtlasTexture_l1tvw"]
 atlas = ExtResource("1_stasx")
-region = Rect2(0, 816, 32, 48)
+region = Rect2(0, 960, 32, 48)
 
-[sub_resource type="AtlasTexture" id="AtlasTexture_cty1d"]
+[sub_resource type="AtlasTexture" id="AtlasTexture_nasck"]
 atlas = ExtResource("1_stasx")
-region = Rect2(32, 816, 32, 48)
+region = Rect2(32, 960, 32, 48)
 
-[sub_resource type="AtlasTexture" id="AtlasTexture_iyyva"]
+[sub_resource type="AtlasTexture" id="AtlasTexture_ukgh2"]
 atlas = ExtResource("1_stasx")
-region = Rect2(64, 816, 32, 48)
+region = Rect2(64, 960, 32, 48)
 
-[sub_resource type="AtlasTexture" id="AtlasTexture_7s1l0"]
+[sub_resource type="AtlasTexture" id="AtlasTexture_i85xl"]
 atlas = ExtResource("1_stasx")
-region = Rect2(96, 816, 32, 48)
+region = Rect2(96, 960, 32, 48)
 
-[sub_resource type="AtlasTexture" id="AtlasTexture_ffx1v"]
+[sub_resource type="AtlasTexture" id="AtlasTexture_8qteh"]
 atlas = ExtResource("1_stasx")
-region = Rect2(128, 816, 32, 48)
+region = Rect2(128, 960, 32, 48)
 
-[sub_resource type="AtlasTexture" id="AtlasTexture_vdc88"]
+[sub_resource type="AtlasTexture" id="AtlasTexture_os76g"]
 atlas = ExtResource("1_stasx")
-region = Rect2(160, 816, 32, 48)
+region = Rect2(160, 960, 32, 48)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_udaos"]
 atlas = ExtResource("1_stasx")
@@ -586,22 +586,22 @@ region = Rect2(160, 336, 32, 48)
 animations = [{
 "frames": [{
 "duration": 1.0,
-"texture": SubResource("AtlasTexture_k7sqc")
+"texture": SubResource("AtlasTexture_l1tvw")
 }, {
 "duration": 1.0,
-"texture": SubResource("AtlasTexture_cty1d")
+"texture": SubResource("AtlasTexture_nasck")
 }, {
 "duration": 1.0,
-"texture": SubResource("AtlasTexture_iyyva")
+"texture": SubResource("AtlasTexture_ukgh2")
 }, {
 "duration": 1.0,
-"texture": SubResource("AtlasTexture_7s1l0")
+"texture": SubResource("AtlasTexture_i85xl")
 }, {
 "duration": 1.0,
-"texture": SubResource("AtlasTexture_ffx1v")
+"texture": SubResource("AtlasTexture_8qteh")
 }, {
 "duration": 1.0,
-"texture": SubResource("AtlasTexture_vdc88")
+"texture": SubResource("AtlasTexture_os76g")
 }],
 "loop": true,
 "name": &"attack_east",
@@ -1148,9 +1148,12 @@ shape = SubResource("CapsuleShape2D_wynde")
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
 sprite_frames = SubResource("SpriteFrames_stikj")
-animation = &"run_south_east"
+animation = &"attack_east"
+frame = 4
+frame_progress = 0.160719
 
 [node name="Camera2D" type="Camera2D" parent="."]
+zoom = Vector2(3, 3)
 process_callback = 0
 position_smoothing_enabled = true
 position_smoothing_speed = 10.0

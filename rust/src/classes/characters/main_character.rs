@@ -107,8 +107,6 @@ impl MainCharacter {
             let mut collision = self
                 .base_mut()
                 .get_node_as::<CollisionShape2D>("CollisionShape2D");
-            let mut tree = self.base().get_tree().unwrap();
-            let dodge_call = self.base().callable("on_dodge_timer_timeout");
 
             vel *= self.dodging_speed;
             collision.set_deferred("disabled", &true.to_variant());
@@ -117,8 +115,7 @@ impl MainCharacter {
             self.set_direction();
             self.base_mut().set_velocity(vel);
             self.base_mut().move_and_slide();
-            let mut timer = tree.create_timer(1.0).unwrap(); // animation timing
-            timer.connect("timeout", &dodge_call);
+            self.dodging_timer.start();
         } else {
             self.base_mut().move_and_slide();
         }
