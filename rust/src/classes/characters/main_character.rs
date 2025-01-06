@@ -101,14 +101,15 @@ impl MainCharacter {
         self.base_mut().move_and_slide();
     }
 
-    #[func]
     fn dodge(&mut self, mut vel: Vector2) {
-        let mut collision = self
-            .base_mut()
-            .get_node_as::<CollisionShape2D>("CollisionShape2D");
+        if !self.is_dodging {
+            self.is_dodging = true;
+            let mut collision = self
+                .base_mut()
+                .get_node_as::<CollisionShape2D>("CollisionShape2D");
+            let mut tree = self.base().get_tree().unwrap();
+            let dodge_call = self.base().callable("on_dodge_timer_timeout");
 
-        self.dodging_timer.start();
-        if !self.dodging_timer.is_stopped() && self.state == CharacterState::Dodging {
             vel *= self.dodging_speed;
             collision.set_deferred("disabled", &true.to_variant());
 
@@ -116,9 +117,10 @@ impl MainCharacter {
             self.set_direction();
             self.base_mut().set_velocity(vel);
             self.base_mut().move_and_slide();
-        } else if self.dodging_timer.is_stopped() {
-            self.state = CharacterState::Idle;
-            collision.set_deferred("disabled", &false.to_variant());
+            let mut timer = tree.create_timer(1.0).unwrap(); // animation timing
+            timer.connect("timeout", &dodge_call);
+        } else {
+            self.base_mut().move_and_slide();
         }
     }
 
@@ -128,16 +130,16 @@ impl MainCharacter {
 
     fn idle(&mut self) {}
 
-    // #[func]
-    // fn on_dodge_timer_timeout(&mut self) {
-    //     godot_print!("Dodge timer timeout");
-    //     let mut collision = self
-    //         .base_mut()
-    //         .get_node_as::<CollisionShape2D>("CollisionShape2D");
-    //
-    //     collision.set_deferred("disabled", &false.to_variant());
-    //     self.state = CharacterState::;
-    // }
+    #[func]
+    fn on_dodge_timer_timeout(&mut self) {
+        self.is_dodging = false;
+        let mut collision = self
+            .base_mut()
+            .get_node_as::<CollisionShape2D>("CollisionShape2D");
+
+        collision.set_deferred("disabled", &false.to_variant());
+        self.state = CharacterState::Idle;
+    }
 }
 
 impl PlayerMoveable for MainCharacter {
@@ -145,42 +147,44 @@ impl PlayerMoveable for MainCharacter {
         let input = Input::singleton();
         let mut vel = Vector2::new(0.0, 0.0);
 
-        if input.is_action_pressed("east") {
-            vel += Vector2::RIGHT;
-            if input.is_action_pressed("dodge") {
-                self.state = CharacterState::Dodging;
-            } else {
-                self.state = CharacterState::Running;
+        if !self.is_dodging {
+            if input.is_action_pressed("east") {
+                vel += Vector2::RIGHT;
+                if input.is_action_just_pressed("dodge") {
+                    self.state = CharacterState::Dodging;
+                } else {
+                    self.state = CharacterState::Running;
+                }
             }
-        }
-        if input.is_action_pressed("west") {
-            vel += Vector2::LEFT;
-            if input.is_action_pressed("dodge") {
-                self.state = CharacterState::Dodging;
-            } else {
-                self.state = CharacterState::Running;
+            if input.is_action_pressed("west") {
+                vel += Vector2::LEFT;
+                if input.is_action_just_pressed("dodge") {
+                    self.state = CharacterState::Dodging;
+                } else {
+                    self.state = CharacterState::Running;
+                }
             }
-        }
-        if input.is_action_pressed("north") {
-            vel += Vector2::UP;
-            if input.is_action_pressed("dodge") {
-                self.state = CharacterState::Dodging;
-            } else {
-                self.state = CharacterState::Running;
+            if input.is_action_pressed("north") {
+                vel += Vector2::UP;
+                if input.is_action_just_pressed("dodge") {
+                    self.state = CharacterState::Dodging;
+                } else {
+                    self.state = CharacterState::Running;
+                }
             }
-        }
-        if input.is_action_pressed("south") {
-            vel += Vector2::DOWN;
-            if input.is_action_pressed("dodge") {
-                self.state = CharacterState::Dodging;
-            } else {
-                self.state = CharacterState::Running;
+            if input.is_action_pressed("south") {
+                vel += Vector2::DOWN;
+                if input.is_action_just_pressed("dodge") {
+                    self.state = CharacterState::Dodging;
+                } else {
+                    self.state = CharacterState::Running;
+                }
             }
-        }
-        if vel.length() != 0.0 {
-            vel = vel.normalized() * delta;
-        } else if vel.length() == 0.0 {
-            self.state = CharacterState::Idle;
+            if vel.length() != 0.0 {
+                vel = vel.normalized() * delta;
+            } else if vel.length() == 0.0 {
+                self.state = CharacterState::Idle;
+            }
         }
 
         match self.state {
