@@ -63,7 +63,9 @@ impl ICharacterBody2D for MainCharacter {
     }
 
     fn ready(&mut self) {
-        let attack_timer = self.base().get_node_as::<Timer>("AttackAnimationTimer");
+        let mut attack_timer = self.base().get_node_as::<Timer>("AttackAnimationTimer");
+        let call = self.base().callable("on_attack_timer_timeout");
+        attack_timer.connect("timeout", &call);
         self.attack_timer.init(attack_timer);
 
         let mut dodge_timer = self.base().get_node_as::<Timer>("DodgingTimer");
@@ -121,11 +123,29 @@ impl MainCharacter {
         }
     }
 
-    fn attack(&mut self) {}
+    fn attack(&mut self, mut vel: Vector2) {
+        if !self.is_attacking {
+            self.is_attacking = true;
+
+            vel *= self.attacking_speed;
+            self.set_direction();
+            self.base_mut().set_velocity(vel);
+            self.base_mut().move_and_slide();
+            self.attack_timer.start();
+        } else {
+            self.base_mut().move_and_slide();
+        }
+    }
 
     fn walk(&mut self) {}
 
     fn idle(&mut self) {}
+
+    #[func]
+    fn on_attack_timer_timeout(&mut self) {
+        self.is_attacking = false;
+        self.state = CharacterState::Idle;
+    }
 
     #[func]
     fn on_dodge_timer_timeout(&mut self) {
@@ -144,37 +164,43 @@ impl PlayerMoveable for MainCharacter {
         let input = Input::singleton();
         let mut vel = Vector2::new(0.0, 0.0);
 
-        if !self.is_dodging {
+        if !self.is_dodging & !self.is_attacking {
             if input.is_action_pressed("east") {
                 vel += Vector2::RIGHT;
+                self.state = CharacterState::Running;
                 if input.is_action_just_pressed("dodge") {
                     self.state = CharacterState::Dodging;
-                } else {
-                    self.state = CharacterState::Running;
+                } else if input.is_action_just_pressed("attack") {
+                    self.state = CharacterState::Attacking;
                 }
             }
             if input.is_action_pressed("west") {
                 vel += Vector2::LEFT;
+                self.state = CharacterState::Running;
                 if input.is_action_just_pressed("dodge") {
                     self.state = CharacterState::Dodging;
-                } else {
-                    self.state = CharacterState::Running;
+                } else if input.is_action_just_pressed("attack") {
+                    self.state = CharacterState::Attacking;
                 }
             }
             if input.is_action_pressed("north") {
                 vel += Vector2::UP;
+                self.state = CharacterState::Running;
                 if input.is_action_just_pressed("dodge") {
                     self.state = CharacterState::Dodging;
-                } else {
-                    self.state = CharacterState::Running;
+                }
+                if input.is_action_just_pressed("attack") {
+                    self.state = CharacterState::Attacking;
                 }
             }
             if input.is_action_pressed("south") {
                 vel += Vector2::DOWN;
+                self.state = CharacterState::Running;
                 if input.is_action_just_pressed("dodge") {
                     self.state = CharacterState::Dodging;
-                } else {
-                    self.state = CharacterState::Running;
+                }
+                if input.is_action_just_pressed("attack") {
+                    self.state = CharacterState::Attacking;
                 }
             }
             if vel.length() != 0.0 {
@@ -198,7 +224,7 @@ impl PlayerMoveable for MainCharacter {
                 self.walk();
             }
             CharacterState::Attacking => {
-                self.attack();
+                self.attack(vel);
             }
         }
     }
