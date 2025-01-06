@@ -390,29 +390,29 @@ region = Rect2(128, 288, 32, 48)
 atlas = ExtResource("1_stasx")
 region = Rect2(160, 288, 32, 48)
 
-[sub_resource type="AtlasTexture" id="AtlasTexture_nryl3"]
+[sub_resource type="AtlasTexture" id="AtlasTexture_hxalt"]
 atlas = ExtResource("1_stasx")
-region = Rect2(0, 768, 32, 48)
+region = Rect2(0, 912, 32, 48)
 
-[sub_resource type="AtlasTexture" id="AtlasTexture_s17xe"]
+[sub_resource type="AtlasTexture" id="AtlasTexture_uwvpc"]
 atlas = ExtResource("1_stasx")
-region = Rect2(32, 768, 32, 48)
+region = Rect2(32, 912, 32, 48)
 
-[sub_resource type="AtlasTexture" id="AtlasTexture_ywb30"]
+[sub_resource type="AtlasTexture" id="AtlasTexture_246qa"]
 atlas = ExtResource("1_stasx")
-region = Rect2(64, 768, 32, 48)
+region = Rect2(64, 912, 32, 48)
 
-[sub_resource type="AtlasTexture" id="AtlasTexture_ml8s1"]
+[sub_resource type="AtlasTexture" id="AtlasTexture_ei4pb"]
 atlas = ExtResource("1_stasx")
-region = Rect2(96, 768, 32, 48)
+region = Rect2(96, 912, 32, 48)
 
-[sub_resource type="AtlasTexture" id="AtlasTexture_ot2vp"]
+[sub_resource type="AtlasTexture" id="AtlasTexture_151jr"]
 atlas = ExtResource("1_stasx")
-region = Rect2(128, 768, 32, 48)
+region = Rect2(128, 912, 32, 48)
 
-[sub_resource type="AtlasTexture" id="AtlasTexture_ryp2t"]
+[sub_resource type="AtlasTexture" id="AtlasTexture_rei0x"]
 atlas = ExtResource("1_stasx")
-region = Rect2(160, 768, 32, 48)
+region = Rect2(160, 912, 32, 48)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_3kmic"]
 atlas = ExtResource("1_stasx")
@@ -954,22 +954,22 @@ animations = [{
 }, {
 "frames": [{
 "duration": 1.0,
-"texture": SubResource("AtlasTexture_nryl3")
+"texture": SubResource("AtlasTexture_hxalt")
 }, {
 "duration": 1.0,
-"texture": SubResource("AtlasTexture_s17xe")
+"texture": SubResource("AtlasTexture_uwvpc")
 }, {
 "duration": 1.0,
-"texture": SubResource("AtlasTexture_ywb30")
+"texture": SubResource("AtlasTexture_246qa")
 }, {
 "duration": 1.0,
-"texture": SubResource("AtlasTexture_ml8s1")
+"texture": SubResource("AtlasTexture_ei4pb")
 }, {
 "duration": 1.0,
-"texture": SubResource("AtlasTexture_ot2vp")
+"texture": SubResource("AtlasTexture_151jr")
 }, {
 "duration": 1.0,
-"texture": SubResource("AtlasTexture_ryp2t")
+"texture": SubResource("AtlasTexture_rei0x")
 }],
 "loop": true,
 "name": &"run_east",
@@ -1148,7 +1148,7 @@ shape = SubResource("CapsuleShape2D_wynde")
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
 sprite_frames = SubResource("SpriteFrames_stikj")
-animation = &"idle_south"
+animation = &"run_south_east"
 
 [node name="Camera2D" type="Camera2D" parent="."]
 process_callback = 0
