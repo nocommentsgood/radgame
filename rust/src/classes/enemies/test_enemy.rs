@@ -1,11 +1,15 @@
-use godot::prelude::*;
+use godot::{
+    classes::{CharacterBody2D, PhysicsBody2D},
+    prelude::*,
+};
 
-use crate::traits::{
-    character_resources::CharacterResources, damageable::Damageable, damaging::Damaging,
+use crate::{
+    components::state_machines::enemy_state::EnemyState,
+    traits::{character_resources::CharacterResources, damageable::Damageable, damaging::Damaging},
 };
 
 #[derive(GodotClass)]
-#[class(init, base=Node2D)]
+#[class(init, base=CharacterBody2D)]
 pub struct TestEnemy {
     #[var]
     speed: real,
@@ -15,7 +19,14 @@ pub struct TestEnemy {
     energy: i32,
     #[var]
     mana: i32,
-    base: Base<Node2D>,
+    state: EnemyState,
+    base: Base<CharacterBody2D>,
+}
+
+#[godot_api]
+impl TestEnemy {
+    #[func]
+    fn on_body_entered(&mut self, body: Gd<PhysicsBody2D>) {}
 }
 
 #[godot_dyn]
