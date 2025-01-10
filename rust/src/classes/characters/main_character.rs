@@ -1,6 +1,7 @@
 use godot::{
     classes::{
-        AnimatedSprite2D, CharacterBody2D, CollisionShape2D, ICharacterBody2D, InputEvent, Timer,
+        AnimatedSprite2D, AnimationPlayer, CharacterBody2D, CollisionShape2D, ICharacterBody2D,
+        InputEvent, Timer,
     },
     prelude::*,
 };
@@ -79,9 +80,11 @@ impl ICharacterBody2D for MainCharacter {
         let animation = self.get_movement_animation();
         let mut animate = self
             .base_mut()
-            .get_node_as::<AnimatedSprite2D>("AnimatedSprite2D");
+            .get_node_as::<AnimationPlayer>("AnimationPlayer");
 
+        godot_print!("Animation is: {}", animation);
         animate.play_ex().name(&animation).done();
+        animate.advance(0.0);
     }
 }
 
