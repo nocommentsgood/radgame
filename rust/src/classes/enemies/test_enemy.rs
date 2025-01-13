@@ -33,12 +33,46 @@ pub struct TestEnemy {
 
 #[godot_api]
 impl ICharacterBody2D for TestEnemy {
-    fn physics_process(&mut self, delta: f64) {}
+    fn physics_process(&mut self, delta: f64) {
+        let idle_vel = Vector2::ZERO;
+        let left_vel = Vector2::LEFT;
+        let right_vel = Vector2::RIGHT;
+        let mut tree = self.base().get_tree().unwrap();
+
+        self.run(left_vel);
+        tree.create_timer_ex(3.0).process_in_physics(true).done();
+        self.run(right_vel);
+        tree.create_timer_ex(3.0).process_in_physics(true).done();
+    }
 }
 
+#[godot_api]
 impl TestEnemy {
+    fn get_movement_animation(&mut self) -> String {
+        let dir = self.direction.to_string();
+        let mut state = self.state.to_string();
+
+        state.push('_');
+        format!("{}{}", state, dir)
+    }
+
     fn set_direction(&mut self) {
         self.direction = MainCharacter::get_direction(self.base().get_velocity());
+    }
+
+    fn run(&mut self, vel: Vector2) {
+        if vel.length() == 0.0 {
+            self.velocity = vel;
+            self.state = CharacterState::Idle;
+            return;
+        }
+
+        if vel.x != 0.0 {
+            self.velocity = vel;
+            self.base_mut().set_velocity(vel);
+            self.set_direction();
+            self.base_mut().move_and_slide();
+        }
     }
 }
 
