@@ -1,5 +1,5 @@
 use godot::{
-    classes::{CharacterBody2D, ICharacterBody2D},
+    classes::{AnimationPlayer, CharacterBody2D, ICharacterBody2D, Timer},
     prelude::*,
 };
 
@@ -23,8 +23,10 @@ pub struct TestEnemy {
     energy: i32,
     #[var]
     mana: i32,
-
     velocity: Vector2,
+
+    #[init(node = "MovementTimer")]
+    movement_timer: OnReady<Gd<Timer>>,
     running_speed: real,
     direction: Directions,
     state: CharacterState,
@@ -37,12 +39,18 @@ impl ICharacterBody2D for TestEnemy {
         let idle_vel = Vector2::ZERO;
         let left_vel = Vector2::LEFT;
         let right_vel = Vector2::RIGHT;
-        let mut tree = self.base().get_tree().unwrap();
 
-        self.run(left_vel);
-        tree.create_timer_ex(3.0).process_in_physics(true).done();
+        self.run(left_vel * self.running_speed * delta as f32);
+        self.set_direction();
+        self.get_movement_animation();
+        let animation = self.get_movement_animation();
+        let mut animate = self
+            .base_mut()
+            .get_node_as::<AnimationPlayer>("AnimationPlayer");
+        animate.set_name(&animation);
+        animate.play();
+        self.movement_timer.start();
         self.run(right_vel);
-        tree.create_timer_ex(3.0).process_in_physics(true).done();
     }
 }
 

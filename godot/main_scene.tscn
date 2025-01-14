@@ -1,6 +1,7 @@
-[gd_scene load_steps=4 format=3 uid="uid://csphx4r51adby"]
+[gd_scene load_steps=5 format=3 uid="uid://csphx4r51adby"]
 
 [ext_resource type="PackedScene" uid="uid://cypfxvpiapsp3" path="res://ground.tscn" id="2_ainao"]
+[ext_resource type="PackedScene" uid="uid://dmnvgp7j5vtfe" path="res://main_character.tscn" id="3_1gilh"]
 [ext_resource type="PackedScene" uid="uid://dahemnxsu0h7e" path="res://mage_character.tscn" id="3_yvdbk"]
 
 [sub_resource type="Environment" id="Environment_2k8wa"]
@@ -19,3 +20,6 @@ environment = SubResource("Environment_2k8wa")
 [node name="MainCharacter2" parent="WorldEnvironment" instance=ExtResource("3_yvdbk")]
 running_speed = 10000.0
 dodging_speed = 20000.0
+
+[node name="MainCharacter3" parent="WorldEnvironment" instance=ExtResource("3_1gilh")]
+position = Vector2(27, 38)
