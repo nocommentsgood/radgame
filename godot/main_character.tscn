@@ -1,16 +1,10 @@
 [gd_scene load_steps=12 format=3 uid="uid://dmnvgp7j5vtfe"]
 
-[ext_resource type="Texture2D" uid="uid://jajkhxvbqumn" path="res://assets/entities/knight/Run.png" id="1_6d32q"]
-[ext_resource type="Texture2D" uid="uid://c0yvk1ca22cd" path="res://assets/entities/knight/Idle.png" id="2_0wqo3"]
+[ext_resource type="Texture2D" uid="uid://b0k1fkx7kbnhr" path="res://assets/entities/knight/Run.png" id="1_6d32q"]
+[ext_resource type="Texture2D" uid="uid://dpytylkjc34ng" path="res://assets/entities/knight/Idle.png" id="2_0wqo3"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_eqfgp"]
 size = Vector2(23, 43)
-
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_h3pvi"]
-size = Vector2(22, 41)
-
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_rmm8n"]
-size = Vector2(20, 42)
 
 [sub_resource type="Animation" id="Animation_wk0bb"]
 length = 0.001
@@ -67,6 +61,18 @@ tracks/0/keys = {
 "transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1),
 "update": 1,
 "values": [0, 1, 2, 3, 4, 5, 6, 7]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Sprite2D:flip_h")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [false]
 }
 
 [sub_resource type="Animation" id="Animation_crsdf"]
@@ -140,6 +146,18 @@ tracks/1/keys = {
 "update": 1,
 "values": [0, 1, 2, 3, 4, 5, 6, 7]
 }
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("Sprite2D:flip_h")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [false]
+}
 
 [sub_resource type="Animation" id="Animation_8huyo"]
 resource_name = "run_west"
@@ -192,7 +210,13 @@ _data = {
 "run_west": SubResource("Animation_8huyo")
 }
 
-[node name="MainCharacter2" type="TestEnemy"]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_h3pvi"]
+size = Vector2(22, 41)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_rmm8n"]
+size = Vector2(20, 42)
+
+[node name="TestEnemy" type="TestEnemy"]
 position = Vector2(394, 200)
 motion_mode = 1
 slide_on_ceiling = false
@@ -202,6 +226,16 @@ platform_on_leave = 2
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 position = Vector2(0.5, 9.5)
 shape = SubResource("RectangleShape2D_eqfgp")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+texture = ExtResource("1_6d32q")
+hframes = 2
+vframes = 4
+
+[node name="AnimationPlayer2" type="AnimationPlayer" parent="."]
+libraries = {
+"": SubResource("AnimationLibrary_o5fgf")
+}
 
 [node name="Camera2D" type="Camera2D" parent="."]
 zoom = Vector2(2, 2)
@@ -222,16 +256,6 @@ disabled = true
 position = Vector2(23, 11)
 shape = SubResource("RectangleShape2D_rmm8n")
 disabled = true
-
-[node name="Sprite2D" type="Sprite2D" parent="."]
-texture = ExtResource("1_6d32q")
-hframes = 2
-vframes = 4
-
-[node name="AnimationPlayer" type="AnimationPlayer" parent="."]
-libraries = {
-"": SubResource("AnimationLibrary_o5fgf")
-}
 
 [node name="MovementTimer" type="Timer" parent="."]
 process_callback = 0

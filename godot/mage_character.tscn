@@ -486,13 +486,13 @@ one_shot = true
 process_callback = 0
 one_shot = true
 
+[node name="Sprite2D" type="Sprite2D" parent="."]
+texture = ExtResource("1_stasx")
+hframes = 6
+vframes = 24
+
 [node name="AnimationPlayer" type="AnimationPlayer" parent="."]
 callback_mode_process = 0
 libraries = {
 "": SubResource("AnimationLibrary_5u0ap")
 }
-
-[node name="Sprite2D" type="Sprite2D" parent="."]
-texture = ExtResource("1_stasx")
-hframes = 6
-vframes = 24

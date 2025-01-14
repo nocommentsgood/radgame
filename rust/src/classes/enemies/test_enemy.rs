@@ -25,6 +25,9 @@ pub struct TestEnemy {
     mana: i32,
     velocity: Vector2,
 
+    #[init(node = "AnimationPlayer2")]
+    animation_player: OnReady<Gd<AnimationPlayer>>,
+
     #[init(node = "MovementTimer")]
     movement_timer: OnReady<Gd<Timer>>,
     running_speed: real,
@@ -46,11 +49,16 @@ impl ICharacterBody2D for TestEnemy {
         let animation = self.get_movement_animation();
         let mut animate = self
             .base_mut()
-            .get_node_as::<AnimationPlayer>("AnimationPlayer");
-        animate.set_name(&animation);
-        animate.play();
-        self.movement_timer.start();
+            .get_node_as::<AnimationPlayer>("AnimationPlayer2");
+        animate.play_ex().name(&animation).done();
         self.run(right_vel);
+
+        self.velocity = idle_vel;
+        self.set_direction();
+        self.get_movement_animation();
+        let animation = self.get_movement_animation();
+        animate.play_ex().name(&animation).done();
+        self.run(idle_vel);
     }
 }
 
@@ -65,7 +73,7 @@ impl TestEnemy {
     }
 
     fn set_direction(&mut self) {
-        self.direction = MainCharacter::get_direction(self.base().get_velocity());
+        self.direction = Directions::get_direction_from_velocity(self.base().get_velocity());
     }
 
     fn run(&mut self, vel: Vector2) {
@@ -81,6 +89,8 @@ impl TestEnemy {
             self.set_direction();
             self.base_mut().move_and_slide();
         }
+
+        self.movement_timer.start();
     }
 }
 
