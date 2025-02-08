@@ -48,7 +48,7 @@ impl InputHandler {
 
         if vel.length() != 0.0 {
             Event::Wasd {
-                velocity: vel,
+                velocity: vel.normalized(),
                 delta,
             }
         } else {
