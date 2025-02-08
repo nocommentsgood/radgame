@@ -62,14 +62,28 @@ impl ICharacterBody2D for MainCharacter {
             state = temp_state;
         }
         self.state = state;
+        self.update_animation();
     }
 }
 
 #[godot_api]
 impl MainCharacter {
-    fn update_animation(&self) {
-        let direction = Directions::from_velocity(&self.get_velocity());
-        let state = self.state.state().to_string();
+    fn get_current_animation(&self) -> String {
+        let direction = Directions::from_velocity(&self.get_velocity()).to_string();
+        let mut state = self.state.state().to_string();
+        state.push('_');
+
+        format!("{}{}", state, direction)
+    }
+
+    fn update_animation(&mut self) {
+        let mut animation_player = self
+            .base()
+            .get_node_as::<AnimationPlayer>("AnimationPlayer");
+
+        let animation = self.get_current_animation();
+
+        animation_player.play_ex().name(&animation).done();
     }
 }
 
