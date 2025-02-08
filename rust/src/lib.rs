@@ -6,11 +6,11 @@ mod classes {
 }
 
 mod components {
-    mod managers;
+    pub mod managers;
     pub mod state_machines;
 }
-mod traits;
 
+mod traits;
 struct MyExtension;
 
 #[gdextension]

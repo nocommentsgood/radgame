@@ -21,5 +21,5 @@ environment = SubResource("Environment_2k8wa")
 running_speed = 10000.0
 dodging_speed = 20000.0
 
-[node name="MainCharacter3" parent="WorldEnvironment" instance=ExtResource("3_1gilh")]
+[node name="TestEnemy" parent="WorldEnvironment" instance=ExtResource("3_1gilh")]
 position = Vector2(27, 38)
