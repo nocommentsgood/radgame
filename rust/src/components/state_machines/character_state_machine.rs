@@ -10,6 +10,22 @@ pub struct CharacterStateMachine {
     just_dodged: bool,
 }
 
+impl std::fmt::Display for State {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            State::Dodging {
+                velocity: _,
+                delta: _,
+            } => write!(f, "run"),
+            State::Moving {
+                velocity: _,
+                delta: _,
+            } => write!(f, "run"),
+            State::Idle {} => write!(f, "idle"),
+        }
+    }
+}
+
 #[derive(Debug)]
 pub enum Event {
     Wasd { velocity: Vector2, delta: f64 },

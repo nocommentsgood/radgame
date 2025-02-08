@@ -3,11 +3,12 @@ use godot::{
     obj::WithBaseField,
     prelude::*,
 };
+use statig::prelude::IntoStateMachineExt;
 
 use crate::{
     components::{
         managers::input_hanlder::InputHandler,
-        state_machines::character_state_machine::CharacterStateMachine,
+        state_machines::{character_state_machine::CharacterStateMachine, movements::Directions},
     },
     traits::components::character_components::{
         character_resources::CharacterResources, damageable::Damageable, damaging::Damaging,
@@ -66,14 +67,9 @@ impl ICharacterBody2D for MainCharacter {
 
 #[godot_api]
 impl MainCharacter {
-    fn get_animation(&self) {
-        let mut animate = self
-            .base()
-            .get_node_as::<AnimationPlayer>("AnimationPlayer");
-        let animation = "idle_east";
-
-        animate.play_ex().name(animation).done();
-        animate.advance(0.0);
+    fn update_animation(&self) {
+        let direction = Directions::from_velocity(&self.get_velocity());
+        let state = self.state.state().to_string();
     }
 }
 
