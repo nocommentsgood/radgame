@@ -1,7 +1,7 @@
 [gd_scene load_steps=12 format=3 uid="uid://dmnvgp7j5vtfe"]
 
-[ext_resource type="Texture2D" uid="uid://b0k1fkx7kbnhr" path="res://assets/entities/knight/Run.png" id="1_6d32q"]
-[ext_resource type="Texture2D" uid="uid://dpytylkjc34ng" path="res://assets/entities/knight/Idle.png" id="2_0wqo3"]
+[ext_resource type="Texture2D" uid="uid://jajkhxvbqumn" path="res://assets/entities/knight/Run.png" id="1_6d32q"]
+[ext_resource type="Texture2D" uid="uid://c0yvk1ca22cd" path="res://assets/entities/knight/Idle.png" id="2_0wqo3"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_eqfgp"]
 size = Vector2(23, 43)
