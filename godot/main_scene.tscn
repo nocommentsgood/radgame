@@ -18,8 +18,6 @@ environment = SubResource("Environment_2k8wa")
 [node name="TileMapLayer" parent="WorldEnvironment" instance=ExtResource("2_ainao")]
 
 [node name="MainCharacter2" parent="WorldEnvironment" instance=ExtResource("3_yvdbk")]
-running_speed = 10000.0
-dodging_speed = 20000.0
 
 [node name="TestEnemy" parent="WorldEnvironment" instance=ExtResource("3_1gilh")]
 position = Vector2(27, 38)

@@ -3,7 +3,6 @@ use godot::{
     obj::WithBaseField,
     prelude::*,
 };
-use statig::prelude::IntoStateMachineExt;
 
 use crate::{
     components::{
@@ -19,20 +18,23 @@ use crate::{
 #[class(init, base=CharacterBody2D)]
 pub struct MainCharacter {
     #[export]
-    #[init(val = 7000.0)]
+    #[init(val = 60.0)]
     running_speed: real,
     #[export]
-    #[init(val = 5000.0)]
+    #[init(val = 30.0)]
     walking_speed: real,
     #[export]
     #[init(val = 3500.0)]
     attacking_speed: real,
     #[export]
-    #[init(val = 7000.0)]
+    #[init(val = 80.0)]
     dodging_speed: real,
-    #[init(node = "DodgingTimer")]
     #[var]
+    #[init(node = "DodgingCooldownTimer")]
     dodging_cooldown_timer: OnReady<Gd<Timer>>,
+    #[var]
+    #[init(node = "DodgingAnimationTimer")]
+    dodging_animation_timer: OnReady<Gd<Timer>>,
     #[var]
     velocity: Vector2,
     #[var]

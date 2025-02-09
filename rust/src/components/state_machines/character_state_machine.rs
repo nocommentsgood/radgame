@@ -5,8 +5,7 @@ use crate::classes::characters::main_character::MainCharacter;
 
 #[derive(Default, Debug, Clone)]
 pub struct CharacterStateMachine {
-    running_speed: godot::builtin::real,
-    dodging_speed: godot::builtin::real,
+    dodge_animation_timer: f64,
     just_dodged: bool,
 }
 
@@ -47,7 +46,7 @@ impl CharacterStateMachine {
         }
     }
 
-    #[state(entry_action = "entered_moving")]
+    #[state]
     fn moving(
         &self,
         velocity: &Vector2,
@@ -55,8 +54,11 @@ impl CharacterStateMachine {
         event: &Event,
         context: &mut Gd<MainCharacter>,
     ) -> Response<State> {
+        let speed = context.bind().get_running_speed();
+        let vel = velocity;
+        let total = velocity.to_owned() * speed;
         context.bind_mut().set_velocity(velocity.to_owned());
-        context.set_velocity(velocity.to_owned() * self.running_speed * delta.to_owned() as f32);
+        context.set_velocity(velocity.to_owned() * speed);
         context.move_and_slide();
 
         match event {
@@ -72,35 +74,38 @@ impl CharacterStateMachine {
         }
     }
 
-    #[action]
-    fn entered_moving(&mut self) {
-        self.running_speed = 7000.0;
-    }
-
     #[state(entry_action = "entered_dodging", exit_action = "leaving_dodging")]
     fn dodging(
-        &self,
+        &mut self,
         event: &Event,
         velocity: &Vector2,
         delta: &f64,
         context: &mut Gd<MainCharacter>,
     ) -> Response<State> {
-        let mut time = 2.0;
-        while time > 0.0 {
-            context
-                .set_velocity(velocity.to_owned() * self.dodging_speed * delta.to_owned() as f32);
+        let mut cooldown_timer = context.bind_mut().get_dodging_cooldown_timer();
+
+        if cooldown_timer.get_time_left() > 0.0 {
+            Response::Transition(State::moving(*velocity, *delta))
+        } else {
+            let speed = context.bind().get_dodging_speed();
+
+            context.set_velocity(velocity.to_owned() * speed);
             context.move_and_slide();
-            time -= delta;
-        }
-        let mut cooldown = context.bind_mut().get_dodging_cooldown_timer();
-        cooldown.start();
-        match event {
-            Event::None => Response::Transition(State::idle()),
-            Event::Wasd {
-                velocity: vel,
-                delta,
-            } => Response::Transition(State::moving(*vel, *delta)),
-            _ => Handled,
+            self.dodge_animation_timer -= delta;
+
+            if self.dodge_animation_timer <= 0.0 {
+                cooldown_timer.start();
+                match event {
+                    Event::None => Response::Transition(State::idle()),
+                    Event::Wasd {
+                        velocity: vel,
+                        delta,
+                    } => Response::Transition(State::moving(*vel, *delta)),
+                    _ => Handled,
+                }
+            } else {
+                Handled
+            }
         }
     }
 
@@ -112,6 +117,6 @@ impl CharacterStateMachine {
     #[action]
     fn entered_dodging(&mut self) {
         self.just_dodged = true;
-        self.dodging_speed = 500.0;
+        self.dodge_animation_timer = 0.7;
     }
 }
