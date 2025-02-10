@@ -33,8 +33,8 @@ pub struct MainCharacter {
     #[init(node = "DodgingCooldownTimer")]
     dodging_cooldown_timer: OnReady<Gd<Timer>>,
     #[var]
-    #[init(node = "DodgingAnimationTimer")]
-    dodging_animation_timer: OnReady<Gd<Timer>>,
+    #[init(val = OnReady::manual())]
+    dodging_animation_timer: OnReady<f64>,
     #[var]
     velocity: Vector2,
     #[var]
@@ -45,12 +45,32 @@ pub struct MainCharacter {
     mana: i32,
     #[init(node = "AttackAnimationTimer")]
     attack_timer: OnReady<Gd<Timer>>,
+    #[var]
+    #[init(node = "AnimationPlayer")]
+    animation_player: OnReady<Gd<AnimationPlayer>>,
     state: statig::blocking::StateMachine<CharacterStateMachine>,
     base: Base<CharacterBody2D>,
 }
 
 #[godot_api]
 impl ICharacterBody2D for MainCharacter {
+    fn ready(&mut self) {
+        // TODO: In the future, this will be a dodging animation.
+        // Currently we just use the running animation.
+        //
+        // Dodging animations, independent of cardinal direction, are all of the same length.
+        // Therefore, it is acceptable to use the length of any dodging animation.
+        // East was arbitrarily chosen.
+        let dodge_animation_time = self
+            .get_animation_player()
+            .get_animation("run_east")
+            .unwrap()
+            .get_length();
+
+        self.dodging_animation_timer
+            .init(dodge_animation_time as f64);
+    }
+
     fn physics_process(&mut self, delta: f64) {
         let input = Input::singleton();
         let event = InputHandler::to_event(&input, &delta);
@@ -70,6 +90,14 @@ impl ICharacterBody2D for MainCharacter {
 
 #[godot_api]
 impl MainCharacter {
+    pub fn reset_dodging_animation_timer(&mut self) {
+        let dodge_animation_time = self
+            .get_animation_player()
+            .get_animation("run_east")
+            .unwrap()
+            .get_length();
+        self.set_dodging_animation_timer(dodge_animation_time as f64);
+    }
     fn get_current_animation(&self) -> String {
         let direction = Directions::from_velocity(&self.get_velocity()).to_string();
         let mut state = self.state.state().to_string();
@@ -79,13 +107,9 @@ impl MainCharacter {
     }
 
     fn update_animation(&mut self) {
-        let mut animation_player = self
-            .base()
-            .get_node_as::<AnimationPlayer>("AnimationPlayer");
-
         let animation = self.get_current_animation();
 
-        animation_player.play_ex().name(&animation).done();
+        self.animation_player.play_ex().name(&animation).done();
     }
 }
 

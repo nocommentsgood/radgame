@@ -4,10 +4,7 @@ use statig::blocking::*;
 use crate::classes::characters::main_character::MainCharacter;
 
 #[derive(Default, Debug, Clone)]
-pub struct CharacterStateMachine {
-    dodge_animation_timer: f64,
-    just_dodged: bool,
-}
+pub struct CharacterStateMachine;
 
 impl std::fmt::Display for State {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -55,8 +52,6 @@ impl CharacterStateMachine {
         context: &mut Gd<MainCharacter>,
     ) -> Response<State> {
         let speed = context.bind().get_running_speed();
-        let vel = velocity;
-        let total = velocity.to_owned() * speed;
         context.bind_mut().set_velocity(velocity.to_owned());
         context.set_velocity(velocity.to_owned() * speed);
         context.move_and_slide();
@@ -74,7 +69,7 @@ impl CharacterStateMachine {
         }
     }
 
-    #[state(entry_action = "entered_dodging", exit_action = "leaving_dodging")]
+    #[state]
     fn dodging(
         &mut self,
         event: &Event,
@@ -83,17 +78,18 @@ impl CharacterStateMachine {
         context: &mut Gd<MainCharacter>,
     ) -> Response<State> {
         let mut cooldown_timer = context.bind_mut().get_dodging_cooldown_timer();
-
         if cooldown_timer.get_time_left() > 0.0 {
             Response::Transition(State::moving(*velocity, *delta))
         } else {
             let speed = context.bind().get_dodging_speed();
+            let time = context.bind().get_dodging_animation_timer();
 
             context.set_velocity(velocity.to_owned() * speed);
             context.move_and_slide();
-            self.dodge_animation_timer -= delta;
+            context.bind_mut().set_dodging_animation_timer(time - delta);
 
-            if self.dodge_animation_timer <= 0.0 {
+            if time <= 0.0 {
+                context.bind_mut().reset_dodging_animation_timer();
                 cooldown_timer.start();
                 match event {
                     Event::None => Response::Transition(State::idle()),
@@ -107,16 +103,5 @@ impl CharacterStateMachine {
                 Handled
             }
         }
-    }
-
-    #[action]
-    fn leaving_dodging(&mut self) {
-        self.just_dodged = true;
-    }
-
-    #[action]
-    fn entered_dodging(&mut self) {
-        self.just_dodged = true;
-        self.dodge_animation_timer = 0.7;
     }
 }
