@@ -39,14 +39,14 @@ impl InputHandler {
         if input.is_action_pressed("south") {
             vel += Vector2::DOWN;
         }
-        if input.is_action_pressed("dodge") {
+        if input.is_action_just_pressed("dodge") && vel.length() > 0.0 {
             return Event::DodgeButton {
-                velocity: vel,
+                velocity: vel.normalized(),
                 delta,
             };
         }
 
-        if vel.length() != 0.0 {
+        if vel.length() > 0.0 {
             Event::Wasd {
                 velocity: vel.normalized(),
                 delta,
