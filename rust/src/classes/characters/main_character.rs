@@ -14,6 +14,10 @@ use crate::{
     },
 };
 
+type Event = crate::components::state_machines::character_state_machine::Event;
+type State = crate::components::state_machines::character_state_machine::State;
+type Response<S> = statig::blocking::Response<S>;
+
 #[derive(GodotClass)]
 #[class(init, base=CharacterBody2D)]
 pub struct MainCharacter {
@@ -90,6 +94,34 @@ impl ICharacterBody2D for MainCharacter {
 
 #[godot_api]
 impl MainCharacter {
+    pub fn dodge(&mut self, event: &Event, velocity: Vector2, delta: f64) -> State {
+        let mut cooldown_timer = self.get_dodging_cooldown_timer();
+        if cooldown_timer.get_time_left() > 0.0 {
+            State::Moving { velocity, delta }
+        } else {
+            let speed = self.get_dodging_speed();
+            let time = self.get_dodging_animation_timer();
+
+            self.base_mut().set_velocity(velocity.to_owned() * speed);
+            self.base_mut().move_and_slide();
+            self.set_dodging_animation_timer(time - delta);
+
+            if time <= 0.0 {
+                self.reset_dodging_animation_timer();
+                cooldown_timer.start();
+                match event {
+                    Event::None => State::Idle {},
+                    Event::Wasd { velocity, delta } => State::Moving {
+                        velocity: *velocity,
+                        delta: *delta,
+                    },
+                    _ => State::Handle {},
+                }
+            } else {
+                State::Handle {}
+            }
+        }
+    }
     pub fn reset_dodging_animation_timer(&mut self) {
         let dodge_animation_time = self
             .get_animation_player()
