@@ -1,5 +1,5 @@
 use godot::{
-    classes::{AnimationPlayer, CharacterBody2D, ICharacterBody2D, Timer},
+    classes::{AnimationPlayer, CharacterBody2D, CollisionShape2D, ICharacterBody2D, Timer},
     obj::WithBaseField,
     prelude::*,
 };
@@ -16,7 +16,6 @@ use crate::{
 
 type Event = crate::components::state_machines::character_state_machine::Event;
 type State = crate::components::state_machines::character_state_machine::State;
-type Response<S> = statig::blocking::Response<S>;
 
 #[derive(GodotClass)]
 #[class(init, base=CharacterBody2D)]
@@ -79,15 +78,9 @@ impl ICharacterBody2D for MainCharacter {
         let input = Input::singleton();
         let event = InputHandler::to_event(&input, &delta);
 
-        let mut state = self.state.clone();
-        {
-            let mut temp_state = self.state.clone();
-            let mut context = self.to_gd();
-            let _guard = self.base_mut();
-            temp_state.handle_with_context(&event, &mut context);
-            state = temp_state;
-        }
-        self.state = state;
+        let mut temp_state = self.state.clone();
+        temp_state.handle_with_context(&event, self);
+        self.state = temp_state;
         self.update_animation();
     }
 }
@@ -101,12 +94,17 @@ impl MainCharacter {
         } else {
             let speed = self.get_dodging_speed();
             let time = self.get_dodging_animation_timer();
+            let mut hitbox = self
+                .base()
+                .get_node_as::<CollisionShape2D>("CollisionShape2D");
 
+            hitbox.set_disabled(true);
             self.base_mut().set_velocity(velocity.to_owned() * speed);
             self.base_mut().move_and_slide();
             self.set_dodging_animation_timer(time - delta);
 
             if time <= 0.0 {
+                hitbox.set_disabled(false);
                 self.reset_dodging_animation_timer();
                 cooldown_timer.start();
                 match event {
@@ -122,6 +120,27 @@ impl MainCharacter {
             }
         }
     }
+
+    pub fn move_character(&mut self, event: &Event, velocity: Vector2, _delta: f64) -> State {
+        let speed = self.running_speed;
+        self.set_velocity(velocity);
+        self.base_mut().set_velocity(velocity * speed);
+        self.base_mut().move_and_slide();
+
+        match event {
+            Event::Wasd { velocity, delta } => State::Moving {
+                velocity: *velocity,
+                delta: *delta,
+            },
+            Event::DodgeButton { velocity, delta } => State::Dodging {
+                velocity: *velocity,
+                delta: *delta,
+            },
+            Event::None => State::Idle {},
+            _ => State::Handle {},
+        }
+    }
+
     pub fn reset_dodging_animation_timer(&mut self) {
         let dodge_animation_time = self
             .get_animation_player()

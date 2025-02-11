@@ -1,4 +1,4 @@
-use godot::{builtin::Vector2, obj::Gd};
+use godot::builtin::Vector2;
 use statig::blocking::*;
 
 use crate::classes::characters::main_character::MainCharacter;
@@ -18,6 +18,7 @@ impl std::fmt::Display for State {
                 delta: _,
             } => write!(f, "run"),
             State::Idle {} => write!(f, "idle"),
+            State::Handle {} => write!(f, "handled"),
         }
     }
 }
@@ -33,44 +34,39 @@ pub enum Event {
 #[state_machine(initial = "State::idle()", state(derive(Debug, Clone)))]
 impl CharacterStateMachine {
     #[state]
-    pub fn idle(event: &Event) -> Response<State> {
+    fn idle(event: &Event) -> Response<State> {
         match event {
             Event::Wasd {
                 velocity: vel,
                 delta,
             } => Response::Transition(State::moving(*vel, *delta)),
-            _ => Handled,
+            _ => statig::prelude::Handled,
         }
     }
 
     #[state]
-    pub fn moving(
+    fn moving(
         &self,
+        event: &Event,
         velocity: &Vector2,
         delta: &f64,
-        event: &Event,
         context: &mut MainCharacter,
     ) -> Response<State> {
-        let speed = context.get_running_speed();
-        context.set_velocity(velocity.to_owned());
-        context.set_velocity(velocity.to_owned() * speed);
-        // context.move_and_slide();
-
-        match event {
-            Event::None => Response::Transition(State::idle()),
-            Event::Wasd {
-                velocity: vel,
-                delta,
-            } => Response::Transition(State::moving(*vel, *delta)),
-            Event::DodgeButton { velocity, delta } => {
-                Response::Transition(State::dodging(*velocity, *delta))
+        let response = context.move_character(event, *velocity, *delta);
+        match response {
+            State::Dodging { velocity, delta } => {
+                Response::Transition(State::dodging(velocity, delta))
             }
+            State::Moving { velocity, delta } => {
+                Response::Transition(State::moving(velocity, delta))
+            }
+            State::Idle {} => Response::Transition(State::idle()),
             _ => Handled,
         }
     }
 
     #[state]
-    pub fn dodging(
+    fn dodging(
         &mut self,
         event: &Event,
         velocity: &Vector2,
@@ -83,49 +79,15 @@ impl CharacterStateMachine {
             State::Dodging { velocity, delta } => {
                 Response::Transition(State::dodging(velocity, delta))
             }
-            State::Handle {} => Handled,
             State::Moving { velocity, delta } => {
                 Response::Transition(State::moving(velocity, delta))
             }
+            _ => Handled,
         }
     }
 
-    // #[state]
-    // pub fn dodging(
-    //     &mut self,
-    //     event: &Event,
-    //     velocity: &Vector2,
-    //     delta: &f64,
-    //     context: &mut Gd<MainCharacter>,
-    // ) -> Response<State> {
-    //     let mut cooldown_timer = context.bind_mut().get_dodging_cooldown_timer();
-    //     if cooldown_timer.get_time_left() > 0.0 {
-    //         Response::Transition(State::moving(*velocity, *delta))
-    //     } else {
-    //         let speed = context.bind().get_dodging_speed();
-    //         let time = context.bind().get_dodging_animation_timer();
-    //
-    //         context.set_velocity(velocity.to_owned() * speed);
-    //         context.move_and_slide();
-    //         context.bind_mut().set_dodging_animation_timer(time - delta);
-    //
-    //         if time <= 0.0 {
-    //             context.bind_mut().reset_dodging_animation_timer();
-    //             cooldown_timer.start();
-    //             match event {
-    //                 Event::None => Response::Transition(State::idle()),
-    //                 Event::Wasd {
-    //                     velocity: vel,
-    //                     delta,
-    //                 } => Response::Transition(State::moving(*vel, *delta)),
-    //                 _ => Handled,
-    //             }
-    //         } else {
-    //             Handled
-    //         }
-    //     }
-    // }
-
     #[state]
-    fn handle() {}
+    fn handle() -> Response<State> {
+        Handled
+    }
 }
