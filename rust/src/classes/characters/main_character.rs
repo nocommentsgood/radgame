@@ -67,7 +67,7 @@ impl ICharacterBody2D for MainCharacter {
         // East was arbitrarily chosen.
         let dodge_animation_time = self
             .get_animation_player()
-            .get_animation("run_east")
+            .get_animation("dodge_east")
             .unwrap()
             .get_length()
             / 1.5;
@@ -92,6 +92,8 @@ impl ICharacterBody2D for MainCharacter {
         let mut temp_state = self.state.clone();
         temp_state.handle_with_context(&event, self);
         self.state = temp_state;
+        let an = self.get_current_animation();
+        println!("ANIMATION IS: {}", an);
         self.update_animation();
     }
 }
@@ -170,10 +172,16 @@ impl MainCharacter {
                 velocity: *velocity,
                 delta: *delta,
             },
-            Event::DodgeButton { velocity, delta } => State::Dodging {
-                velocity: *velocity,
-                delta: *delta,
-            },
+            Event::DodgeButton { velocity, delta } => {
+                if self.get_dodging_cooldown_timer().get_time_left() <= 0.0 {
+                    State::Dodging {
+                        velocity: *velocity,
+                        delta: *delta,
+                    }
+                } else {
+                    State::Handle {}
+                }
+            }
             Event::None => State::Idle {},
             _ => State::Handle {},
         }
@@ -182,11 +190,12 @@ impl MainCharacter {
     pub fn reset_dodging_animation_timer(&mut self) {
         let dodge_animation_time = self
             .get_animation_player()
-            .get_animation("run_east")
+            .get_animation("dodge_east")
             .unwrap()
             .get_length();
         self.set_dodging_animation_timer(dodge_animation_time as f64);
     }
+
     fn get_current_animation(&self) -> String {
         let direction = Directions::from_velocity(&self.get_velocity()).to_string();
         let mut state = self.state.state().to_string();
@@ -199,6 +208,7 @@ impl MainCharacter {
         let animation = self.get_current_animation();
 
         self.animation_player.play_ex().name(&animation).done();
+        self.animation_player.advance(0.0);
     }
 }
 

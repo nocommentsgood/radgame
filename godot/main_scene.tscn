@@ -2,7 +2,7 @@
 
 [ext_resource type="PackedScene" uid="uid://cypfxvpiapsp3" path="res://ground.tscn" id="2_ainao"]
 [ext_resource type="PackedScene" uid="uid://dmnvgp7j5vtfe" path="res://main_character.tscn" id="3_1gilh"]
-[ext_resource type="PackedScene" uid="uid://dahemnxsu0h7e" path="res://mage_character.tscn" id="3_yvdbk"]
+[ext_resource type="PackedScene" uid="uid://5fcrp4sc1aqy" path="res://platformer_main_character.tscn" id="3_u6kov"]
 
 [sub_resource type="Environment" id="Environment_2k8wa"]
 background_mode = 2
@@ -17,7 +17,7 @@ environment = SubResource("Environment_2k8wa")
 
 [node name="TileMapLayer" parent="WorldEnvironment" instance=ExtResource("2_ainao")]
 
-[node name="MainCharacter2" parent="WorldEnvironment" instance=ExtResource("3_yvdbk")]
-
 [node name="TestEnemy" parent="WorldEnvironment" instance=ExtResource("3_1gilh")]
 position = Vector2(27, 38)
+
+[node name="MainCharacter" parent="WorldEnvironment" instance=ExtResource("3_u6kov")]

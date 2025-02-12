@@ -12,7 +12,7 @@ impl std::fmt::Display for State {
             State::Dodging {
                 velocity: _,
                 delta: _,
-            } => write!(f, "run"),
+            } => write!(f, "dodge"),
             State::Moving {
                 velocity: _,
                 delta: _,
