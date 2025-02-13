@@ -17,6 +17,7 @@ impl std::fmt::Display for State {
                 velocity: _,
                 delta: _,
             } => write!(f, "run"),
+            State::Attacking { velocity, delta } => write!(f, "attack"),
             State::Idle {} => write!(f, "idle"),
             State::Handle {} => write!(f, "handled"),
         }
@@ -84,6 +85,16 @@ impl CharacterStateMachine {
             }
             _ => Handled,
         }
+    }
+
+    #[state]
+    fn attacking(
+        event: &Event,
+        velocity: &Vector2,
+        delta: &f64,
+        context: &mut MainCharacter,
+    ) -> Response<State> {
+        todo!()
     }
 
     #[state]

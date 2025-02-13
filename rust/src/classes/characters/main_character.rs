@@ -27,7 +27,7 @@ pub struct MainCharacter {
     #[init(val = 30.0)]
     walking_speed: real,
     #[export]
-    #[init(val = 3500.0)]
+    #[init(val = 10.0)]
     attacking_speed: real,
     #[export]
     #[init(val = 80.0)]
@@ -46,8 +46,8 @@ pub struct MainCharacter {
     energy: i32,
     #[var]
     mana: i32,
-    #[init(node = "AttackAnimationTimer")]
-    attack_timer: OnReady<Gd<Timer>>,
+    #[init(val = OnReady::manual())]
+    attack_animation_timer: OnReady<f64>,
     #[var]
     #[init(node = "AnimationPlayer")]
     animation_player: OnReady<Gd<AnimationPlayer>>,
@@ -68,8 +68,18 @@ impl ICharacterBody2D for MainCharacter {
             .get_animation_player()
             .get_animation("run_east")
             .unwrap()
-            .get_length();
+            .get_length()
+            / 1.5;
 
+        let attack_animation_length = self
+            .get_animation_player()
+            .get_animation("attack_east_1")
+            .unwrap()
+            .get_length()
+            / 1.5;
+
+        self.attack_animation_timer
+            .init(attack_animation_length as f64);
         self.dodging_animation_timer
             .init(dodge_animation_time as f64);
     }
@@ -119,6 +129,13 @@ impl MainCharacter {
                 State::Handle {}
             }
         }
+    }
+
+    // TODO: should the character move when attacking?
+    pub fn attack(&mut self, event: &Event, velocity: Vector2, _delta: f64) -> State {
+        let speed = self.get_attacking_speed();
+        let hurtbox = self.base().get_node_as::<CollisionShape2D>("Hurtbox");
+        todo!()
     }
 
     pub fn move_character(&mut self, event: &Event, velocity: Vector2, _delta: f64) -> State {
