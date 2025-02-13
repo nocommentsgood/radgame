@@ -47,6 +47,7 @@ pub struct MainCharacter {
     #[var]
     mana: i32,
     #[init(val = OnReady::manual())]
+    #[var]
     attack_animation_timer: OnReady<f64>,
     #[var]
     #[init(node = "AnimationPlayer")]
@@ -131,11 +132,31 @@ impl MainCharacter {
         }
     }
 
-    // TODO: should the character move when attacking?
-    pub fn attack(&mut self, event: &Event, velocity: Vector2, _delta: f64) -> State {
+    pub fn attack(&mut self, event: &Event, velocity: Vector2, delta: f64) -> State {
         let speed = self.get_attacking_speed();
-        let hurtbox = self.base().get_node_as::<CollisionShape2D>("Hurtbox");
-        todo!()
+        let time = self.get_attack_animation_timer();
+
+        self.set_velocity(velocity);
+        self.base_mut().set_velocity(velocity * speed);
+        self.base_mut().move_and_slide();
+        self.set_attack_animation_timer(time - delta);
+
+        if time <= 0.0 {
+            match event {
+                Event::None => State::Idle {},
+                Event::Wasd { velocity, delta } => State::Moving {
+                    velocity: *velocity,
+                    delta: *delta,
+                },
+                Event::DodgeButton { velocity, delta } => State::Dodging {
+                    velocity: *velocity,
+                    delta: *delta,
+                },
+                _ => State::Handle {},
+            }
+        } else {
+            State::Handle {}
+        }
     }
 
     pub fn move_character(&mut self, event: &Event, velocity: Vector2, _delta: f64) -> State {
