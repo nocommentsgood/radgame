@@ -45,6 +45,12 @@ impl InputHandler {
                 delta,
             };
         }
+        if input.is_action_just_pressed("attack") {
+            return Event::AttackButton {
+                velocity: vel.normalized(),
+                delta,
+            };
+        }
 
         if vel.length() > 0.0 {
             Event::Wasd {

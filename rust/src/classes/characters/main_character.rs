@@ -92,8 +92,6 @@ impl ICharacterBody2D for MainCharacter {
         let mut temp_state = self.state.clone();
         temp_state.handle_with_context(&event, self);
         self.state = temp_state;
-        let an = self.get_current_animation();
-        println!("ANIMATION IS: {}", an);
         self.update_animation();
     }
 }
@@ -142,6 +140,7 @@ impl MainCharacter {
         self.set_attack_animation_timer(time - delta);
 
         if time <= 0.0 {
+            self.reset_attacking_animation_timer();
             match event {
                 Event::None => State::Idle {},
                 Event::Wasd { velocity, delta } => State::Moving {
@@ -170,6 +169,10 @@ impl MainCharacter {
                 velocity: *velocity,
                 delta: *delta,
             },
+            Event::AttackButton { velocity, delta } => State::Attacking {
+                velocity: *velocity,
+                delta: *delta,
+            },
             Event::DodgeButton { velocity, delta } => {
                 if self.get_dodging_cooldown_timer().get_time_left() <= 0.0 {
                     State::Dodging {
@@ -185,7 +188,17 @@ impl MainCharacter {
         }
     }
 
-    pub fn reset_dodging_animation_timer(&mut self) {
+    fn reset_attacking_animation_timer(&mut self) {
+        let attack_animation_time = self
+            .get_animation_player()
+            .get_animation("attack_east_1")
+            .unwrap()
+            .get_length()
+            / 1.5;
+        self.set_attack_animation_timer(attack_animation_time as f64);
+    }
+
+    fn reset_dodging_animation_timer(&mut self) {
         let dodge_animation_time = self
             .get_animation_player()
             .get_animation("dodge_east")
@@ -200,7 +213,13 @@ impl MainCharacter {
         let mut state = self.state.state().to_string();
         state.push('_');
 
-        format!("{}{}", state, direction)
+        let s = format!("{}{}", state, direction);
+
+        if s == "attack_east" || s == "attack_west" {
+            format!("{}{}{}", state, direction, "_1")
+        } else {
+            s
+        }
     }
 
     fn update_animation(&mut self) {

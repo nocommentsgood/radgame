@@ -28,7 +28,7 @@ impl std::fmt::Display for State {
 pub enum Event {
     Wasd { velocity: Vector2, delta: f64 },
     DodgeButton { velocity: Vector2, delta: f64 },
-    AttackButton,
+    AttackButton { velocity: Vector2, delta: f64 },
     None,
 }
 
@@ -60,6 +60,9 @@ impl CharacterStateMachine {
             }
             State::Moving { velocity, delta } => {
                 Response::Transition(State::moving(velocity, delta))
+            }
+            State::Attacking { velocity, delta } => {
+                Response::Transition(State::attacking(velocity, delta))
             }
             State::Idle {} => Response::Transition(State::idle()),
             _ => Handled,
@@ -94,7 +97,18 @@ impl CharacterStateMachine {
         delta: &f64,
         context: &mut MainCharacter,
     ) -> Response<State> {
-        todo!()
+        let response = context.attack(event, *velocity, *delta);
+
+        match response {
+            State::Moving { velocity, delta } => {
+                Response::Transition(State::moving(velocity, delta))
+            }
+            State::Idle {} => Response::Transition(State::idle()),
+            State::Dodging { velocity, delta } => {
+                Response::Transition(State::dodging(velocity, delta))
+            }
+            _ => Handled,
+        }
     }
 
     #[state]
