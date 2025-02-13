@@ -464,24 +464,6 @@ _data = {
 "run_west": SubResource("Animation_fkena")
 }
 
-[sub_resource type="Animation" id="Animation_o01iy"]
-resource_name = "run_west"
-length = 0.6
-loop_mode = 1
-step = 0.1
-tracks/0/type = "value"
-tracks/0/imported = false
-tracks/0/enabled = true
-tracks/0/path = NodePath("Sprite2D:frame")
-tracks/0/interp = 1
-tracks/0/loop_wrap = true
-tracks/0/keys = {
-"times": PackedFloat32Array(0, 0.1, 0.2, 0.3, 0.4, 0.5),
-"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1),
-"update": 1,
-"values": [42, 43, 44, 45, 46, 47]
-}
-
 [sub_resource type="Animation" id="Animation_6ndex"]
 resource_name = "RESET"
 length = 0.001
@@ -893,6 +875,24 @@ tracks/0/keys = {
 "values": [24, 25, 26, 27, 28, 29]
 }
 
+[sub_resource type="Animation" id="Animation_o01iy"]
+resource_name = "run_west"
+length = 0.6
+loop_mode = 1
+step = 0.1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite2D:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.1, 0.2, 0.3, 0.4, 0.5),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1),
+"update": 1,
+"values": [42, 43, 44, 45, 46, 47]
+}
+
 [sub_resource type="Animation" id="Animation_h45jx"]
 resource_name = "run_west"
 length = 0.6
@@ -953,6 +953,7 @@ position = Vector2(0, 6)
 shape = SubResource("CapsuleShape2D_wynde")
 
 [node name="Camera2D" type="Camera2D" parent="."]
+enabled = false
 zoom = Vector2(3, 3)
 process_callback = 0
 position_smoothing_enabled = true

@@ -59,13 +59,13 @@ pub struct MainCharacter {
 #[godot_api]
 impl ICharacterBody2D for MainCharacter {
     fn ready(&mut self) {
-        // TODO: In the future, this will be a dodging animation.
-        // Currently we just use the running animation.
+        // TODO: Find how to get tracks for specific animations.
+        // That way we can dynamically divide by scaling speed.
         //
         // Dodging animations, independent of cardinal direction, are all of the same length.
         // Therefore, it is acceptable to use the length of any dodging animation.
         // East was arbitrarily chosen.
-        let dodge_animation_time = self
+        let dodge_animation_length = self
             .get_animation_player()
             .get_animation("dodge_east")
             .unwrap()
@@ -82,7 +82,7 @@ impl ICharacterBody2D for MainCharacter {
         self.attack_animation_timer
             .init(attack_animation_length as f64);
         self.dodging_animation_timer
-            .init(dodge_animation_time as f64);
+            .init(dodge_animation_length as f64);
     }
 
     fn physics_process(&mut self, delta: f64) {
@@ -107,9 +107,7 @@ impl MainCharacter {
         } else {
             let speed = self.get_dodging_speed();
             let time = self.get_dodging_animation_timer();
-            let mut hitbox = self
-                .base()
-                .get_node_as::<CollisionShape2D>("CollisionShape2D");
+            let mut hitbox = self.base().get_node_as::<CollisionShape2D>("Hitbox");
 
             hitbox.set_disabled(true);
             self.base_mut().set_velocity(velocity.to_owned() * speed);
@@ -192,7 +190,8 @@ impl MainCharacter {
             .get_animation_player()
             .get_animation("dodge_east")
             .unwrap()
-            .get_length();
+            .get_length()
+            / 1.5;
         self.set_dodging_animation_timer(dodge_animation_time as f64);
     }
 
