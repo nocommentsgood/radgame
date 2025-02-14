@@ -13,6 +13,7 @@ pub struct TestEnemy {
     #[var]
     speed: real,
     #[var]
+    #[init(val = 20)]
     health: i32,
     #[var]
     energy: i32,
@@ -31,6 +32,11 @@ pub struct TestEnemy {
 
 #[godot_api]
 impl ICharacterBody2D for TestEnemy {
+    fn process(&mut self, delta: f64) {
+        if self.get_health() <= 0 {
+            self.base_mut().queue_free();
+        }
+    }
     // fn physics_process(&mut self, delta: f64) {
     //     let idle_vel = Vector2::ZERO;
     //     let left_vel = Vector2::LEFT;

@@ -17,7 +17,10 @@ impl std::fmt::Display for State {
                 velocity: _,
                 delta: _,
             } => write!(f, "run"),
-            State::Attacking { velocity, delta } => write!(f, "attack"),
+            State::Attacking {
+                velocity: _,
+                delta: _,
+            } => write!(f, "attack"),
             State::Idle {} => write!(f, "idle"),
             State::Handle {} => write!(f, "handled"),
         }
@@ -37,10 +40,12 @@ impl CharacterStateMachine {
     #[state]
     fn idle(event: &Event) -> Response<State> {
         match event {
-            Event::Wasd {
-                velocity: vel,
-                delta,
-            } => Response::Transition(State::moving(*vel, *delta)),
+            Event::Wasd { velocity, delta } => {
+                Response::Transition(State::moving(*velocity, *delta))
+            }
+            Event::AttackButton { velocity, delta } => {
+                Response::Transition(State::attacking(*velocity, *delta))
+            }
             _ => statig::prelude::Handled,
         }
     }

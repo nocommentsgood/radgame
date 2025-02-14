@@ -1,10 +1,13 @@
 use godot::{
-    classes::{AnimationPlayer, CharacterBody2D, CollisionShape2D, ICharacterBody2D, Timer},
+    classes::{
+        AnimationPlayer, Area2D, CharacterBody2D, CollisionShape2D, ICharacterBody2D, Timer,
+    },
     obj::WithBaseField,
     prelude::*,
 };
 
 use crate::{
+    classes::enemies::test_enemy::TestEnemy,
     components::{
         managers::input_hanlder::InputHandler,
         state_machines::{character_state_machine::CharacterStateMachine, movements::Directions},
@@ -130,9 +133,24 @@ impl MainCharacter {
         }
     }
 
+    // TODO: Since this function is called while the state is set to attacking, bodies have damaged
+    // applied to them multiple times while the Area2D is enabled. AnimationPlayer needs to only
+    // enable it for one frame.
     pub fn attack(&mut self, event: &Event, velocity: Vector2, delta: f64) -> State {
         let speed = self.get_attacking_speed();
         let time = self.get_attack_animation_timer();
+        let hurtbox = self.base().get_node_as::<Area2D>("Hurtboxes");
+        let bodies = hurtbox.get_overlapping_bodies();
+
+        for body in bodies.iter_shared() {
+            if let Ok(enemy) = body.try_cast::<TestEnemy>() {
+                let mut dyn_enemy = enemy.into_dyn::<dyn Damageable>();
+                let mut bind_enemy = dyn_enemy.dyn_bind_mut();
+                println!("Health before damaging: {}", bind_enemy.get_health());
+                bind_enemy.take_damage(10);
+                println!("Health after damaging: {}", bind_enemy.get_health());
+            }
+        }
 
         self.set_velocity(velocity);
         self.base_mut().set_velocity(velocity * speed);
