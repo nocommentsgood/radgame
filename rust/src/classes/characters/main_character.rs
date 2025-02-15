@@ -49,6 +49,9 @@ pub struct MainCharacter {
     energy: i32,
     #[var]
     mana: i32,
+    #[var]
+    #[init(val = 10)]
+    attack_damage: i32,
     #[init(val = OnReady::manual())]
     #[var]
     attack_animation_timer: OnReady<f64>,
@@ -62,6 +65,8 @@ pub struct MainCharacter {
 #[godot_api]
 impl ICharacterBody2D for MainCharacter {
     fn ready(&mut self) {
+        self.connect_attack_signal();
+
         // TODO: Find how to get tracks for specific animations.
         // That way we can dynamically divide by scaling speed.
         //
@@ -133,24 +138,28 @@ impl MainCharacter {
         }
     }
 
+    fn connect_attack_signal(&mut self) {
+        let mut hurtbox = self.base().get_node_as::<Area2D>("Hurtboxes");
+        let callable = self.base().callable("on_attack_made_collision");
+
+        hurtbox.connect("body_entered", &callable);
+    }
+
+    #[func]
+    fn on_attack_made_collision(&mut self, body: Gd<Node2D>) {
+        if body.is_in_group("enemy") {
+            if let Ok(mut enemy) = body.try_cast::<TestEnemy>() {
+                enemy.bind_mut().take_damage(self.get_attack_damage());
+            }
+        }
+    }
+
     // TODO: Since this function is called while the state is set to attacking, bodies have damaged
     // applied to them multiple times while the Area2D is enabled. AnimationPlayer needs to only
     // enable it for one frame.
     pub fn attack(&mut self, event: &Event, velocity: Vector2, delta: f64) -> State {
         let speed = self.get_attacking_speed();
         let time = self.get_attack_animation_timer();
-        let hurtbox = self.base().get_node_as::<Area2D>("Hurtboxes");
-        let bodies = hurtbox.get_overlapping_bodies();
-
-        for body in bodies.iter_shared() {
-            if let Ok(enemy) = body.try_cast::<TestEnemy>() {
-                let mut dyn_enemy = enemy.into_dyn::<dyn Damageable>();
-                let mut bind_enemy = dyn_enemy.dyn_bind_mut();
-                println!("Health before damaging: {}", bind_enemy.get_health());
-                bind_enemy.take_damage(10);
-                println!("Health after damaging: {}", bind_enemy.get_health());
-            }
-        }
 
         self.set_velocity(velocity);
         self.base_mut().set_velocity(velocity * speed);
@@ -233,6 +242,7 @@ impl MainCharacter {
 
         let s = format!("{}{}", state, direction);
 
+        // TODO: This check is temporary.
         if s == "attack_east" || s == "attack_west" {
             format!("{}{}{}", state, direction, "_1")
         } else {

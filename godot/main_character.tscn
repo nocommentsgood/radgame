@@ -216,7 +216,7 @@ size = Vector2(22, 41)
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_rmm8n"]
 size = Vector2(20, 42)
 
-[node name="TestEnemy" type="TestEnemy"]
+[node name="TestEnemy" type="TestEnemy" groups=["enemy"]]
 position = Vector2(394, 200)
 motion_mode = 1
 slide_on_ceiling = false
