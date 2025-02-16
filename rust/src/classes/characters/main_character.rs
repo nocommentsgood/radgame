@@ -147,11 +147,10 @@ impl MainCharacter {
 
     #[func]
     fn on_attack_made_collision(&mut self, body: Gd<Node2D>) {
-        if body.is_in_group("enemy") {
-            if let Ok(mut enemy) = body.try_cast::<TestEnemy>() {
-                enemy.bind_mut().take_damage(self.get_attack_damage());
-            }
-        }
+        let body = body.to_variant();
+        let mut body: DynGd<Node2D, dyn Damageable> = body.to();
+
+        body.dyn_bind_mut().take_damage(10);
     }
 
     // TODO: Since this function is called while the state is set to attacking, bodies have damaged
