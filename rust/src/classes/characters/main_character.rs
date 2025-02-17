@@ -147,15 +147,10 @@ impl MainCharacter {
 
     #[func]
     fn on_attack_made_collision(&mut self, body: Gd<Node2D>) {
-        let body = body.to_variant();
-        let mut body: DynGd<Node2D, dyn Damageable> = body.to();
-
-        body.dyn_bind_mut().take_damage(10);
+        let mut damagable = DynGd::<Node2D, dyn Damageable>::from_godot(body);
+        damagable.dyn_bind_mut().take_damage(10);
     }
 
-    // TODO: Since this function is called while the state is set to attacking, bodies have damaged
-    // applied to them multiple times while the Area2D is enabled. AnimationPlayer needs to only
-    // enable it for one frame.
     pub fn attack(&mut self, event: &Event, velocity: Vector2, delta: f64) -> State {
         let speed = self.get_attacking_speed();
         let time = self.get_attack_animation_timer();
@@ -210,7 +205,6 @@ impl MainCharacter {
                 }
             }
             Event::None => State::Idle {},
-            _ => State::Handle {},
         }
     }
 
