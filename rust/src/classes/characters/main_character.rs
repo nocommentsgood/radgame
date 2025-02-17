@@ -7,7 +7,6 @@ use godot::{
 };
 
 use crate::{
-    classes::enemies::test_enemy::TestEnemy,
     components::{
         managers::input_hanlder::InputHandler,
         state_machines::{character_state_machine::CharacterStateMachine, movements::Directions},

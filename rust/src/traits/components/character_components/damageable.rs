@@ -6,4 +6,8 @@ pub trait Damageable: CharacterResources {
         current_health = current_health.saturating_sub(amount);
         self.set_health(current_health);
     }
+
+    fn is_dead(&self) -> bool {
+        self.get_health() <= 0
+    }
 }
