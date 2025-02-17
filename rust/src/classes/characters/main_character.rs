@@ -1,9 +1,12 @@
 use godot::{
-    classes::{AnimationPlayer, CharacterBody2D, CollisionShape2D, ICharacterBody2D, Timer},
+    classes::{
+        AnimationPlayer, Area2D, CharacterBody2D, CollisionShape2D, ICharacterBody2D, Timer,
+    },
     obj::WithBaseField,
     prelude::*,
 };
 
+use crate::classes::enemies::test_enemy::TestEnemy;
 use crate::{
     components::{
         managers::input_hanlder::InputHandler,
@@ -27,7 +30,7 @@ pub struct MainCharacter {
     #[init(val = 30.0)]
     walking_speed: real,
     #[export]
-    #[init(val = 3500.0)]
+    #[init(val = 10.0)]
     attacking_speed: real,
     #[export]
     #[init(val = 80.0)]
@@ -46,8 +49,12 @@ pub struct MainCharacter {
     energy: i32,
     #[var]
     mana: i32,
-    #[init(node = "AttackAnimationTimer")]
-    attack_timer: OnReady<Gd<Timer>>,
+    #[var]
+    #[init(val = 10)]
+    attack_damage: i32,
+    #[init(val = OnReady::manual())]
+    #[var]
+    attack_animation_timer: OnReady<f64>,
     #[var]
     #[init(node = "AnimationPlayer")]
     animation_player: OnReady<Gd<AnimationPlayer>>,
@@ -58,20 +65,32 @@ pub struct MainCharacter {
 #[godot_api]
 impl ICharacterBody2D for MainCharacter {
     fn ready(&mut self) {
-        // TODO: In the future, this will be a dodging animation.
-        // Currently we just use the running animation.
+        self.connect_attack_signal();
+
+        // TODO: Find how to get tracks for specific animations.
+        // That way we can dynamically divide by scaling speed.
         //
         // Dodging animations, independent of cardinal direction, are all of the same length.
         // Therefore, it is acceptable to use the length of any dodging animation.
         // East was arbitrarily chosen.
-        let dodge_animation_time = self
+        let dodge_animation_length = self
             .get_animation_player()
-            .get_animation("run_east")
+            .get_animation("dodge_east")
             .unwrap()
-            .get_length();
+            .get_length()
+            / 1.5;
 
+        let attack_animation_length = self
+            .get_animation_player()
+            .get_animation("attack_east_1")
+            .unwrap()
+            .get_length()
+            / 1.5;
+
+        self.attack_animation_timer
+            .init(attack_animation_length as f64);
         self.dodging_animation_timer
-            .init(dodge_animation_time as f64);
+            .init(dodge_animation_length as f64);
     }
 
     fn physics_process(&mut self, delta: f64) {
@@ -94,9 +113,7 @@ impl MainCharacter {
         } else {
             let speed = self.get_dodging_speed();
             let time = self.get_dodging_animation_timer();
-            let mut hitbox = self
-                .base()
-                .get_node_as::<CollisionShape2D>("CollisionShape2D");
+            let mut hitbox = self.base().get_node_as::<CollisionShape2D>("Hitbox");
 
             hitbox.set_disabled(true);
             self.base_mut().set_velocity(velocity.to_owned() * speed);
@@ -121,6 +138,53 @@ impl MainCharacter {
         }
     }
 
+    fn connect_attack_signal(&mut self) {
+        let mut hurtbox = self.base().get_node_as::<Area2D>("Hurtboxes");
+        let callable = self.base().callable("on_attack_made_collision");
+
+        hurtbox.connect("body_entered", &callable);
+    }
+
+    #[func]
+    fn on_attack_made_collision(&mut self, body: Gd<Node2D>) {
+        if body.is_in_group("enemy") {
+            if let Ok(mut enemy) = body.try_cast::<TestEnemy>() {
+                enemy.bind_mut().take_damage(self.get_attack_damage());
+            }
+        }
+    }
+
+    // TODO: Since this function is called while the state is set to attacking, bodies have damaged
+    // applied to them multiple times while the Area2D is enabled. AnimationPlayer needs to only
+    // enable it for one frame.
+    pub fn attack(&mut self, event: &Event, velocity: Vector2, delta: f64) -> State {
+        let speed = self.get_attacking_speed();
+        let time = self.get_attack_animation_timer();
+
+        self.set_velocity(velocity);
+        self.base_mut().set_velocity(velocity * speed);
+        self.base_mut().move_and_slide();
+        self.set_attack_animation_timer(time - delta);
+
+        if time <= 0.0 {
+            self.reset_attacking_animation_timer();
+            match event {
+                Event::None => State::Idle {},
+                Event::Wasd { velocity, delta } => State::Moving {
+                    velocity: *velocity,
+                    delta: *delta,
+                },
+                Event::DodgeButton { velocity, delta } => State::Dodging {
+                    velocity: *velocity,
+                    delta: *delta,
+                },
+                _ => State::Handle {},
+            }
+        } else {
+            State::Handle {}
+        }
+    }
+
     pub fn move_character(&mut self, event: &Event, velocity: Vector2, _delta: f64) -> State {
         let speed = self.running_speed;
         self.set_velocity(velocity);
@@ -132,35 +196,64 @@ impl MainCharacter {
                 velocity: *velocity,
                 delta: *delta,
             },
-            Event::DodgeButton { velocity, delta } => State::Dodging {
+            Event::AttackButton { velocity, delta } => State::Attacking {
                 velocity: *velocity,
                 delta: *delta,
             },
+            Event::DodgeButton { velocity, delta } => {
+                if self.get_dodging_cooldown_timer().get_time_left() <= 0.0 {
+                    State::Dodging {
+                        velocity: *velocity,
+                        delta: *delta,
+                    }
+                } else {
+                    State::Handle {}
+                }
+            }
             Event::None => State::Idle {},
-            _ => State::Handle {},
         }
     }
 
-    pub fn reset_dodging_animation_timer(&mut self) {
+    fn reset_attacking_animation_timer(&mut self) {
+        let attack_animation_time = self
+            .get_animation_player()
+            .get_animation("attack_east_1")
+            .unwrap()
+            .get_length()
+            / 1.5;
+        self.set_attack_animation_timer(attack_animation_time as f64);
+    }
+
+    fn reset_dodging_animation_timer(&mut self) {
         let dodge_animation_time = self
             .get_animation_player()
-            .get_animation("run_east")
+            .get_animation("dodge_east")
             .unwrap()
-            .get_length();
+            .get_length()
+            / 1.5;
         self.set_dodging_animation_timer(dodge_animation_time as f64);
     }
+
     fn get_current_animation(&self) -> String {
         let direction = Directions::from_velocity(&self.get_velocity()).to_string();
         let mut state = self.state.state().to_string();
         state.push('_');
 
-        format!("{}{}", state, direction)
+        let s = format!("{}{}", state, direction);
+
+        // TODO: This check is temporary.
+        if s == "attack_east" || s == "attack_west" {
+            format!("{}{}{}", state, direction, "_1")
+        } else {
+            s
+        }
     }
 
     fn update_animation(&mut self) {
         let animation = self.get_current_animation();
 
         self.animation_player.play_ex().name(&animation).done();
+        self.animation_player.advance(0.0);
     }
 }
 

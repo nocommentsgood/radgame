@@ -12,11 +12,15 @@ impl std::fmt::Display for State {
             State::Dodging {
                 velocity: _,
                 delta: _,
-            } => write!(f, "run"),
+            } => write!(f, "dodge"),
             State::Moving {
                 velocity: _,
                 delta: _,
             } => write!(f, "run"),
+            State::Attacking {
+                velocity: _,
+                delta: _,
+            } => write!(f, "attack"),
             State::Idle {} => write!(f, "idle"),
             State::Handle {} => write!(f, "handled"),
         }
@@ -27,7 +31,7 @@ impl std::fmt::Display for State {
 pub enum Event {
     Wasd { velocity: Vector2, delta: f64 },
     DodgeButton { velocity: Vector2, delta: f64 },
-    AttackButton,
+    AttackButton { velocity: Vector2, delta: f64 },
     None,
 }
 
@@ -36,10 +40,12 @@ impl CharacterStateMachine {
     #[state]
     fn idle(event: &Event) -> Response<State> {
         match event {
-            Event::Wasd {
-                velocity: vel,
-                delta,
-            } => Response::Transition(State::moving(*vel, *delta)),
+            Event::Wasd { velocity, delta } => {
+                Response::Transition(State::moving(*velocity, *delta))
+            }
+            Event::AttackButton { velocity, delta } => {
+                Response::Transition(State::attacking(*velocity, *delta))
+            }
             _ => statig::prelude::Handled,
         }
     }
@@ -59,6 +65,9 @@ impl CharacterStateMachine {
             }
             State::Moving { velocity, delta } => {
                 Response::Transition(State::moving(velocity, delta))
+            }
+            State::Attacking { velocity, delta } => {
+                Response::Transition(State::attacking(velocity, delta))
             }
             State::Idle {} => Response::Transition(State::idle()),
             _ => Handled,
@@ -81,6 +90,27 @@ impl CharacterStateMachine {
             }
             State::Moving { velocity, delta } => {
                 Response::Transition(State::moving(velocity, delta))
+            }
+            _ => Handled,
+        }
+    }
+
+    #[state]
+    fn attacking(
+        event: &Event,
+        velocity: &Vector2,
+        delta: &f64,
+        context: &mut MainCharacter,
+    ) -> Response<State> {
+        let response = context.attack(event, *velocity, *delta);
+
+        match response {
+            State::Moving { velocity, delta } => {
+                Response::Transition(State::moving(velocity, delta))
+            }
+            State::Idle {} => Response::Transition(State::idle()),
+            State::Dodging { velocity, delta } => {
+                Response::Transition(State::dodging(velocity, delta))
             }
             _ => Handled,
         }
