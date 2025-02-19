@@ -24,6 +24,36 @@ impl InputHandler {
         vel
     }
 
+    pub fn platformer_to_event(input: &Gd<Input>, delta: &f64) -> Event {
+        let mut vel = Vector2::ZERO;
+        if input.is_action_pressed("east") {
+            vel += Vector2::RIGHT;
+        }
+        if input.is_action_pressed("west") {
+            vel += Vector2::LEFT;
+        }
+        if input.is_action_just_pressed("dodge") && vel.length() > 0.0 {
+            return Event::DodgeButton {
+                velocity: vel,
+                delta: *delta,
+            };
+        }
+        if input.is_action_just_pressed("attack") {
+            return Event::AttackButton {
+                velocity: vel,
+                delta: *delta,
+            };
+        }
+        if vel.length() > 0.0 {
+            Event::Wasd {
+                velocity: vel,
+                delta: *delta,
+            }
+        } else {
+            Event::None
+        }
+    }
+
     pub fn to_event(input: &Gd<Input>, delta: &f64) -> Event {
         let mut vel = Vector2::ZERO;
         let delta = delta.to_owned();

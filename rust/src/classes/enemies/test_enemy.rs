@@ -34,10 +34,10 @@ pub struct TestEnemy {
 
 #[godot_api]
 impl ICharacterBody2D for TestEnemy {
-    fn process(&mut self, delta: f64) {
-        if self.get_health() <= 0 {
-            self.base_mut().queue_free();
-        }
+    fn ready(&mut self) {
+        let callable = self.base().callable(constants::CALLABLE_DESTROY_ENEMY);
+        self.base_mut()
+            .connect(constants::SIGNAL_TESTENEMY_DIED, &callable);
     }
 }
 
@@ -85,6 +85,7 @@ impl CharacterResources for TestEnemy {
 impl Damageable for TestEnemy {
     fn take_damage(&mut self, amount: i32) {
         let mut current_health = self.get_health();
+
         current_health = current_health.saturating_sub(amount);
         self.set_health(current_health);
 

@@ -1,6 +1,7 @@
 use godot::{
     classes::{
-        AnimationPlayer, Area2D, CharacterBody2D, CollisionShape2D, ICharacterBody2D, Timer,
+        AnimationPlayer, Area2D, CharacterBody2D, CollisionShape2D, ICharacterBody2D, InputEvent,
+        InputEventKey, Timer,
     },
     obj::WithBaseField,
     prelude::*,
@@ -9,11 +10,15 @@ use godot::{
 use crate::{
     components::{
         managers::input_hanlder::InputHandler,
-        state_machines::{character_state_machine::CharacterStateMachine, movements::Directions},
+        state_machines::{
+            character_state_machine::CharacterStateMachine,
+            movements::{Directions, PlatformerDirection},
+        },
     },
     traits::components::character_components::{
         character_resources::CharacterResources, damageable::Damageable, damaging::Damaging,
     },
+    utils::constants::{self, PLAYER_HURTBOX},
 };
 
 type Event = crate::components::state_machines::character_state_machine::Event;
@@ -22,6 +27,8 @@ type State = crate::components::state_machines::character_state_machine::State;
 #[derive(GodotClass)]
 #[class(init, base=CharacterBody2D)]
 pub struct MainCharacter {
+    direction: Directions,
+    platformer_direction: PlatformerDirection,
     #[export]
     #[init(val = 60.0)]
     running_speed: real,
@@ -68,7 +75,7 @@ impl ICharacterBody2D for MainCharacter {
 
         // TODO: Find how to get tracks for specific animations.
         // That way we can dynamically divide by scaling speed.
-        //
+
         // Dodging animations, independent of cardinal direction, are all of the same length.
         // Therefore, it is acceptable to use the length of any dodging animation.
         // East was arbitrarily chosen.
@@ -94,8 +101,9 @@ impl ICharacterBody2D for MainCharacter {
 
     fn physics_process(&mut self, delta: f64) {
         let input = Input::singleton();
-        let event = InputHandler::to_event(&input, &delta);
+        // let event = InputHandler::to_event(&input, &delta);
 
+        let event = InputHandler::platformer_to_event(&input, &delta);
         let mut temp_state = self.state.clone();
         temp_state.handle_with_context(&event, self);
         self.state = temp_state;
@@ -105,14 +113,34 @@ impl ICharacterBody2D for MainCharacter {
 
 #[godot_api]
 impl MainCharacter {
+    fn connect_attack_signal(&mut self) {
+        let mut hurtbox = self.base().get_node_as::<Area2D>(PLAYER_HURTBOX);
+        let callable = self
+            .base()
+            .callable(constants::CALLABLE_BODY_ENTERED_HURTBOX);
+
+        hurtbox.connect(constants::SIGNAL_HURTBOX_BODY_ENTERED, &callable);
+    }
+
+    #[func]
+    fn on_body_entered_hurtbox(&mut self, body: Gd<Node2D>) {
+        let mut damagable = DynGd::<Node2D, dyn Damageable>::from_godot(body);
+        damagable.dyn_bind_mut().take_damage(10);
+    }
+
     pub fn dodge(&mut self, event: &Event, velocity: Vector2, delta: f64) -> State {
+        self.direction = Directions::from_velocity(&velocity);
+        self.platformer_direction = PlatformerDirection::from_platformer_velocity(&velocity);
         let mut cooldown_timer = self.get_dodging_cooldown_timer();
+
         if cooldown_timer.get_time_left() > 0.0 {
             State::Moving { velocity, delta }
         } else {
             let speed = self.get_dodging_speed();
             let time = self.get_dodging_animation_timer();
-            let mut hitbox = self.base().get_node_as::<CollisionShape2D>("Hitbox");
+            let mut hitbox = self
+                .base()
+                .get_node_as::<CollisionShape2D>(constants::PLAYER_HITBOX);
 
             hitbox.set_disabled(true);
             self.base_mut().set_velocity(velocity.to_owned() * speed);
@@ -137,22 +165,16 @@ impl MainCharacter {
         }
     }
 
-    fn connect_attack_signal(&mut self) {
-        let mut hurtbox = self.base().get_node_as::<Area2D>("Hurtboxes");
-        let callable = self.base().callable("on_attack_made_collision");
-
-        hurtbox.connect("body_entered", &callable);
-    }
-
-    #[func]
-    fn on_attack_made_collision(&mut self, body: Gd<Node2D>) {
-        let mut damagable = DynGd::<Node2D, dyn Damageable>::from_godot(body);
-        damagable.dyn_bind_mut().take_damage(10);
-    }
-
     pub fn attack(&mut self, event: &Event, velocity: Vector2, delta: f64) -> State {
+        self.direction = Directions::from_velocity(&velocity);
         let speed = self.get_attacking_speed();
         let time = self.get_attack_animation_timer();
+
+        // When attacking with a velocity of zero, the direction defaults to East. This check
+        // maintains the last direction the player was facing.
+        if !velocity.length().is_zero_approx() {
+            self.platformer_direction = PlatformerDirection::from_platformer_velocity(&velocity);
+        }
 
         self.set_velocity(velocity);
         self.base_mut().set_velocity(velocity * speed);
@@ -178,7 +200,34 @@ impl MainCharacter {
         }
     }
 
+    pub fn idle(&mut self, event: &Event) -> State {
+        self.set_velocity(Vector2::ZERO);
+        match event {
+            Event::Wasd { velocity, delta } => State::Moving {
+                velocity: *velocity,
+                delta: *delta,
+            },
+            Event::AttackButton { velocity, delta } => State::Attacking {
+                velocity: *velocity,
+                delta: *delta,
+            },
+            Event::DodgeButton { velocity, delta } => {
+                if self.get_dodging_cooldown_timer().get_time_left() <= 0.0 {
+                    State::Dodging {
+                        velocity: *velocity,
+                        delta: *delta,
+                    }
+                } else {
+                    State::Handle {}
+                }
+            }
+            _ => State::Handle {},
+        }
+    }
+
     pub fn move_character(&mut self, event: &Event, velocity: Vector2, _delta: f64) -> State {
+        self.direction = Directions::from_velocity(&velocity);
+        self.platformer_direction = PlatformerDirection::from_platformer_velocity(&velocity);
         let speed = self.running_speed;
         self.set_velocity(velocity);
         self.base_mut().set_velocity(velocity * speed);
@@ -228,7 +277,8 @@ impl MainCharacter {
     }
 
     fn get_current_animation(&self) -> String {
-        let direction = Directions::from_velocity(&self.get_velocity()).to_string();
+        // let direction = &self.direction;
+        let direction = &self.platformer_direction;
         let mut state = self.state.state().to_string();
         state.push('_');
 

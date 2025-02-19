@@ -38,15 +38,19 @@ pub enum Event {
 #[state_machine(initial = "State::idle()", state(derive(Debug, Clone)))]
 impl CharacterStateMachine {
     #[state]
-    fn idle(event: &Event) -> Response<State> {
-        match event {
-            Event::Wasd { velocity, delta } => {
-                Response::Transition(State::moving(*velocity, *delta))
+    fn idle(event: &Event, context: &mut MainCharacter) -> Response<State> {
+        let response = context.idle(event);
+        match response {
+            // State::Dodging { velocity, delta } => {
+            //     Response::Transition(State::dodging(velocity, delta))
+            // }
+            State::Moving { velocity, delta } => {
+                Response::Transition(State::moving(velocity, delta))
             }
-            Event::AttackButton { velocity, delta } => {
-                Response::Transition(State::attacking(*velocity, *delta))
+            State::Attacking { velocity, delta } => {
+                Response::Transition(State::attacking(velocity, delta))
             }
-            _ => statig::prelude::Handled,
+            _ => Handled,
         }
     }
 
