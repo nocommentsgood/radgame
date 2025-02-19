@@ -2,14 +2,21 @@ use godot::builtin::Vector2;
 
 #[derive(Default, Debug, Clone, PartialEq)]
 pub enum Directions {
-    #[default]
     North,
     NorthEast,
     NorthWest,
+    #[default]
     East,
     South,
     SouthEast,
     SouthWest,
+    West,
+}
+
+#[derive(Default, Debug, Clone, PartialEq)]
+pub enum PlatformerDirection {
+    #[default]
+    East,
     West,
 }
 
@@ -40,6 +47,7 @@ impl Directions {
             Directions::West => Vector2::LEFT,
         }
     }
+
     pub fn from_velocity(vel: &Vector2) -> Directions {
         if vel.x > 0.0 && vel.y < 0.0 {
             return Directions::NorthEast;
@@ -63,6 +71,24 @@ impl Directions {
             Directions::North
         } else {
             Directions::South
+        }
+    }
+}
+
+impl std::fmt::Display for PlatformerDirection {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            PlatformerDirection::East => write!(f, "east"),
+            PlatformerDirection::West => write!(f, "west"),
+        }
+    }
+}
+impl PlatformerDirection {
+    pub fn from_platformer_velocity(velocity: &Vector2) -> PlatformerDirection {
+        if velocity.x < 0.0 {
+            PlatformerDirection::West
+        } else {
+            PlatformerDirection::East
         }
     }
 }

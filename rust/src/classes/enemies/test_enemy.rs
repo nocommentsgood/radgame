@@ -7,6 +7,8 @@ use crate::traits::components::character_components::{
     character_resources::CharacterResources, damageable::Damageable, damaging::Damaging,
 };
 
+use crate::utils::*;
+
 #[derive(GodotClass)]
 #[class(init, base=CharacterBody2D)]
 pub struct TestEnemy {
@@ -32,20 +34,21 @@ pub struct TestEnemy {
 
 #[godot_api]
 impl ICharacterBody2D for TestEnemy {
-    fn process(&mut self, delta: f64) {
-        if self.get_health() <= 0 {
-            self.base_mut().queue_free();
-        }
+    fn ready(&mut self) {
+        let callable = self.base().callable(constants::CALLABLE_DESTROY_ENEMY);
+        self.base_mut()
+            .connect(constants::SIGNAL_TESTENEMY_DIED, &callable);
     }
 }
 
 #[godot_api]
 impl TestEnemy {
+    #[signal]
+    fn test_enemy_died();
+
     #[func]
     fn destroy(&mut self) {
-        let h = self.get_health();
-        self.set_health(h - 10);
-        if self.get_health() <= 0 {
+        if self.is_dead() {
             self.base_mut().queue_free();
         }
     }
@@ -79,7 +82,19 @@ impl CharacterResources for TestEnemy {
 }
 
 #[godot_dyn]
-impl Damageable for TestEnemy {}
+impl Damageable for TestEnemy {
+    fn take_damage(&mut self, amount: i32) {
+        let mut current_health = self.get_health();
+
+        current_health = current_health.saturating_sub(amount);
+        self.set_health(current_health);
+
+        if self.is_dead() {
+            self.base_mut()
+                .emit_signal(constants::SIGNAL_TESTENEMY_DIED, &[]);
+        }
+    }
+}
 
 #[godot_dyn]
 impl Damaging for TestEnemy {}

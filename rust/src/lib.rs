@@ -1,8 +1,9 @@
 use godot::prelude::*;
 
+pub mod utils;
 mod classes {
     pub mod characters;
-    mod enemies;
+    pub mod enemies;
 }
 
 mod components {
