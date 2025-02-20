@@ -6,6 +6,7 @@ use godot::{
     obj::WithBaseField,
     prelude::*,
 };
+use statig::Response::Handled;
 
 use crate::classes::enemies::test_enemy::TestEnemy;
 use crate::{
@@ -30,6 +31,7 @@ type State = crate::components::state_machines::character_state_machine::State;
 pub struct MainCharacter {
     direction: Directions,
     platformer_direction: PlatformerDirection,
+    jumping_animation_timer: f64,
     #[export]
     #[init(val = 60.0)]
     running_speed: real,
@@ -254,7 +256,48 @@ impl MainCharacter {
                 }
             }
             Event::None => State::Idle {},
+            _ => State::Handle {},
         }
+    }
+
+    pub fn jump(&mut self, event: &Event, velocity: Vector2, delta: f64) -> State {
+        let velocity = Vector2::UP + Vector2::RIGHT;
+        self.platformer_direction = PlatformerDirection::from_platformer_velocity(&velocity);
+        self.set_velocity(velocity);
+        self.base_mut().set_velocity(velocity);
+        self.base_mut().move_and_slide();
+        self.jumping_animation_timer -= delta;
+
+        if self.jumping_animation_timer <= 0.0 {
+            self.reset_jumping_animation_timer();
+            match event {
+                Event::Wasd { velocity, delta } => State::Moving {
+                    velocity: *velocity,
+                    delta: *delta,
+                },
+                Event::DodgeButton { velocity, delta } => State::Dodging {
+                    velocity: *velocity,
+                    delta: *delta,
+                },
+                Event::AttackButton { velocity, delta } => State::Attacking {
+                    velocity: *velocity,
+                    delta: *delta,
+                },
+                Event::None => State::Idle {},
+                _ => State::Handle {},
+            }
+        } else {
+            State::Handle {}
+        }
+    }
+
+    pub fn fall(&mut self, event: &Event, velocity: Vector2, delta: f64) -> State {
+        todo!()
+    }
+
+    fn reset_jumping_animation_timer(&mut self) {
+        let timer = 1.5;
+        self.jumping_animation_timer = timer;
     }
 
     fn reset_attacking_animation_timer(&mut self) {

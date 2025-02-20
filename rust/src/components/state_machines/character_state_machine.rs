@@ -21,6 +21,10 @@ impl std::fmt::Display for State {
                 velocity: _,
                 delta: _,
             } => write!(f, "attack"),
+            State::Jumping {
+                velocity: _,
+                delta: _,
+            } => write!(f, "jumping"),
             State::Idle {} => write!(f, "idle"),
             State::Handle {} => write!(f, "handled"),
         }
@@ -32,6 +36,7 @@ pub enum Event {
     Wasd { velocity: Vector2, delta: f64 },
     DodgeButton { velocity: Vector2, delta: f64 },
     AttackButton { velocity: Vector2, delta: f64 },
+    JumpButton { velocity: Vector2, delta: f64 },
     None,
 }
 
@@ -49,6 +54,9 @@ impl CharacterStateMachine {
             }
             State::Attacking { velocity, delta } => {
                 Response::Transition(State::attacking(velocity, delta))
+            }
+            State::Jumping { velocity, delta } => {
+                Response::Transition(State::jumping(velocity, delta))
             }
             _ => Handled,
         }
@@ -116,6 +124,30 @@ impl CharacterStateMachine {
             State::Dodging { velocity, delta } => {
                 Response::Transition(State::dodging(velocity, delta))
             }
+            _ => Handled,
+        }
+    }
+
+    #[state]
+    fn jumping(
+        event: &Event,
+        velocity: &Vector2,
+        delta: &f64,
+        context: &mut MainCharacter,
+    ) -> Response<State> {
+        let response = context.jump(event, *velocity, *delta);
+
+        match response {
+            State::Attacking { velocity, delta } => {
+                Response::Transition(State::Attacking { velocity, delta })
+            }
+            State::Moving { velocity, delta } => {
+                Response::Transition(State::moving(velocity, delta))
+            }
+            State::Dodging { velocity, delta } => {
+                Response::Transition(State::dodging(velocity, delta))
+            }
+            State::Idle {} => Response::Transition(State::idle()),
             _ => Handled,
         }
     }
