@@ -44,6 +44,12 @@ impl InputHandler {
                 delta: *delta,
             };
         }
+        if input.is_action_just_pressed("jump") {
+            return Event::JumpButton {
+                velocity: vel,
+                delta: *delta,
+            };
+        }
         if vel.length() > 0.0 {
             Event::Wasd {
                 velocity: vel,
