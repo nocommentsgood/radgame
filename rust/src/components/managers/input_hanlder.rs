@@ -45,7 +45,6 @@ impl InputHandler {
             };
         }
         if input.is_action_just_pressed("jump") {
-            println!("Returning jump input");
             return Event::JumpButton {
                 velocity: vel,
                 delta: *delta,
