@@ -1,19 +1,47 @@
 use godot::{
-    classes::{AnimationPlayer, CharacterBody2D, ICharacterBody2D, Timer},
+    classes::{AnimationPlayer, Area2D, CharacterBody2D, ICharacterBody2D, Marker2D, Timer},
+    obj::WithBaseField,
     prelude::*,
 };
 
-use crate::traits::components::character_components::{
-    character_resources::CharacterResources, damageable::Damageable, damaging::Damaging,
+use crate::{
+    classes::characters::main_character::MainCharacter,
+    components::state_machines::{
+        enemy_state_machine::{self, *},
+        movements::PlatformerDirection,
+    },
+    traits::components::character_components::{
+        character_resources::CharacterResources, damageable::Damageable, damaging::Damaging,
+    },
+    utils::*,
 };
-
-use crate::utils::*;
 
 #[derive(GodotClass)]
 #[class(init, base=CharacterBody2D)]
 pub struct TestEnemy {
+    pub current_event: enemy_state_machine::EnemyEvent,
+    delta: f64,
+    direction: PlatformerDirection,
+    #[init(val = 2.0)]
+    #[var]
+    idle_time: f64,
+    #[init(val = 40.0)]
+    #[var]
+    patrol_speed: real,
+    #[init(val = 4.0)]
+    #[var]
+    patrol_time: f64,
+    #[init(val = 80.0)]
+    #[var]
+    agro_speed: real,
     #[var]
     speed: real,
+    #[init(node = "LeftPatrolMarker")]
+    #[var]
+    left_patrol_marker: OnReady<Gd<Marker2D>>,
+    #[init(node = "RightPatrolMarker")]
+    #[var]
+    right_patrol_marker: OnReady<Gd<Marker2D>>,
     #[init(val = 30)]
     #[var]
     health: i32,
@@ -21,23 +49,39 @@ pub struct TestEnemy {
     energy: i32,
     #[var]
     mana: i32,
+    #[var]
     velocity: Vector2,
+    state: statig::blocking::StateMachine<EnemyStateMachine>,
 
     #[init(node = "AnimationPlayer2")]
     animation_player: OnReady<Gd<AnimationPlayer>>,
 
     #[init(node = "MovementTimer")]
     movement_timer: OnReady<Gd<Timer>>,
-    running_speed: real,
     base: Base<CharacterBody2D>,
 }
 
 #[godot_api]
 impl ICharacterBody2D for TestEnemy {
     fn ready(&mut self) {
+        self.connect_player_sensors();
+
         let callable = self.base().callable(constants::CALLABLE_DESTROY_ENEMY);
         self.base_mut()
             .connect(constants::SIGNAL_TESTENEMY_DIED, &callable);
+    }
+
+    fn physics_process(&mut self, delta: f64) {
+        self.delta = delta;
+        self.state.handle(&self.current_event);
+
+        match self.state.state() {
+            enemy_state_machine::State::Idle {} => self.idle(),
+            enemy_state_machine::State::ChasePlayer { player } => self.chase_player(player.clone()),
+            enemy_state_machine::State::Patrol {} => self.patrol(),
+        }
+
+        self.update_animation();
     }
 }
 
@@ -51,6 +95,123 @@ impl TestEnemy {
         if self.is_dead() {
             self.base_mut().queue_free();
         }
+    }
+
+    #[func]
+    fn on_enemy_senses_player(&mut self, body: Gd<Node2D>) {
+        if body.is_in_group("player") {
+            if let Ok(player) = body.try_cast::<MainCharacter>() {
+                self.current_event = enemy_state_machine::EnemyEvent::FoundPlayer {
+                    player: player.clone(),
+                }
+            }
+        }
+    }
+
+    fn connect_player_sensors(&mut self) {
+        let mut player_sensors = self.base().get_node_as::<Area2D>(constants::PLAYER_SENSORS);
+        let callable = self
+            .base()
+            .callable(constants::CALLABLE_ENEMY_SENSES_PLAYER);
+
+        player_sensors.connect(constants::SIGNAL_ENEMY_DETECTS_PLAYER, &callable);
+    }
+
+    fn get_furthest_patrol_marker(&self) -> Vector2 {
+        let left = self.get_left_patrol_marker();
+        let right = self.get_right_patrol_marker();
+        let left_distance = self
+            .base()
+            .get_global_position()
+            .distance_to(left.get_global_position());
+        let right_distance = self
+            .base()
+            .get_global_position()
+            .distance_to(right.get_global_position());
+
+        let target = if left_distance <= right_distance {
+            left
+        } else {
+            right
+        };
+
+        let velocity = self
+            .base()
+            .get_global_position()
+            .direction_to(target.get_global_position())
+            .normalized_or_zero();
+        velocity
+    }
+
+    pub fn patrol(&mut self) {
+        let time = self.get_patrol_time();
+        let speed = self.patrol_speed;
+        let velocity = self.get_velocity();
+
+        self.direction = PlatformerDirection::from_platformer_velocity(&self.velocity);
+        self.base_mut().set_velocity(velocity * speed);
+        self.base_mut().move_and_slide();
+        self.set_patrol_time(time - self.delta);
+
+        if time <= 0.0 {
+            self.reset_patrol_time();
+            self.current_event = enemy_state_machine::EnemyEvent::TimerElapsed;
+        } else {
+            self.current_event = enemy_state_machine::EnemyEvent::None;
+        }
+    }
+
+    pub fn idle(&mut self) {
+        let time = self.get_idle_time();
+        self.direction = PlatformerDirection::from_platformer_velocity(&Vector2::ZERO);
+        self.velocity = Vector2::ZERO;
+        self.base_mut().set_velocity(Vector2::ZERO);
+        self.set_idle_time(time - self.delta);
+
+        if time <= 0.0 {
+            self.reset_idle_time();
+
+            self.set_velocity(self.get_furthest_patrol_marker());
+            self.current_event = enemy_state_machine::EnemyEvent::TimerElapsed;
+        } else {
+            self.current_event = enemy_state_machine::EnemyEvent::None;
+        }
+    }
+
+    pub fn chase_player(&mut self, player: Gd<MainCharacter>) {
+        let speed = self.agro_speed;
+        let player_position = player.get_position();
+        let velocity = self
+            .base()
+            .get_position()
+            .direction_to(player_position)
+            .normalized_or_zero();
+
+        self.base_mut().set_velocity(velocity * speed);
+        self.base_mut().move_and_slide();
+
+        self.current_event = enemy_state_machine::EnemyEvent::None;
+    }
+
+    fn reset_idle_time(&mut self) {
+        self.set_idle_time(2.0);
+    }
+
+    fn reset_patrol_time(&mut self) {
+        self.set_patrol_time(4.0);
+    }
+
+    fn get_current_animation(&self) -> String {
+        let direciton = &self.direction;
+        let mut state = self.state.state().to_string();
+        state.push('_');
+
+        format!("{}{}", state, direciton)
+    }
+
+    fn update_animation(&mut self) {
+        let animation = self.get_current_animation();
+        self.animation_player.play_ex().name(&animation).done();
     }
 }
 

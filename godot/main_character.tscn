@@ -262,3 +262,13 @@ disabled = true
 process_callback = 0
 wait_time = 3.0
 one_shot = true
+
+[node name="LeftPatrolMarker" type="Marker2D" parent="."]
+top_level = true
+position = Vector2(226, 204)
+gizmo_extents = 100.0
+
+[node name="RightPatrolMarker" type="Marker2D" parent="."]
+top_level = true
+position = Vector2(546, 207)
+gizmo_extents = 100.0
