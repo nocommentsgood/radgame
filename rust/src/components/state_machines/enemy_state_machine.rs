@@ -13,6 +13,7 @@ pub enum EnemyEvent {
         player: Gd<MainCharacter>,
     },
     LostPlayer,
+    InAttackRange,
     DamagedByPlayer,
     TimerElapsed,
     #[default]
@@ -71,6 +72,7 @@ impl EnemyStateMachine {
     #[state(superstate = "aggresive")]
     fn chase_player(event: &EnemyEvent, player: &Gd<MainCharacter>) -> Response<State> {
         match event {
+            EnemyEvent::LostPlayer => Response::Super,
             _ => Handled,
         }
     }

@@ -108,13 +108,37 @@ impl TestEnemy {
         }
     }
 
+    #[func]
+    fn on_player_enters_attack_range(
+        &mut self,
+        area_rid: Rid,
+        area: Gd<Area2D>,
+        area_shape_index: i32,
+        local_shape_index: i32,
+    ) {
+        println!(
+            "area_rid: {}\narea: {}\n area_shape_index: {}\nlocal_shape_index: {}",
+            area_rid, area, area_shape_index, local_shape_index
+        );
+    }
+
     fn connect_player_sensors(&mut self) {
+        // Connect to aggro range
         let mut player_sensors = self.base().get_node_as::<Area2D>(constants::PLAYER_SENSORS);
         let callable = self
             .base()
             .callable(constants::CALLABLE_ENEMY_SENSES_PLAYER);
-
         player_sensors.connect(constants::SIGNAL_ENEMY_DETECTS_PLAYER, &callable);
+
+        // Connect to player entering attack range
+        let call = self
+            .base()
+            .callable(constants::CALLABLE_PLAYER_ENTERED_ATTACK_RANGE);
+        // player_sensors.connect(constants::SIGNAL_PLAYER_ENTERED_ATTACK_RANGE, &call);
+
+        println!("Connecting");
+        player_sensors.connect("area_shape_entered", &call);
+        println!("connected");
     }
 
     fn get_furthest_patrol_marker(&self) -> Vector2 {

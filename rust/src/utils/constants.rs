@@ -14,12 +14,16 @@ pub const PLAYER_HURTBOX: &str = "Hurtbox";
 // End Player ====================================================
 
 // Enemies ====================================================
+
+// Enemy signals
 pub const SIGNAL_TESTENEMY_DIED: &str = "test_enemy_died";
 pub const SIGNAL_ENEMY_DETECTS_PLAYER: &str = "body_entered";
+pub const SIGNAL_PLAYER_ENTERED_ATTACK_RANGE: &str = "body_entered";
 
 // Enemy callables
 pub const CALLABLE_DESTROY_ENEMY: &str = "destroy";
 pub const CALLABLE_ENEMY_SENSES_PLAYER: &str = "on_enemy_senses_player";
+pub const CALLABLE_PLAYER_ENTERED_ATTACK_RANGE: &str = "on_player_enters_attack_range";
 
 // Enemy child nodes
 pub const PLAYER_SENSORS: &str = "PlayerSensors";
