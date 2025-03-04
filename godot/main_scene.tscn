@@ -20,13 +20,23 @@ environment = SubResource("Environment_2k8wa")
 [node name="TileMapLayer" parent="WorldEnvironment" instance=ExtResource("2_ainao")]
 
 [node name="TestEnemy" parent="WorldEnvironment" instance=ExtResource("3_1gilh")]
-position = Vector2(235, 219)
+position = Vector2(214, 230)
+
+[node name="LeftPatrolMarker" parent="WorldEnvironment/TestEnemy" index="7"]
+position = Vector2(168, 236)
+gizmo_extents = 10.0
+
+[node name="RightPatrolMarker" parent="WorldEnvironment/TestEnemy" index="8"]
+position = Vector2(258, 236)
+gizmo_extents = 10.0
 
 [node name="MainCharacter" parent="WorldEnvironment" instance=ExtResource("3_u6kov")]
-position = Vector2(322, 219)
+position = Vector2(465, 219)
 
 [node name="StaticBody2D" type="StaticBody2D" parent="WorldEnvironment"]
 position = Vector2(289, 252)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="WorldEnvironment/StaticBody2D"]
 shape = SubResource("WorldBoundaryShape2D_7qxfc")
+
+[editable path="WorldEnvironment/TestEnemy"]

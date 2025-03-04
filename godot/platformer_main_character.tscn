@@ -1775,7 +1775,7 @@ _data = {
 "w": SubResource("Animation_lnf2a")
 }
 
-[node name="MainCharacter" type="MainCharacter"]
+[node name="MainCharacter" type="MainCharacter" groups=["player"]]
 running_speed = 70.0
 dodging_speed = 100.0
 slide_on_ceiling = false
@@ -1791,6 +1791,11 @@ monitorable = false
 [node name="Hurtbox_melee_1" type="CollisionShape2D" parent="Hurtbox"]
 position = Vector2(26, 10)
 shape = SubResource("CapsuleShape2D_wd5k3")
+
+[node name="Hurtbox_melee_2" type="CollisionShape2D" parent="Hurtbox"]
+position = Vector2(26, 10)
+shape = SubResource("CapsuleShape2D_wd5k3")
+debug_color = Color(0.925225, 0.139551, 0.5821, 0.42)
 
 [node name="Camera2D" type="Camera2D" parent="."]
 zoom = Vector2(3, 3)
