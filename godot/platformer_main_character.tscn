@@ -1759,20 +1759,20 @@ tracks/6/keys = {
 
 [sub_resource type="AnimationLibrary" id="AnimationLibrary_i78o7"]
 _data = {
-"RESET": SubResource("Animation_hcu7p"),
-"attack_east_1": SubResource("Animation_my085"),
-"attack_west_1": SubResource("Animation_ew3r3"),
-"dodge_east": SubResource("Animation_to2hw"),
-"dodge_west": SubResource("Animation_2l2e4"),
-"falling_east": SubResource("Animation_4fyk8"),
-"falling_west": SubResource("Animation_n5uwk"),
-"idle_east": SubResource("Animation_q8o6a"),
-"idle_west": SubResource("Animation_a28on"),
-"jumping_east": SubResource("Animation_krt8q"),
-"jumping_west": SubResource("Animation_n1qle"),
-"run_east": SubResource("Animation_fayfq"),
-"run_west": SubResource("Animation_qaxu3"),
-"w": SubResource("Animation_lnf2a")
+&"RESET": SubResource("Animation_hcu7p"),
+&"attack_east_1": SubResource("Animation_my085"),
+&"attack_west_1": SubResource("Animation_ew3r3"),
+&"dodge_east": SubResource("Animation_to2hw"),
+&"dodge_west": SubResource("Animation_2l2e4"),
+&"falling_east": SubResource("Animation_4fyk8"),
+&"falling_west": SubResource("Animation_n5uwk"),
+&"idle_east": SubResource("Animation_q8o6a"),
+&"idle_west": SubResource("Animation_a28on"),
+&"jumping_east": SubResource("Animation_krt8q"),
+&"jumping_west": SubResource("Animation_n1qle"),
+&"run_east": SubResource("Animation_fayfq"),
+&"run_west": SubResource("Animation_qaxu3"),
+&"w": SubResource("Animation_lnf2a")
 }
 
 [node name="MainCharacter" type="MainCharacter" groups=["player"]]
@@ -1786,7 +1786,6 @@ shape = SubResource("CapsuleShape2D_wynde")
 
 [node name="Hurtbox" type="Area2D" parent="."]
 input_pickable = false
-monitorable = false
 
 [node name="Hurtbox_melee_1" type="CollisionShape2D" parent="Hurtbox"]
 position = Vector2(26, 10)

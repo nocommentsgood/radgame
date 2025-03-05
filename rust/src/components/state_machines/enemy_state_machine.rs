@@ -4,6 +4,11 @@ use statig::{state_machine, Response};
 
 use crate::classes::characters::main_character::MainCharacter;
 
+// TODO: State machine does not need to be aware of the player, which is currently being
+// passed in. We can move all of the pointer passing to the TestEnemy class, so the
+// TestEnemy handles all of that logic and just 'listens' to it's state, and performs the
+// corresponding actions.
+
 #[derive(Default, Debug, Clone)]
 pub struct EnemyStateMachine;
 
@@ -26,6 +31,7 @@ impl std::fmt::Display for State {
             State::Patrol { .. } => write!(f, "patrol"),
             State::Idle {} => write!(f, "idle"),
             State::ChasePlayer { .. } => write!(f, "patrol"),
+            State::Attack { .. } => write!(f, "attack"),
         }
     }
 }
@@ -50,6 +56,25 @@ impl EnemyStateMachine {
         }
     }
 
+    #[allow(unused_variables)]
+    #[state(superstate = "aggresive")]
+    fn chase_player(event: &EnemyEvent, player: &Gd<MainCharacter>) -> Response<State> {
+        match event {
+            EnemyEvent::LostPlayer => Response::Super,
+            EnemyEvent::InAttackRange => Response::Transition(State::attack(player.clone())),
+            _ => Handled,
+        }
+    }
+
+    #[state(superstate = "aggresive")]
+    fn attack(event: &EnemyEvent, player: &Gd<MainCharacter>) -> Response<State> {
+        match event {
+            EnemyEvent::LostPlayer => Response::Super,
+            EnemyEvent::TimerElapsed => Response::Transition(State::chase_player(player.clone())),
+            _ => Handled,
+        }
+    }
+
     #[superstate]
     fn aggresive(event: &EnemyEvent) -> Response<State> {
         match event {
@@ -65,15 +90,6 @@ impl EnemyStateMachine {
                 Response::Transition(State::chase_player(player.to_owned()))
             }
             _ => Response::Super,
-        }
-    }
-
-    #[allow(unused_variables)]
-    #[state(superstate = "aggresive")]
-    fn chase_player(event: &EnemyEvent, player: &Gd<MainCharacter>) -> Response<State> {
-        match event {
-            EnemyEvent::LostPlayer => Response::Super,
-            _ => Handled,
         }
     }
 }

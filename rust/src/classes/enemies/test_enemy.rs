@@ -1,5 +1,7 @@
 use godot::{
-    classes::{AnimationPlayer, Area2D, CharacterBody2D, ICharacterBody2D, Marker2D, Timer},
+    classes::{
+        AnimationPlayer, Area2D, CharacterBody2D, ICharacterBody2D, Marker2D, RayCast2D, Timer,
+    },
     obj::WithBaseField,
     prelude::*,
 };
@@ -22,6 +24,13 @@ pub struct TestEnemy {
     pub current_event: enemy_state_machine::EnemyEvent,
     delta: f64,
     direction: PlatformerDirection,
+    #[init(node = "AttackRayCast")]
+    #[var]
+    attack_raycast: OnReady<Gd<RayCast2D>>,
+    #[init(val = 1.0)]
+    attack_animation_timer: f64,
+    #[init(val = 3.5)]
+    attack_cooldown_timer: f64,
     #[init(val = 2.0)]
     #[var]
     idle_time: f64,
@@ -79,9 +88,10 @@ impl ICharacterBody2D for TestEnemy {
             enemy_state_machine::State::Idle {} => self.idle(),
             enemy_state_machine::State::ChasePlayer { player } => self.chase_player(player.clone()),
             enemy_state_machine::State::Patrol {} => self.patrol(),
+            enemy_state_machine::State::Attack { player } => self.attack(player.clone()),
         }
-
         self.update_animation();
+        self.raycast_stuff();
     }
 }
 
@@ -108,18 +118,12 @@ impl TestEnemy {
         }
     }
 
-    #[func]
-    fn on_player_enters_attack_range(
-        &mut self,
-        area_rid: Rid,
-        area: Gd<Area2D>,
-        area_shape_index: i32,
-        local_shape_index: i32,
-    ) {
-        println!(
-            "area_rid: {}\narea: {}\n area_shape_index: {}\nlocal_shape_index: {}",
-            area_rid, area, area_shape_index, local_shape_index
-        );
+    fn raycast_stuff(&mut self) {
+        let raycast = self.get_attack_raycast();
+        if let Some(collider) = raycast.get_collider() {
+            println!("Got collision: {}", collider);
+            // attack logic
+        }
     }
 
     fn connect_player_sensors(&mut self) {
@@ -136,9 +140,7 @@ impl TestEnemy {
             .callable(constants::CALLABLE_PLAYER_ENTERED_ATTACK_RANGE);
         // player_sensors.connect(constants::SIGNAL_PLAYER_ENTERED_ATTACK_RANGE, &call);
 
-        println!("Connecting");
         player_sensors.connect("area_shape_entered", &call);
-        println!("connected");
     }
 
     fn get_furthest_patrol_marker(&self) -> Vector2 {
@@ -165,6 +167,25 @@ impl TestEnemy {
             .direction_to(target.get_global_position())
             .normalized_or_zero();
         velocity
+    }
+
+    fn reset_attack_animation_timer(&mut self) {
+        self.attack_animation_timer = 1.0;
+    }
+
+    fn reset_attack_cooldown_timer(&mut self) {
+        self.attack_cooldown_timer = 3.5;
+    }
+
+    fn attack(&mut self, player: Gd<MainCharacter>) {
+        self.base_mut().set_velocity(Vector2::ZERO);
+        self.velocity = Vector2::ZERO;
+        let mut time = self.attack_animation_timer;
+        time -= self.delta;
+
+        if time <= 0.0 {
+            self.reset_attack_animation_timer();
+        }
     }
 
     pub fn patrol(&mut self) {

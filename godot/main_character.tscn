@@ -1,4 +1,4 @@
-[gd_scene load_steps=15 format=3 uid="uid://dmnvgp7j5vtfe"]
+[gd_scene load_steps=14 format=3 uid="uid://dmnvgp7j5vtfe"]
 
 [ext_resource type="Texture2D" uid="uid://jajkhxvbqumn" path="res://assets/entities/knight/Run.png" id="1_6d32q"]
 [ext_resource type="Texture2D" uid="uid://c0yvk1ca22cd" path="res://assets/entities/knight/Idle.png" id="2_0wqo3"]
@@ -473,12 +473,12 @@ tracks/4/keys = {
 
 [sub_resource type="AnimationLibrary" id="AnimationLibrary_o5fgf"]
 _data = {
-"RESET": SubResource("Animation_wk0bb"),
-"attack_east": SubResource("Animation_lwf3y"),
-"idle_east": SubResource("Animation_5rtrm"),
-"idle_west": SubResource("Animation_crsdf"),
-"patrol_east": SubResource("Animation_5mfpx"),
-"patrol_west": SubResource("Animation_8huyo")
+&"RESET": SubResource("Animation_wk0bb"),
+&"attack_east": SubResource("Animation_lwf3y"),
+&"idle_east": SubResource("Animation_5rtrm"),
+&"idle_west": SubResource("Animation_crsdf"),
+&"patrol_east": SubResource("Animation_5mfpx"),
+&"patrol_west": SubResource("Animation_8huyo")
 }
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_kesxu"]
@@ -486,9 +486,6 @@ size = Vector2(173, 20)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_ttd62"]
 size = Vector2(20, 43)
-
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_p3fga"]
-size = Vector2(27, 20)
 
 [node name="TestEnemy" type="TestEnemy" groups=["enemy"]]
 slide_on_ceiling = false
@@ -537,16 +534,6 @@ shape = SubResource("RectangleShape2D_ttd62")
 disabled = true
 debug_color = Color(0.452949, 0.595386, 0, 0.42)
 
-[node name="EastAttackRange" type="CollisionShape2D" parent="PlayerSensors"]
-position = Vector2(26.5, 8)
-shape = SubResource("RectangleShape2D_p3fga")
-debug_color = Color(0.860582, 0.130181, 0.817027, 0.42)
-
-[node name="WestAttackRange" type="CollisionShape2D" parent="PlayerSensors"]
-position = Vector2(-24, 8)
-shape = SubResource("RectangleShape2D_p3fga")
-debug_color = Color(0.858824, 0.129412, 0.815686, 0.419608)
-
 [node name="MovementTimer" type="Timer" parent="."]
 process_callback = 0
 wait_time = 3.0
@@ -561,3 +548,6 @@ gizmo_extents = 100.0
 top_level = true
 position = Vector2(50, 0)
 gizmo_extents = 100.0
+
+[node name="AttackRayCast" type="RayCast2D" parent="."]
+target_position = Vector2(35, 0)
