@@ -976,7 +976,7 @@ vframes = 24
 [node name="AnimationPlayer" type="AnimationPlayer" parent="."]
 callback_mode_process = 0
 libraries = {
-"": SubResource("AnimationLibrary_5u0ap"),
-"moon_mage_character": SubResource("AnimationLibrary_dvr7x"),
-"sl_knight_character": SubResource("AnimationLibrary_k01ch")
+&"": SubResource("AnimationLibrary_5u0ap"),
+&"moon_mage_character": SubResource("AnimationLibrary_dvr7x"),
+&"sl_knight_character": SubResource("AnimationLibrary_k01ch")
 }

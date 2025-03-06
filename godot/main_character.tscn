@@ -84,7 +84,7 @@ tracks/5/keys = {
 tracks/6/type = "value"
 tracks/6/imported = false
 tracks/6/enabled = true
-tracks/6/path = NodePath("PlayerSensors/EastHurtbox:disabled")
+tracks/6/path = NodePath("Hurtboxes/EastHurtbox:disabled")
 tracks/6/interp = 1
 tracks/6/loop_wrap = true
 tracks/6/keys = {
@@ -96,7 +96,7 @@ tracks/6/keys = {
 tracks/7/type = "value"
 tracks/7/imported = false
 tracks/7/enabled = true
-tracks/7/path = NodePath("PlayerSensors/WestHurtbox:disabled")
+tracks/7/path = NodePath("Hurtboxes/WestHurtbox:disabled")
 tracks/7/interp = 1
 tracks/7/loop_wrap = true
 tracks/7/keys = {
@@ -185,7 +185,7 @@ tracks/5/keys = {
 tracks/6/type = "value"
 tracks/6/imported = false
 tracks/6/enabled = true
-tracks/6/path = NodePath("PlayerSensors/EastHurtbox:disabled")
+tracks/6/path = NodePath("Hurtboxes/EastHurtbox:disabled")
 tracks/6/interp = 1
 tracks/6/loop_wrap = true
 tracks/6/keys = {
@@ -197,7 +197,7 @@ tracks/6/keys = {
 tracks/7/type = "value"
 tracks/7/imported = false
 tracks/7/enabled = true
-tracks/7/path = NodePath("PlayerSensors/WestHurtbox:disabled")
+tracks/7/path = NodePath("Hurtboxes/WestHurtbox:disabled")
 tracks/7/interp = 1
 tracks/7/loop_wrap = true
 tracks/7/keys = {
@@ -481,13 +481,15 @@ _data = {
 &"patrol_west": SubResource("Animation_8huyo")
 }
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_kesxu"]
-size = Vector2(173, 20)
-
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_ttd62"]
 size = Vector2(20, 43)
 
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_kesxu"]
+size = Vector2(173, 20)
+
 [node name="TestEnemy" type="TestEnemy" groups=["enemy"]]
+collision_layer = 10
+collision_mask = 2
 slide_on_ceiling = false
 floor_constant_speed = true
 platform_on_leave = 2
@@ -503,7 +505,7 @@ vframes = 5
 
 [node name="AnimationPlayer2" type="AnimationPlayer" parent="."]
 libraries = {
-"": SubResource("AnimationLibrary_o5fgf")
+&"": SubResource("AnimationLibrary_o5fgf")
 }
 
 [node name="Camera2D" type="Camera2D" parent="."]
@@ -515,24 +517,30 @@ position_smoothing_enabled = true
 wait_time = 0.8
 one_shot = true
 
-[node name="PlayerSensors" type="Area2D" parent="."]
+[node name="Hurtboxes" type="Area2D" parent="."]
+collision_layer = 0
+collision_mask = 4
 
-[node name="PlayerDetector" type="CollisionShape2D" parent="PlayerSensors"]
-position = Vector2(3, 8)
-shape = SubResource("RectangleShape2D_kesxu")
-debug_color = Color(0.998547, 0, 0.139145, 0.42)
-
-[node name="EastHurtbox" type="CollisionShape2D" parent="PlayerSensors"]
+[node name="EastHurtbox" type="CollisionShape2D" parent="Hurtboxes"]
 position = Vector2(23, 9.5)
 shape = SubResource("RectangleShape2D_ttd62")
 disabled = true
 debug_color = Color(0.452949, 0.595386, 0, 0.42)
 
-[node name="WestHurtbox" type="CollisionShape2D" parent="PlayerSensors"]
+[node name="WestHurtbox" type="CollisionShape2D" parent="Hurtboxes"]
 position = Vector2(-21, 10)
 shape = SubResource("RectangleShape2D_ttd62")
 disabled = true
 debug_color = Color(0.452949, 0.595386, 0, 0.42)
+
+[node name="PlayerSensors" type="Area2D" parent="."]
+collision_layer = 0
+collision_mask = 4
+
+[node name="PlayerDetector" type="CollisionShape2D" parent="PlayerSensors"]
+position = Vector2(3, 8)
+shape = SubResource("RectangleShape2D_kesxu")
+debug_color = Color(0.998547, 0, 0.139145, 0.42)
 
 [node name="MovementTimer" type="Timer" parent="."]
 process_callback = 0
@@ -551,3 +559,4 @@ gizmo_extents = 100.0
 
 [node name="AttackRayCast" type="RayCast2D" parent="."]
 target_position = Vector2(35, 0)
+collision_mask = 4

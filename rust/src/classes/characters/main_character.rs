@@ -135,8 +135,17 @@ impl MainCharacter {
 
     #[func]
     fn on_body_entered_hurtbox(&mut self, body: Gd<Node2D>) {
-        let mut damagable = DynGd::<Node2D, dyn Damageable>::from_godot(body);
-        damagable.dyn_bind_mut().take_damage(10);
+        if body.is_in_group("enemy") {
+            // I was under the impression that DynGd kept a lookup table at compile time of all
+            // classes and their implemented traits. However, when the player's Area2D detects the
+            // players hitbox, gdext errors with:
+            // ERROR: godot-rust function call failed: MainCharacter::on_body_entered_hurtbox()
+            // Reason: [panic]  FromGodot::from_godot() failed: none of the classes derived from `StaticBody2D` have been linked to trait
+            // `dyn Damageable` with #[godot_dyn]: Gd { id: 39392905054, class: StaticBody2D }
+            // The error goes away when performing a group check like above.
+            let mut damagable = DynGd::<Node2D, dyn Damageable>::from_godot(body);
+            damagable.dyn_bind_mut().take_damage(10);
+        }
     }
 
     pub fn dodge(&mut self, event: &Event, velocity: Vector2, delta: f64) -> State {

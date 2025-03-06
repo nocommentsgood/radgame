@@ -1778,6 +1778,8 @@ _data = {
 [node name="MainCharacter" type="MainCharacter" groups=["player"]]
 running_speed = 70.0
 dodging_speed = 100.0
+collision_layer = 6
+collision_mask = 2
 slide_on_ceiling = false
 
 [node name="Hitbox" type="CollisionShape2D" parent="."]
@@ -1785,16 +1787,14 @@ position = Vector2(0, 6)
 shape = SubResource("CapsuleShape2D_wynde")
 
 [node name="Hurtbox" type="Area2D" parent="."]
+collision_layer = 0
+collision_mask = 8
 input_pickable = false
+monitorable = false
 
 [node name="Hurtbox_melee_1" type="CollisionShape2D" parent="Hurtbox"]
 position = Vector2(26, 10)
 shape = SubResource("CapsuleShape2D_wd5k3")
-
-[node name="Hurtbox_melee_2" type="CollisionShape2D" parent="Hurtbox"]
-position = Vector2(26, 10)
-shape = SubResource("CapsuleShape2D_wd5k3")
-debug_color = Color(0.925225, 0.139551, 0.5821, 0.42)
 
 [node name="Camera2D" type="Camera2D" parent="."]
 zoom = Vector2(3, 3)
@@ -1819,5 +1819,5 @@ region_rect = Rect2(40, 0, 48.9704, 72)
 [node name="AnimationPlayer" type="AnimationPlayer" parent="."]
 callback_mode_process = 0
 libraries = {
-"": SubResource("AnimationLibrary_i78o7")
+&"": SubResource("AnimationLibrary_i78o7")
 }

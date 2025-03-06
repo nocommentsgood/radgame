@@ -100,6 +100,9 @@ impl TestEnemy {
     #[signal]
     fn test_enemy_died();
 
+    #[signal]
+    fn can_attack_player();
+
     #[func]
     fn destroy(&mut self) {
         if self.is_dead() {
@@ -111,6 +114,7 @@ impl TestEnemy {
     fn on_enemy_senses_player(&mut self, body: Gd<Node2D>) {
         if body.is_in_group("player") {
             if let Ok(player) = body.try_cast::<MainCharacter>() {
+                println!("Player in aggro range");
                 self.current_event = enemy_state_machine::EnemyEvent::FoundPlayer {
                     player: player.clone(),
                 }
@@ -118,29 +122,56 @@ impl TestEnemy {
         }
     }
 
+    #[func]
+    fn on_hurtbox_entered(&mut self, body: Gd<Node2D>) {
+        let mut damageable = DynGd::<Node2D, dyn Damageable>::from_godot(body);
+        damageable.dyn_bind_mut().take_damage(10);
+    }
+
+    #[func]
+    fn on_enemy_lost_player(&mut self, body: Gd<Node2D>) {
+        if body.is_in_group("player") {
+            self.current_event = enemy_state_machine::EnemyEvent::LostPlayer;
+        }
+    }
+
     fn raycast_stuff(&mut self) {
         let raycast = self.get_attack_raycast();
         if let Some(collider) = raycast.get_collider() {
-            println!("Got collision: {}", collider);
-            // attack logic
+            if let Ok(player) = collider.try_cast::<MainCharacter>() {
+                println!("Got player: {}", player);
+                if self.attack_cooldown_timer == 3.5 {
+                    self.current_event = enemy_state_machine::EnemyEvent::InAttackRange;
+                    self.attack_cooldown_timer -= self.delta;
+                }
+                if self.attack_cooldown_timer < 3.5 && self.attack_cooldown_timer > 0.0 {
+                    self.attack_cooldown_timer -= self.delta;
+                }
+                if self.attack_cooldown_timer <= 0.0 {
+                    self.reset_attack_cooldown_timer();
+                }
+            }
         }
     }
 
     fn connect_player_sensors(&mut self) {
-        // Connect to aggro range
         let mut player_sensors = self.base().get_node_as::<Area2D>(constants::PLAYER_SENSORS);
+        let mut hurtboxes = self.base().get_node_as::<Area2D>("Hurtboxes");
+
+        // Connect to aggro range
         let callable = self
             .base()
             .callable(constants::CALLABLE_ENEMY_SENSES_PLAYER);
         player_sensors.connect(constants::SIGNAL_ENEMY_DETECTS_PLAYER, &callable);
 
-        // Connect to player entering attack range
-        let call = self
-            .base()
-            .callable(constants::CALLABLE_PLAYER_ENTERED_ATTACK_RANGE);
-        // player_sensors.connect(constants::SIGNAL_PLAYER_ENTERED_ATTACK_RANGE, &call);
+        // Connect to player leaves aggro range
+        let callable = self.base().callable(constants::CALLABLE_ENEMY_LOST_PLAYER);
+        player_sensors.connect(constants::SIGNAL_ENEMY_LOST_PLAYER, &callable);
 
-        player_sensors.connect("area_shape_entered", &call);
+        let callable = self
+            .base()
+            .callable(constants::CALLABLE_PLAYER_ENTERED_HURTBOX);
+        hurtboxes.connect(constants::SIGNAL_PLAYER_ENTERED_HURTBOX, &callable);
     }
 
     fn get_furthest_patrol_marker(&self) -> Vector2 {
@@ -180,11 +211,11 @@ impl TestEnemy {
     fn attack(&mut self, player: Gd<MainCharacter>) {
         self.base_mut().set_velocity(Vector2::ZERO);
         self.velocity = Vector2::ZERO;
-        let mut time = self.attack_animation_timer;
-        time -= self.delta;
+        self.attack_animation_timer -= self.delta;
 
-        if time <= 0.0 {
+        if self.attack_animation_timer <= 0.0 {
             self.reset_attack_animation_timer();
+            self.current_event = enemy_state_machine::EnemyEvent::TimerElapsed;
         }
     }
 
