@@ -59,11 +59,11 @@ pub struct TestEnemy {
     velocity: Vector2,
     state: statig::blocking::StateMachine<EnemyStateMachine>,
 
-    #[init(node = "AnimationPlayer2")]
+    #[init(node = "AnimationPlayer")]
     animation_player: OnReady<Gd<AnimationPlayer>>,
 
-    #[init(node = "MovementTimer")]
-    movement_timer: OnReady<Gd<Timer>>,
+    // #[init(node = "MovementTimer")]
+    // movement_timer: OnReady<Gd<Timer>>,
     base: Base<CharacterBody2D>,
 }
 
@@ -253,6 +253,7 @@ impl TestEnemy {
             .direction_to(player_position)
             .normalized_or_zero();
 
+        self.direction = PlatformerDirection::from_platformer_velocity(&velocity);
         self.base_mut().set_velocity(velocity * speed);
         self.base_mut().move_and_slide();
 
