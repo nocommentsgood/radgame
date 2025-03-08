@@ -18,19 +18,19 @@ pub const PLAYER_HURTBOX: &str = "Hurtbox";
 
 // Enemy signals
 pub const SIGNAL_TESTENEMY_DIED: &str = "test_enemy_died";
-pub const SIGNAL_ENEMY_DETECTS_PLAYER: &str = "body_entered";
-pub const SIGNAL_ENEMY_LOST_PLAYER: &str = "body_exited";
+pub const SIGNAL_AGRRO_AREA_ENTERED: &str = "body_entered";
+pub const SIGNAL_AGGRO_AREA_EXITED: &str = "body_exited";
 pub const SIGNAL_PLAYER_ENTERED_ATTACK_RANGE: &str = "body_entered";
-pub const SIGNAL_PLAYER_ENTERED_HURTBOX: &str = "body_entered";
+pub const SIGNAL_HURTBOX_ENTERED: &str = "body_entered";
 
 // Enemy callables
 pub const CALLABLE_DESTROY_ENEMY: &str = "destroy";
-pub const CALLABLE_ENEMY_SENSES_PLAYER: &str = "on_enemy_senses_player";
+pub const CALLABLE_ON_AGGRO_AREA_ENTERED: &str = "on_aggro_area_entered";
 pub const CALLABLE_PLAYER_ENTERED_ATTACK_RANGE: &str = "on_player_enters_attack_range";
-pub const CALLABLE_ENEMY_LOST_PLAYER: &str = "on_enemy_lost_player";
-pub const CALLABLE_PLAYER_ENTERED_HURTBOX: &str = "on_hurtbox_entered";
+pub const CALLABLE_ON_AGGRO_AREA_EXITED: &str = "on_aggro_area_exited";
+pub const CALLABLE_ON_HURTBOX_ENTERED: &str = "on_hurtbox_entered";
 
 // Enemy child nodes
-pub const PLAYER_SENSORS: &str = "PlayerSensors";
+pub const ENEMY_SENSORS: &str = "EnemySensors";
 
 // End Enemies ====================================================
