@@ -1,8 +1,9 @@
-[gd_scene load_steps=14 format=3 uid="uid://dmnvgp7j5vtfe"]
+[gd_scene load_steps=13 format=3 uid="uid://dmnvgp7j5vtfe"]
 
 [ext_resource type="Texture2D" uid="uid://jajkhxvbqumn" path="res://assets/entities/knight/Run.png" id="1_6d32q"]
 [ext_resource type="Texture2D" uid="uid://c0yvk1ca22cd" path="res://assets/entities/knight/Idle.png" id="2_0wqo3"]
 [ext_resource type="Texture2D" uid="uid://dfjmgpggtd0hy" path="res://assets/entities/knight/Attacks.png" id="3_p43tl"]
+[ext_resource type="PackedScene" uid="uid://ktv3myqxd2dt" path="res://enemy_sensors.tscn" id="4_2q423"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_eqfgp"]
 size = Vector2(23, 43)
@@ -84,7 +85,7 @@ tracks/5/keys = {
 tracks/6/type = "value"
 tracks/6/imported = false
 tracks/6/enabled = true
-tracks/6/path = NodePath("Hurtboxes/EastHurtbox:disabled")
+tracks/6/path = NodePath("EnemySensors/Hurtboxes/EastHurtbox:disabled")
 tracks/6/interp = 1
 tracks/6/loop_wrap = true
 tracks/6/keys = {
@@ -96,7 +97,7 @@ tracks/6/keys = {
 tracks/7/type = "value"
 tracks/7/imported = false
 tracks/7/enabled = true
-tracks/7/path = NodePath("Hurtboxes/WestHurtbox:disabled")
+tracks/7/path = NodePath("EnemySensors/Hurtboxes/WestHurtbox:disabled")
 tracks/7/interp = 1
 tracks/7/loop_wrap = true
 tracks/7/keys = {
@@ -185,11 +186,11 @@ tracks/5/keys = {
 tracks/6/type = "value"
 tracks/6/imported = false
 tracks/6/enabled = true
-tracks/6/path = NodePath("Hurtboxes/EastHurtbox:disabled")
+tracks/6/path = NodePath("EnemySensors/Hurtboxes/EastHurtbox:disabled")
 tracks/6/interp = 1
 tracks/6/loop_wrap = true
 tracks/6/keys = {
-"times": PackedFloat32Array(0.0333333, 0.3, 0.5),
+"times": PackedFloat32Array(0, 0.3, 0.5),
 "transitions": PackedFloat32Array(1, 1, 1),
 "update": 1,
 "values": [true, false, true]
@@ -197,11 +198,11 @@ tracks/6/keys = {
 tracks/7/type = "value"
 tracks/7/imported = false
 tracks/7/enabled = true
-tracks/7/path = NodePath("Hurtboxes/WestHurtbox:disabled")
+tracks/7/path = NodePath("EnemySensors/Hurtboxes/WestHurtbox:disabled")
 tracks/7/interp = 1
 tracks/7/loop_wrap = true
 tracks/7/keys = {
-"times": PackedFloat32Array(0.0333333),
+"times": PackedFloat32Array(0),
 "transitions": PackedFloat32Array(1),
 "update": 1,
 "values": [true]
@@ -481,12 +482,6 @@ _data = {
 &"patrol_west": SubResource("Animation_8huyo")
 }
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_ttd62"]
-size = Vector2(20, 43)
-
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_kesxu"]
-size = Vector2(173, 20)
-
 [node name="TestEnemy" type="TestEnemy" groups=["enemy"]]
 collision_layer = 10
 collision_mask = 2
@@ -508,39 +503,7 @@ libraries = {
 &"": SubResource("AnimationLibrary_o5fgf")
 }
 
-[node name="Camera2D" type="Camera2D" parent="."]
-enabled = false
-zoom = Vector2(2, 2)
-position_smoothing_enabled = true
-
-[node name="AttackAnimationTimer" type="Timer" parent="."]
-wait_time = 0.8
-one_shot = true
-
-[node name="Hurtboxes" type="Area2D" parent="."]
-collision_layer = 0
-collision_mask = 4
-
-[node name="EastHurtbox" type="CollisionShape2D" parent="Hurtboxes"]
-position = Vector2(23, 9.5)
-shape = SubResource("RectangleShape2D_ttd62")
-disabled = true
-debug_color = Color(0.452949, 0.595386, 0, 0.42)
-
-[node name="WestHurtbox" type="CollisionShape2D" parent="Hurtboxes"]
-position = Vector2(-21, 10)
-shape = SubResource("RectangleShape2D_ttd62")
-disabled = true
-debug_color = Color(0.452949, 0.595386, 0, 0.42)
-
-[node name="PlayerSensors" type="Area2D" parent="."]
-collision_layer = 0
-collision_mask = 4
-
-[node name="PlayerDetector" type="CollisionShape2D" parent="PlayerSensors"]
-position = Vector2(3, 8)
-shape = SubResource("RectangleShape2D_kesxu")
-debug_color = Color(0.998547, 0, 0.139145, 0.42)
+[node name="EnemySensors" parent="." instance=ExtResource("4_2q423")]
 
 [node name="MovementTimer" type="Timer" parent="."]
 process_callback = 0
@@ -556,7 +519,3 @@ gizmo_extents = 100.0
 top_level = true
 position = Vector2(50, 0)
 gizmo_extents = 100.0
-
-[node name="AttackRayCast" type="RayCast2D" parent="."]
-target_position = Vector2(35, 0)
-collision_mask = 4

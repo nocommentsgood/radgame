@@ -22,11 +22,11 @@ environment = SubResource("Environment_2k8wa")
 [node name="TestEnemy" parent="WorldEnvironment" instance=ExtResource("3_1gilh")]
 position = Vector2(214, 230)
 
-[node name="LeftPatrolMarker" parent="WorldEnvironment/TestEnemy" index="8"]
+[node name="LeftPatrolMarker" parent="WorldEnvironment/TestEnemy" index="6"]
 position = Vector2(168, 236)
 gizmo_extents = 10.0
 
-[node name="RightPatrolMarker" parent="WorldEnvironment/TestEnemy" index="9"]
+[node name="RightPatrolMarker" parent="WorldEnvironment/TestEnemy" index="7"]
 position = Vector2(258, 236)
 gizmo_extents = 10.0
 
@@ -42,3 +42,4 @@ collision_mask = 0
 shape = SubResource("WorldBoundaryShape2D_7qxfc")
 
 [editable path="WorldEnvironment/TestEnemy"]
+[editable path="WorldEnvironment/TestEnemy/EnemySensors"]

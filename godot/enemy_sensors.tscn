@@ -1,0 +1,51 @@
+[gd_scene load_steps=4 format=3 uid="uid://ktv3myqxd2dt"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_1p0qd"]
+size = Vector2(20, 43)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_j0yqt"]
+size = Vector2(173, 20)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_l7ghs"]
+size = Vector2(34, 43)
+
+[node name="EnemySensors" type="Node2D"]
+
+[node name="Hurtboxes" type="Area2D" parent="."]
+collision_layer = 0
+collision_mask = 4
+
+[node name="EastHurtbox" type="CollisionShape2D" parent="Hurtboxes"]
+position = Vector2(23, 9.5)
+shape = SubResource("RectangleShape2D_1p0qd")
+disabled = true
+debug_color = Color(0.452949, 0.595386, 0, 0.42)
+
+[node name="WestHurtbox" type="CollisionShape2D" parent="Hurtboxes"]
+position = Vector2(-21, 10)
+shape = SubResource("RectangleShape2D_1p0qd")
+disabled = true
+debug_color = Color(0.452949, 0.595386, 0, 0.42)
+
+[node name="AggroArea" type="Area2D" parent="."]
+collision_layer = 0
+collision_mask = 4
+
+[node name="AggroShape" type="CollisionShape2D" parent="AggroArea"]
+position = Vector2(3, 8)
+shape = SubResource("RectangleShape2D_j0yqt")
+debug_color = Color(0.998547, 0, 0.139145, 0.42)
+
+[node name="AttackArea" type="Area2D" parent="."]
+collision_layer = 0
+collision_mask = 4
+
+[node name="AttackShapeEast" type="CollisionShape2D" parent="AttackArea"]
+position = Vector2(30, 9.5)
+shape = SubResource("RectangleShape2D_l7ghs")
+debug_color = Color(0.808802, 0.15934, 0.920065, 0.42)
+
+[node name="AttackShapeWest" type="CollisionShape2D" parent="AttackArea"]
+position = Vector2(-28, 10)
+shape = SubResource("RectangleShape2D_l7ghs")
+debug_color = Color(0.808802, 0.15934, 0.920065, 0.42)
