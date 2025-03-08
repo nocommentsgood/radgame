@@ -1,3 +1,5 @@
+use std::thread::current;
+
 use godot::{
     classes::{
         AnimationPlayer, Area2D, CharacterBody2D, CollisionShape2D, ICharacterBody2D, Timer,
@@ -52,6 +54,7 @@ pub struct MainCharacter {
     #[var]
     velocity: Vector2,
     #[var]
+    #[init(val = 40)]
     health: i32,
     #[var]
     energy: i32,
@@ -124,6 +127,9 @@ impl ICharacterBody2D for MainCharacter {
 
 #[godot_api]
 impl MainCharacter {
+    #[signal]
+    fn player_damaged(previous_health: i32, new_health: i32, damage_amount: i32);
+
     fn connect_attack_signal(&mut self) {
         let mut hurtbox = self.base().get_node_as::<Area2D>(PLAYER_HURTBOX);
         let callable = self
@@ -135,8 +141,17 @@ impl MainCharacter {
 
     #[func]
     fn on_body_entered_hurtbox(&mut self, body: Gd<Node2D>) {
-        let mut damagable = DynGd::<Node2D, dyn Damageable>::from_godot(body);
-        damagable.dyn_bind_mut().take_damage(10);
+        if body.is_in_group("enemy") {
+            // I was under the impression that DynGd kept a lookup table at compile time of all
+            // classes and their implemented traits. However, when the player's Area2D detects the
+            // players hitbox, gdext errors with:
+            // ERROR: godot-rust function call failed: MainCharacter::on_body_entered_hurtbox()
+            // Reason: [panic]  FromGodot::from_godot() failed: none of the classes derived from `StaticBody2D` have been linked to trait
+            // `dyn Damageable` with #[godot_dyn]: Gd { id: 39392905054, class: StaticBody2D }
+            // The error goes away when performing a group check like above.
+            let mut damagable = DynGd::<Node2D, dyn Damageable>::from_godot(body);
+            damagable.dyn_bind_mut().take_damage(10);
+        }
     }
 
     pub fn dodge(&mut self, event: &Event, velocity: Vector2, delta: f64) -> State {
@@ -440,7 +455,29 @@ impl CharacterResources for MainCharacter {
 }
 
 #[godot_dyn]
-impl Damageable for MainCharacter {}
+impl Damageable for MainCharacter {
+    fn take_damage(&mut self, amount: i32) {
+        let previous_health = self.get_health();
+        let current_health = previous_health.saturating_sub(amount);
+
+        self.set_health(current_health);
+        self.base_mut().emit_signal(
+            constants::SIGNAL_PLAYER_DAMAGED,
+            &[
+                previous_health.to_variant(),
+                current_health.to_variant(),
+                amount.to_variant(),
+            ],
+        );
+
+        if self.is_dead() {
+            println!("You died");
+            self.base_mut()
+                .emit_signal(constants::SIGNAL_PLAYER_DIED, &[]);
+            self.base_mut().queue_free();
+        }
+    }
+}
 
 #[godot_dyn]
 impl Damaging for MainCharacter {}

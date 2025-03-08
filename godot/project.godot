@@ -12,19 +12,20 @@ config_version=5
 
 config/name="godot"
 run/main_scene="res://main_scene.tscn"
-config/features=PackedStringArray("4.3", "Forward Plus")
+config/features=PackedStringArray("4.4", "Forward Plus")
 config/icon="res://icon.svg"
 
 [display]
 
-window/size/viewport_width=1000
-window/size/viewport_height=600
+window/size/viewport_width=1200
+window/size/viewport_height=850
 window/stretch/mode="viewport"
 window/stretch/scale_mode="integer"
 
 [global_group]
 
 enemy=""
+player=""
 
 [input]
 
@@ -68,6 +69,14 @@ jump={
 ]
 }
 
+[layer_names]
+
+2d_physics/layer_2="floor / wall"
+2d_physics/layer_3="player hitbox"
+2d_physics/layer_4="enemy hitbox"
+2d_physics/layer_5="player hurtbox"
+2d_physics/layer_6="enemy hurtbox"
+
 [physics]
 
 common/physics_ticks_per_second=120
@@ -75,6 +84,6 @@ common/max_physics_steps_per_frame=20
 
 [rendering]
 
-anti_aliasing/quality/msaa_2d=2
 viewport/hdr_2d=true
+anti_aliasing/quality/msaa_2d=2
 2d/snap/snap_2d_transforms_to_pixel=true

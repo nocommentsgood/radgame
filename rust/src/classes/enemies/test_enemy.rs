@@ -1,19 +1,53 @@
 use godot::{
-    classes::{AnimationPlayer, CharacterBody2D, ICharacterBody2D, Timer},
+    classes::{
+        AnimationPlayer, Area2D, CharacterBody2D, ICharacterBody2D, Marker2D, RayCast2D, Timer,
+    },
+    obj::WithBaseField,
     prelude::*,
 };
 
-use crate::traits::components::character_components::{
-    character_resources::CharacterResources, damageable::Damageable, damaging::Damaging,
+use crate::{
+    classes::characters::main_character::MainCharacter,
+    components::state_machines::{
+        enemy_state_machine::{self, *},
+        movements::PlatformerDirection,
+    },
+    traits::components::character_components::{
+        character_resources::CharacterResources, damageable::Damageable, damaging::Damaging,
+    },
+    utils::*,
 };
-
-use crate::utils::*;
 
 #[derive(GodotClass)]
 #[class(init, base=CharacterBody2D)]
 pub struct TestEnemy {
+    pub current_event: enemy_state_machine::EnemyEvent,
+    delta: f64,
+    direction: PlatformerDirection,
+    #[init(val = 1.0)]
+    attack_animation_timer: f64,
+    #[init(val = 3.5)]
+    attack_cooldown_timer: f64,
+    #[init(val = 2.0)]
+    #[var]
+    idle_time: f64,
+    #[init(val = 40.0)]
+    #[var]
+    patrol_speed: real,
+    #[init(val = 4.0)]
+    #[var]
+    patrol_time: f64,
+    #[init(val = 80.0)]
+    #[var]
+    agro_speed: real,
     #[var]
     speed: real,
+    #[init(node = "LeftPatrolMarker")]
+    #[var]
+    left_patrol_marker: OnReady<Gd<Marker2D>>,
+    #[init(node = "RightPatrolMarker")]
+    #[var]
+    right_patrol_marker: OnReady<Gd<Marker2D>>,
     #[init(val = 30)]
     #[var]
     health: i32,
@@ -21,23 +55,40 @@ pub struct TestEnemy {
     energy: i32,
     #[var]
     mana: i32,
+    #[var]
     velocity: Vector2,
+    state: statig::blocking::StateMachine<EnemyStateMachine>,
 
-    #[init(node = "AnimationPlayer2")]
+    #[init(node = "AnimationPlayer")]
     animation_player: OnReady<Gd<AnimationPlayer>>,
 
-    #[init(node = "MovementTimer")]
-    movement_timer: OnReady<Gd<Timer>>,
-    running_speed: real,
+    // #[init(node = "MovementTimer")]
+    // movement_timer: OnReady<Gd<Timer>>,
     base: Base<CharacterBody2D>,
 }
 
 #[godot_api]
 impl ICharacterBody2D for TestEnemy {
     fn ready(&mut self) {
+        self.connect_area_nodes();
+
         let callable = self.base().callable(constants::CALLABLE_DESTROY_ENEMY);
         self.base_mut()
             .connect(constants::SIGNAL_TESTENEMY_DIED, &callable);
+    }
+
+    fn physics_process(&mut self, delta: f64) {
+        self.delta = delta;
+        self.state.handle(&self.current_event);
+
+        match self.state.state() {
+            enemy_state_machine::State::Idle {} => self.idle(),
+            enemy_state_machine::State::ChasePlayer { player } => self.chase_player(player.clone()),
+            enemy_state_machine::State::Patrol {} => self.patrol(),
+            enemy_state_machine::State::Attack { player } => self.attack(player.clone()),
+        }
+        self.update_animation();
+        self.update_timers();
     }
 }
 
@@ -46,11 +97,193 @@ impl TestEnemy {
     #[signal]
     fn test_enemy_died();
 
+    #[signal]
+    fn can_attack_player();
+
     #[func]
     fn destroy(&mut self) {
         if self.is_dead() {
             self.base_mut().queue_free();
         }
+    }
+
+    #[func]
+    fn on_aggro_area_entered(&mut self, body: Gd<Node2D>) {
+        if body.is_in_group("player") {
+            if let Ok(player) = body.try_cast::<MainCharacter>() {
+                self.current_event = enemy_state_machine::EnemyEvent::FoundPlayer {
+                    player: player.clone(),
+                }
+            }
+        }
+    }
+
+    #[func]
+    fn on_hurtbox_entered(&mut self, body: Gd<Node2D>) {
+        let mut damageable = DynGd::<Node2D, dyn Damageable>::from_godot(body);
+        damageable.dyn_bind_mut().take_damage(10);
+    }
+
+    #[func]
+    fn on_aggro_area_exited(&mut self, body: Gd<Node2D>) {
+        if body.is_in_group("player") {
+            self.current_event = enemy_state_machine::EnemyEvent::LostPlayer;
+        }
+    }
+
+    fn connect_area_nodes(&mut self) {
+        let player_sensors = self.base().get_node_as::<Node2D>(constants::ENEMY_SENSORS);
+        let mut hurtboxes = player_sensors.get_node_as::<Area2D>("Hurtboxes");
+        let mut aggro_area = player_sensors.get_node_as::<Area2D>("AggroArea");
+
+        // Connect to player enters aggro range
+        let callable = self
+            .base()
+            .callable(constants::CALLABLE_ON_AGGRO_AREA_ENTERED);
+        aggro_area.connect(constants::SIGNAL_AGRRO_AREA_ENTERED, &callable);
+
+        // Connect to player leaves aggro range
+        let callable = self
+            .base()
+            .callable(constants::CALLABLE_ON_AGGRO_AREA_EXITED);
+        aggro_area.connect(constants::SIGNAL_AGGRO_AREA_EXITED, &callable);
+
+        // Connect to hurtboxes
+        let callable = self.base().callable(constants::CALLABLE_ON_HURTBOX_ENTERED);
+        hurtboxes.connect(constants::SIGNAL_HURTBOX_ENTERED, &callable);
+    }
+
+    fn furthest_patrol_marker_distance(&self) -> Vector2 {
+        let left = self.get_left_patrol_marker();
+        let right = self.get_right_patrol_marker();
+        let left_distance = self
+            .base()
+            .get_global_position()
+            .distance_to(left.get_global_position());
+        let right_distance = self
+            .base()
+            .get_global_position()
+            .distance_to(right.get_global_position());
+
+        let target = if left_distance <= right_distance {
+            left
+        } else {
+            right
+        };
+
+        let velocity = self
+            .base()
+            .get_global_position()
+            .direction_to(target.get_global_position())
+            .normalized_or_zero();
+        velocity
+    }
+
+    fn reset_attack_animation_timer(&mut self) {
+        self.attack_animation_timer = 1.0;
+    }
+
+    fn reset_attack_cooldown_timer(&mut self) {
+        self.attack_cooldown_timer = 3.5;
+    }
+
+    // Leaving this somewhat open ended in case more timers are added later
+    fn update_timers(&mut self) {
+        // Update attack cooldown timer
+        if self.attack_cooldown_timer < 3.5 && self.attack_cooldown_timer > 0.0 {
+            self.attack_cooldown_timer -= self.delta;
+        } else if self.attack_cooldown_timer <= 0.0 {
+            self.reset_attack_cooldown_timer();
+        }
+    }
+
+    fn attack(&mut self, _player: Gd<MainCharacter>) {
+        self.base_mut().set_velocity(Vector2::ZERO);
+        self.velocity = Vector2::ZERO;
+        self.attack_animation_timer -= self.delta;
+
+        if self.attack_animation_timer <= 0.0 {
+            self.reset_attack_animation_timer();
+            self.current_event = enemy_state_machine::EnemyEvent::TimerElapsed;
+        }
+    }
+
+    fn patrol(&mut self) {
+        let time = self.get_patrol_time();
+        let speed = self.patrol_speed;
+        let velocity = self.get_velocity();
+
+        self.direction = PlatformerDirection::from_platformer_velocity(&self.velocity);
+        self.base_mut().set_velocity(velocity * speed);
+        self.base_mut().move_and_slide();
+        self.set_patrol_time(time - self.delta);
+
+        if time <= 0.0 {
+            self.reset_patrol_time();
+            self.current_event = enemy_state_machine::EnemyEvent::TimerElapsed;
+        } else {
+            self.current_event = enemy_state_machine::EnemyEvent::None;
+        }
+    }
+
+    fn idle(&mut self) {
+        let time = self.get_idle_time();
+        self.direction = PlatformerDirection::from_platformer_velocity(&Vector2::ZERO);
+        self.velocity = Vector2::ZERO;
+        self.base_mut().set_velocity(Vector2::ZERO);
+        self.set_idle_time(time - self.delta);
+
+        if time <= 0.0 {
+            self.reset_idle_time();
+
+            self.set_velocity(self.furthest_patrol_marker_distance());
+            self.current_event = enemy_state_machine::EnemyEvent::TimerElapsed;
+        } else {
+            self.current_event = enemy_state_machine::EnemyEvent::None;
+        }
+    }
+
+    fn chase_player(&mut self, player: Gd<MainCharacter>) {
+        let attack_range = self.base().get_node_as::<Area2D>("EnemySensors/AttackArea");
+        let speed = self.agro_speed;
+        let player_position = player.get_position();
+        let velocity = self
+            .base()
+            .get_position()
+            .direction_to(player_position)
+            .normalized_or_zero();
+
+        self.direction = PlatformerDirection::from_platformer_velocity(&velocity);
+        self.base_mut().set_velocity(velocity * speed);
+        self.base_mut().move_and_slide();
+
+        if attack_range.has_overlapping_bodies() && self.attack_cooldown_timer == 3.5 {
+            self.current_event = enemy_state_machine::EnemyEvent::InAttackRange;
+            self.attack_cooldown_timer -= self.delta;
+        } else {
+            self.current_event = enemy_state_machine::EnemyEvent::None;
+        }
+    }
+
+    fn reset_idle_time(&mut self) {
+        self.set_idle_time(2.0);
+    }
+
+    fn reset_patrol_time(&mut self) {
+        self.set_patrol_time(4.0);
+    }
+
+    fn get_current_animation(&self) -> String {
+        let direciton = &self.direction;
+        let mut state = self.state.state().to_string();
+        state.push('_');
+
+        format!("{}{}", state, direciton)
+    }
+
+    fn update_animation(&mut self) {
+        let animation = self.get_current_animation();
+        self.animation_player.play_ex().name(&animation).done();
     }
 }
 
