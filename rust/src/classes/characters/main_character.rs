@@ -20,7 +20,7 @@ use crate::{
     utils::constants::{self, PLAYER_HURTBOX},
 };
 
-use super::character_stats::CharacterStats;
+use super::{character_stats::CharacterStats, character_timer_component::TimerComponent};
 
 type Event = crate::components::state_machines::character_state_machine::Event;
 type State = crate::components::state_machines::character_state_machine::State;
@@ -30,6 +30,7 @@ type State = crate::components::state_machines::character_state_machine::State;
 pub struct MainCharacter {
     direction: Directions,
     platformer_direction: PlatformerDirection,
+    timers: TimerComponent,
     #[var]
     #[init(node = "DodgingCooldownTimer")]
     dodging_cooldown_timer: OnReady<Gd<Timer>>,
@@ -86,10 +87,19 @@ impl ICharacterBody2D for MainCharacter {
         self.jumping_animation_timer
             .init(jumping_animation_length as f64);
 
+        self.timers.jumping_animation_timer = jumping_animation_length.into();
+
         self.attack_animation_timer
             .init(attack_animation_length as f64);
+
+        self.timers.attack_animation_timer = attack_animation_length.into();
+
         self.dodging_animation_timer
             .init(dodge_animation_length as f64);
+
+        self.timers.dodging_cooldown_timer = 1.0;
+
+        self.timers.dodging_animation_timer = attack_animation_length.into();
     }
 
     fn physics_process(&mut self, delta: f64) {
@@ -112,24 +122,15 @@ impl MainCharacter {
         let mut hurtbox = self.base().get_node_as::<Area2D>(PLAYER_HURTBOX);
         let callable = self
             .base()
-            .callable(constants::CALLABLE_BODY_ENTERED_HURTBOX);
+            .callable(constants::CALLABLE_ON_PLAYER_HURTBOX_ENTERED);
 
-        hurtbox.connect(constants::SIGNAL_HURTBOX_BODY_ENTERED, &callable);
+        hurtbox.connect(constants::SIGNAL_PLAYER_HURTBOX_ENTERED, &callable);
     }
 
     #[func]
     fn on_body_entered_hurtbox(&mut self, body: Gd<Node2D>) {
-        if body.is_in_group("enemy") {
-            // I was under the impression that DynGd kept a lookup table at compile time of all
-            // classes and their implemented traits. However, when the player's Area2D detects the
-            // players hitbox, gdext errors with:
-            // ERROR: godot-rust function call failed: MainCharacter::on_body_entered_hurtbox()
-            // Reason: [panic]  FromGodot::from_godot() failed: none of the classes derived from `StaticBody2D` have been linked to trait
-            // `dyn Damageable` with #[godot_dyn]: Gd { id: 39392905054, class: StaticBody2D }
-            // The error goes away when performing a group check like above.
-            let mut damagable = DynGd::<Node2D, dyn Damageable>::from_godot(body);
-            damagable.dyn_bind_mut().take_damage(10);
-        }
+        let mut damagable = DynGd::<Node2D, dyn Damageable>::from_godot(body);
+        damagable.dyn_bind_mut().take_damage(10);
     }
 
     pub fn dodge(&mut self, event: &Event, velocity: Vector2, delta: f64) -> State {
@@ -139,6 +140,7 @@ impl MainCharacter {
 
         let mut cooldown_timer = self.get_dodging_cooldown_timer();
         if cooldown_timer.get_time_left() > 0.0 {
+        // let mut cooldown_timer = self.get_dodging_cooldown_timer();
             State::Moving { velocity, delta }
         } else {
             let speed = self.resources.dodging_speed;

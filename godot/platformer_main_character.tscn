@@ -1776,8 +1776,6 @@ _data = {
 }
 
 [node name="MainCharacter" type="MainCharacter" groups=["player"]]
-running_speed = 70.0
-dodging_speed = 100.0
 collision_layer = 6
 collision_mask = 2
 slide_on_ceiling = false
