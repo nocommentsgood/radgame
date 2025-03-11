@@ -20,7 +20,7 @@ use crate::{
     utils::constants::{self, PLAYER_HURTBOX},
 };
 
-use super::{character_stats::CharacterStats, character_timer_component::TimerComponent};
+use super::character_stats::CharacterStats;
 
 type Event = crate::components::state_machines::character_state_machine::Event;
 type State = crate::components::state_machines::character_state_machine::State;
@@ -30,27 +30,32 @@ type State = crate::components::state_machines::character_state_machine::State;
 pub struct MainCharacter {
     direction: Directions,
     platformer_direction: PlatformerDirection,
-    timers: TimerComponent,
+    stats: CharacterStats,
+    state: statig::blocking::StateMachine<CharacterStateMachine>,
+    base: Base<CharacterBody2D>,
+
     #[var]
     #[init(node = "DodgingCooldownTimer")]
     dodging_cooldown_timer: OnReady<Gd<Timer>>,
+
     #[var]
     #[init(val = OnReady::manual())]
     dodging_animation_timer: OnReady<f64>,
+
     #[var]
     #[init(val = OnReady::manual())]
     jumping_animation_timer: OnReady<f64>,
+
     #[var]
     velocity: Vector2,
-    resources: CharacterStats,
+
     #[init(val = OnReady::manual())]
     #[var]
     attack_animation_timer: OnReady<f64>,
+
     #[var]
     #[init(node = "AnimationPlayer")]
     animation_player: OnReady<Gd<AnimationPlayer>>,
-    state: statig::blocking::StateMachine<CharacterStateMachine>,
-    base: Base<CharacterBody2D>,
 }
 
 #[godot_api]
@@ -87,19 +92,11 @@ impl ICharacterBody2D for MainCharacter {
         self.jumping_animation_timer
             .init(jumping_animation_length as f64);
 
-        self.timers.jumping_animation_timer = jumping_animation_length.into();
-
         self.attack_animation_timer
             .init(attack_animation_length as f64);
 
-        self.timers.attack_animation_timer = attack_animation_length.into();
-
         self.dodging_animation_timer
             .init(dodge_animation_length as f64);
-
-        self.timers.dodging_cooldown_timer = 1.0;
-
-        self.timers.dodging_animation_timer = attack_animation_length.into();
     }
 
     fn physics_process(&mut self, delta: f64) {
@@ -118,15 +115,6 @@ impl MainCharacter {
     #[signal]
     fn player_damaged(previous_health: i32, new_health: i32, damage_amount: i32);
 
-    fn connect_attack_signal(&mut self) {
-        let mut hurtbox = self.base().get_node_as::<Area2D>(PLAYER_HURTBOX);
-        let callable = self
-            .base()
-            .callable(constants::CALLABLE_ON_PLAYER_HURTBOX_ENTERED);
-
-        hurtbox.connect(constants::SIGNAL_PLAYER_HURTBOX_ENTERED, &callable);
-    }
-
     #[func]
     fn on_body_entered_hurtbox(&mut self, body: Gd<Node2D>) {
         let mut damagable = DynGd::<Node2D, dyn Damageable>::from_godot(body);
@@ -140,10 +128,9 @@ impl MainCharacter {
 
         let mut cooldown_timer = self.get_dodging_cooldown_timer();
         if cooldown_timer.get_time_left() > 0.0 {
-        // let mut cooldown_timer = self.get_dodging_cooldown_timer();
             State::Moving { velocity, delta }
         } else {
-            let speed = self.resources.dodging_speed;
+            let speed = self.stats.dodging_speed;
             let time = self.get_dodging_animation_timer();
             let mut hitbox = self
                 .base()
@@ -174,7 +161,8 @@ impl MainCharacter {
 
     pub fn attack(&mut self, event: &Event, velocity: Vector2, delta: f64) -> State {
         self.direction = Directions::from_velocity(&velocity);
-        let speed = self.resources.attacking_speed;
+        self.platformer_direction = PlatformerDirection::from_platformer_velocity(&velocity);
+        let speed = self.stats.attacking_speed;
         let time = self.get_attack_animation_timer();
 
         // When attacking with a velocity of zero, the direction defaults to East. This check
@@ -239,7 +227,7 @@ impl MainCharacter {
     pub fn move_character(&mut self, event: &Event, velocity: Vector2, _delta: f64) -> State {
         self.direction = Directions::from_velocity(&velocity);
         self.platformer_direction = PlatformerDirection::from_platformer_velocity(&velocity);
-        let speed = self.resources.running_speed;
+        let speed = self.stats.running_speed;
         self.set_velocity(velocity);
         self.base_mut().set_velocity(velocity * speed);
         self.base_mut().move_and_slide();
@@ -272,7 +260,7 @@ impl MainCharacter {
     }
 
     pub fn jump(&mut self, event: &Event, velocity: Vector2, delta: f64) -> State {
-        let speed = self.resources.running_speed;
+        let speed = self.stats.running_speed;
         let time = self.get_jumping_animation_timer();
         let mut vel = velocity;
 
@@ -319,7 +307,7 @@ impl MainCharacter {
     pub fn fall(&mut self, event: &Event, velocity: Vector2, _delta: f64) -> State {
         if !self.base().is_on_floor() {
             let mut vel = velocity;
-            let speed = self.resources.running_speed;
+            let speed = self.stats.running_speed;
 
             vel.y = Vector2::DOWN.y;
             self.set_velocity(vel);
@@ -354,6 +342,15 @@ impl MainCharacter {
         } else {
             State::Handle {}
         }
+    }
+
+    fn connect_attack_signal(&mut self) {
+        let mut hurtbox = self.base().get_node_as::<Area2D>(PLAYER_HURTBOX);
+        let callable = self
+            .base()
+            .callable(constants::CALLABLE_ON_PLAYER_HURTBOX_ENTERED);
+
+        hurtbox.connect(constants::SIGNAL_PLAYER_HURTBOX_ENTERED, &callable);
     }
 
     fn reset_jumping_animation_timer(&mut self) {
@@ -410,27 +407,27 @@ impl MainCharacter {
 #[godot_dyn]
 impl CharacterResources for MainCharacter {
     fn get_health(&self) -> i32 {
-        self.resources.health
+        self.stats.health
     }
 
     fn set_health(&mut self, amount: i32) {
-        self.resources.health = amount;
+        self.stats.health = amount;
     }
 
     fn get_energy(&self) -> i32 {
-        self.resources.energy
+        self.stats.energy
     }
 
     fn set_energy(&mut self, amount: i32) {
-        self.resources.energy = amount;
+        self.stats.energy = amount;
     }
 
     fn get_mana(&self) -> i32 {
-        self.resources.mana
+        self.stats.mana
     }
 
     fn set_mana(&mut self, amount: i32) {
-        self.resources.mana = amount;
+        self.stats.mana = amount;
     }
 }
 
