@@ -3,11 +3,11 @@
 // Player ====================================================
 // Player character signals
 pub const SIGNAL_PLAYER_DAMAGED: &str = "player_damaged";
-pub const SIGNAL_HURTBOX_BODY_ENTERED: &str = "body_entered";
+pub const SIGNAL_PLAYER_HURTBOX_ENTERED: &str = "body_entered";
 pub const SIGNAL_PLAYER_DIED: &str = "player_died";
 
 // Player character callables
-pub const CALLABLE_BODY_ENTERED_HURTBOX: &str = "on_body_entered_hurtbox";
+pub const CALLABLE_ON_PLAYER_HURTBOX_ENTERED: &str = "on_body_entered_hurtbox";
 
 // Player child nodes
 pub const PLAYER_HITBOX: &str = "Hitbox";
