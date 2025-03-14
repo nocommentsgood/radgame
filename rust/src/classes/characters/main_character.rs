@@ -1,7 +1,5 @@
 use godot::{
-    classes::{
-        AnimationPlayer, Area2D, CharacterBody2D, CollisionShape2D, ICharacterBody2D, Timer,
-    },
+    classes::{AnimationPlayer, Area2D, CharacterBody2D, ICharacterBody2D, Timer},
     obj::WithBaseField,
     prelude::*,
 };
@@ -10,8 +8,8 @@ use crate::{
     components::{
         managers::input_hanlder::InputHandler,
         state_machines::{
-            character_state_machine::CharacterStateMachine,
-            movements::{Directions, PlatformerDirection},
+            character_state_machine::{self, *},
+            movements::PlatformerDirection,
         },
     },
     traits::components::character_components::{
@@ -23,13 +21,12 @@ use crate::{
 use super::character_stats::CharacterStats;
 
 type Event = crate::components::state_machines::character_state_machine::Event;
-type State = crate::components::state_machines::character_state_machine::State;
 
 #[derive(GodotClass)]
 #[class(init, base=CharacterBody2D)]
 pub struct MainCharacter {
-    direction: Directions,
-    platformer_direction: PlatformerDirection,
+    delta: f64,
+    direction: PlatformerDirection,
     stats: CharacterStats,
     state: statig::blocking::StateMachine<CharacterStateMachine>,
     base: Base<CharacterBody2D>,
@@ -44,14 +41,22 @@ pub struct MainCharacter {
 
     #[var]
     #[init(val = OnReady::manual())]
+    dodging_animation_length: OnReady<f64>,
+
+    #[var]
+    #[init(val = OnReady::manual())]
     jumping_animation_timer: OnReady<f64>,
 
     #[var]
     velocity: Vector2,
 
-    #[init(val = OnReady::manual())]
     #[var]
+    #[init(val = OnReady::manual())]
     attack_animation_timer: OnReady<f64>,
+
+    #[var]
+    #[init(val = OnReady::manual())]
+    attack_animation_length: OnReady<f64>,
 
     #[var]
     #[init(node = "AnimationPlayer")]
@@ -92,8 +97,14 @@ impl ICharacterBody2D for MainCharacter {
         self.jumping_animation_timer
             .init(jumping_animation_length as f64);
 
+        self.attack_animation_length
+            .init(attack_animation_length as f64);
+
         self.attack_animation_timer
             .init(attack_animation_length as f64);
+
+        self.dodging_animation_length
+            .init(dodge_animation_length as f64);
 
         self.dodging_animation_timer
             .init(dodge_animation_length as f64);
@@ -101,12 +112,21 @@ impl ICharacterBody2D for MainCharacter {
 
     fn physics_process(&mut self, delta: f64) {
         let input = Input::singleton();
+        let event = InputHandler::to_platformer_event(&Input::singleton());
 
-        let event = InputHandler::platformer_to_event(&input, &delta);
-        let mut temp_state = self.state.clone();
-        temp_state.handle_with_context(&event, self);
-        self.state = temp_state;
-        self.update_animation();
+        self.velocity = InputHandler::get_velocity(&input);
+        self.delta = delta;
+
+        match self.state.state() {
+            character_state_machine::State::Idle {} => self.idle(),
+            character_state_machine::State::Dodging {} => self.dodge(),
+            character_state_machine::State::Jumping {} => self.jump(),
+            character_state_machine::State::Falling {} => self.fall(),
+            character_state_machine::State::Moving {} => self.move_character(),
+            character_state_machine::State::Attacking {} => self.attack(),
+        }
+
+        self.state.handle(&event);
     }
 }
 
@@ -118,229 +138,102 @@ impl MainCharacter {
     #[func]
     fn on_body_entered_hurtbox(&mut self, body: Gd<Node2D>) {
         let mut damagable = DynGd::<Node2D, dyn Damageable>::from_godot(body);
-        damagable.dyn_bind_mut().take_damage(10);
+        damagable
+            .dyn_bind_mut()
+            .take_damage(self.stats.attack_damage);
     }
 
-    pub fn dodge(&mut self, event: &Event, velocity: Vector2, delta: f64) -> State {
-        self.direction = Directions::from_velocity(&velocity);
-        self.platformer_direction = PlatformerDirection::from_platformer_velocity(&velocity);
-        self.set_velocity(velocity);
-
+    pub fn dodge(&mut self) {
         let mut cooldown_timer = self.get_dodging_cooldown_timer();
+        let time = self.get_dodging_animation_timer();
+
         if cooldown_timer.get_time_left() > 0.0 {
-            State::Moving { velocity, delta }
+            self.state.handle(&Event::TimerInProgress);
+        } else if time < self.get_dodging_animation_length() && time > 0.0 {
+            self.base_mut().move_and_slide();
+            self.set_dodging_animation_timer(time - self.delta);
         } else {
             let speed = self.stats.dodging_speed;
-            let time = self.get_dodging_animation_timer();
-            let mut hitbox = self
-                .base()
-                .get_node_as::<CollisionShape2D>(constants::PLAYER_HITBOX);
+            let velocity = self.velocity;
 
-            hitbox.set_disabled(true);
-            self.base_mut().set_velocity(velocity.to_owned() * speed);
+            self.base_mut().set_velocity(velocity * speed);
             self.base_mut().move_and_slide();
-            self.set_dodging_animation_timer(time - delta);
+            self.update_animation();
+            self.set_dodging_animation_timer(time - self.delta);
 
             if time <= 0.0 {
-                hitbox.set_disabled(false);
                 self.reset_dodging_animation_timer();
+                self.state.handle(&Event::TimerElapsed);
                 cooldown_timer.start();
-                match event {
-                    Event::None => State::Idle {},
-                    Event::Wasd { velocity, delta } => State::Moving {
-                        velocity: *velocity,
-                        delta: *delta,
-                    },
-                    _ => State::Handle {},
-                }
-            } else {
-                State::Handle {}
             }
         }
     }
 
-    pub fn attack(&mut self, event: &Event, velocity: Vector2, delta: f64) -> State {
-        self.direction = Directions::from_velocity(&velocity);
-        self.platformer_direction = PlatformerDirection::from_platformer_velocity(&velocity);
+    pub fn attack(&mut self) {
         let speed = self.stats.attacking_speed;
         let time = self.get_attack_animation_timer();
+        let velocity = self.velocity;
 
-        // When attacking with a velocity of zero, the direction defaults to East. This check
-        // maintains the last direction the player was facing.
-        if !velocity.length().is_zero_approx() {
-            self.platformer_direction = PlatformerDirection::from_platformer_velocity(&velocity);
+        if time < self.get_attack_animation_length() && time > 0.0 {
+            self.base_mut().move_and_slide();
+            self.set_attack_animation_timer(time - self.delta);
+        } else {
+            self.base_mut().set_velocity(velocity * speed);
+            self.base_mut().move_and_slide();
+            self.update_animation();
+            self.set_attack_animation_timer(time - self.delta);
         }
-
-        self.set_velocity(velocity);
-        self.base_mut().set_velocity(velocity * speed);
-        self.base_mut().move_and_slide();
-        self.set_attack_animation_timer(time - delta);
 
         if time <= 0.0 {
             self.reset_attacking_animation_timer();
-            match event {
-                Event::None => State::Idle {},
-                Event::Wasd { velocity, delta } => State::Moving {
-                    velocity: *velocity,
-                    delta: *delta,
-                },
-                Event::DodgeButton { velocity, delta } => State::Dodging {
-                    velocity: *velocity,
-                    delta: *delta,
-                },
-                _ => State::Handle {},
-            }
-        } else {
-            State::Handle {}
+            self.state.handle(&Event::TimerElapsed);
         }
     }
 
-    pub fn idle(&mut self, event: &Event) -> State {
-        self.set_velocity(Vector2::ZERO);
-        match event {
-            Event::Wasd { velocity, delta } => State::Moving {
-                velocity: *velocity,
-                delta: *delta,
-            },
-            Event::AttackButton { velocity, delta } => State::Attacking {
-                velocity: *velocity,
-                delta: *delta,
-            },
-            Event::JumpButton { velocity, delta } => State::Jumping {
-                velocity: *velocity,
-                delta: *delta,
-            },
-            Event::DodgeButton { velocity, delta } => {
-                if self.get_dodging_cooldown_timer().get_time_left() <= 0.0 {
-                    State::Dodging {
-                        velocity: *velocity,
-                        delta: *delta,
-                    }
-                } else {
-                    State::Handle {}
-                }
-            }
-            _ => State::Handle {},
-        }
+    pub fn idle(&mut self) {
+        self.update_animation();
     }
 
-    pub fn move_character(&mut self, event: &Event, velocity: Vector2, _delta: f64) -> State {
-        self.direction = Directions::from_velocity(&velocity);
-        self.platformer_direction = PlatformerDirection::from_platformer_velocity(&velocity);
+    pub fn move_character(&mut self) {
         let speed = self.stats.running_speed;
-        self.set_velocity(velocity);
+        let velocity = self.velocity;
+
+        self.update_direction();
         self.base_mut().set_velocity(velocity * speed);
         self.base_mut().move_and_slide();
-
-        match event {
-            Event::Wasd { velocity, delta } => State::Moving {
-                velocity: *velocity,
-                delta: *delta,
-            },
-            Event::AttackButton { velocity, delta } => State::Attacking {
-                velocity: *velocity,
-                delta: *delta,
-            },
-            Event::JumpButton { velocity, delta } => State::Jumping {
-                velocity: *velocity,
-                delta: *delta,
-            },
-            Event::DodgeButton { velocity, delta } => {
-                if self.get_dodging_cooldown_timer().get_time_left() <= 0.0 {
-                    State::Dodging {
-                        velocity: *velocity,
-                        delta: *delta,
-                    }
-                } else {
-                    State::Handle {}
-                }
-            }
-            Event::None => State::Idle {},
-        }
+        self.update_animation();
     }
 
-    pub fn jump(&mut self, event: &Event, velocity: Vector2, delta: f64) -> State {
+    pub fn jump(&mut self) {
         let speed = self.stats.running_speed;
         let time = self.get_jumping_animation_timer();
-        let mut vel = velocity;
+        let mut velocity = self.velocity;
 
-        vel.y = Vector2::UP.y;
-        self.platformer_direction = PlatformerDirection::from_platformer_velocity(&vel);
-        self.set_velocity(vel);
-        self.base_mut().set_velocity(vel * speed);
+        velocity.y = Vector2::UP.y;
+        self.update_direction();
+        self.base_mut().set_velocity(velocity * speed);
         self.base_mut().move_and_slide();
-        self.set_jumping_animation_timer(time - delta);
+        self.update_animation();
+        self.set_jumping_animation_timer(time - self.delta);
 
         if time <= 0.0 {
             self.reset_jumping_animation_timer();
-            if !self.base().is_on_floor() {
-                State::Falling { velocity, delta }
-            } else {
-                match event {
-                    Event::Wasd { velocity, delta } => State::Moving {
-                        velocity: *velocity,
-                        delta: *delta,
-                    },
-                    Event::DodgeButton { velocity, delta } => State::Dodging {
-                        velocity: *velocity,
-                        delta: *delta,
-                    },
-                    Event::AttackButton { velocity, delta } => State::Attacking {
-                        velocity: *velocity,
-                        delta: *delta,
-                    },
-                    Event::None => State::Idle {},
-                    _ => State::Handle {},
-                }
-            }
-        } else {
-            match event {
-                Event::Wasd { velocity, delta } => State::Jumping {
-                    velocity: *velocity,
-                    delta: *delta,
-                },
-                _ => State::Handle {},
-            }
+            self.state.handle(&Event::TimerElapsed);
         }
     }
 
-    pub fn fall(&mut self, event: &Event, velocity: Vector2, _delta: f64) -> State {
+    pub fn fall(&mut self) {
         if !self.base().is_on_floor() {
-            let mut vel = velocity;
+            let mut velocity = self.velocity;
             let speed = self.stats.running_speed;
 
-            vel.y = Vector2::DOWN.y;
-            self.set_velocity(vel);
-            self.platformer_direction = PlatformerDirection::from_platformer_velocity(&vel);
-            self.base_mut().set_velocity(vel * speed);
+            velocity.y = Vector2::DOWN.y;
+            self.update_direction();
+            self.base_mut().set_velocity(velocity * speed);
             self.base_mut().move_and_slide();
-
-            match event {
-                Event::Wasd { velocity, delta } => State::Falling {
-                    velocity: *velocity,
-                    delta: *delta,
-                },
-                _ => State::Handle {},
-            }
+            self.update_animation();
         } else if self.base().is_on_floor() {
-            match event {
-                Event::Wasd { velocity, delta } => State::Moving {
-                    velocity: *velocity,
-                    delta: *delta,
-                },
-                Event::DodgeButton { velocity, delta } => State::Dodging {
-                    velocity: *velocity,
-                    delta: *delta,
-                },
-                Event::AttackButton { velocity, delta } => State::Attacking {
-                    velocity: *velocity,
-                    delta: *delta,
-                },
-                Event::None => State::Idle {},
-                _ => State::Handle {},
-            }
-        } else {
-            State::Handle {}
+            self.state.handle(&Event::OnFloor);
         }
     }
 
@@ -363,27 +256,15 @@ impl MainCharacter {
     }
 
     fn reset_attacking_animation_timer(&mut self) {
-        let attack_animation_time = self
-            .get_animation_player()
-            .get_animation("attack_east_1")
-            .unwrap()
-            .get_length()
-            / 1.5;
-        self.set_attack_animation_timer(attack_animation_time as f64);
+        self.set_attack_animation_timer(self.get_attack_animation_length());
     }
 
     fn reset_dodging_animation_timer(&mut self) {
-        let dodge_animation_time = self
-            .get_animation_player()
-            .get_animation("dodge_east")
-            .unwrap()
-            .get_length()
-            / 1.5;
-        self.set_dodging_animation_timer(dodge_animation_time as f64);
+        self.set_dodging_animation_timer(self.get_dodging_animation_length());
     }
 
     fn get_current_animation(&self) -> String {
-        let direction = &self.platformer_direction;
+        let direction = &self.direction;
         let mut state = self.state.state().to_string();
         state.push('_');
 
@@ -401,6 +282,12 @@ impl MainCharacter {
         let animation = self.get_current_animation();
         self.animation_player.play_ex().name(&animation).done();
         self.animation_player.advance(0.0);
+    }
+
+    fn update_direction(&mut self) {
+        if !self.velocity.is_zero_approx() {
+            self.direction = PlatformerDirection::from_platformer_velocity(&self.velocity)
+        }
     }
 }
 

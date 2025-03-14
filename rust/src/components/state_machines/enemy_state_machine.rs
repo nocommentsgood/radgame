@@ -42,7 +42,7 @@ impl EnemyStateMachine {
     fn idle(event: &EnemyEvent) -> Response<State> {
         match event {
             EnemyEvent::TimerElapsed => Response::Transition(State::patrol()),
-            EnemyEvent::FoundPlayer { player } => Response::Super,
+            EnemyEvent::FoundPlayer { player: _player } => Response::Super,
             _ => Response::Handled,
         }
     }
@@ -51,7 +51,7 @@ impl EnemyStateMachine {
     fn patrol(event: &EnemyEvent) -> Response<State> {
         match event {
             EnemyEvent::TimerElapsed => Response::Transition(State::idle()),
-            EnemyEvent::FoundPlayer { player } => Response::Super,
+            EnemyEvent::FoundPlayer { player: _player } => Response::Super,
             _ => Handled,
         }
     }
