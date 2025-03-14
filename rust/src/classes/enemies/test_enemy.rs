@@ -1,7 +1,5 @@
 use godot::{
-    classes::{
-        AnimationPlayer, Area2D, CharacterBody2D, ICharacterBody2D, Marker2D, RayCast2D, Timer,
-    },
+    classes::{AnimationPlayer, Area2D, CharacterBody2D, ICharacterBody2D, Marker2D},
     obj::WithBaseField,
     prelude::*,
 };

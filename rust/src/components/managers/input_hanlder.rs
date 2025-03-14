@@ -10,21 +10,16 @@ impl InputHandler {
         let mut vel = Vector2::ZERO;
         if input.is_action_pressed("east") {
             vel += Vector2::RIGHT;
-        }
-        if input.is_action_pressed("west") {
+        } else if input.is_action_pressed("west") {
             vel += Vector2::LEFT;
-        }
-        if input.is_action_pressed("north") {
-            vel += Vector2::UP;
-        }
-        if input.is_action_pressed("south") {
-            vel += Vector2::DOWN;
+        } else {
+            vel = Vector2::ZERO;
         }
 
         vel
     }
 
-    pub fn platformer_to_event(input: &Gd<Input>) -> Event {
+    pub fn to_platformer_event(input: &Gd<Input>) -> Event {
         let mut velocity = Vector2::ZERO;
         if input.is_action_pressed("east") {
             velocity += Vector2::RIGHT;
@@ -38,19 +33,18 @@ impl InputHandler {
         if input.is_action_just_pressed("attack") {
             return Event::AttackButton;
         }
-        if input.is_action_just_pressed("jump") {
+        if input.is_action_pressed("jump") {
             return Event::JumpButton;
         }
         if velocity.length() > 0.0 {
-            Event::Wasd { velocity }
+            Event::Wasd
         } else {
             Event::None
         }
     }
 
-    pub fn to_event(input: &Gd<Input>, delta: &f64) -> Event {
+    pub fn to_event(input: &Gd<Input>) -> Event {
         let mut vel = Vector2::ZERO;
-        let delta = delta.to_owned();
         if input.is_action_pressed("east") {
             vel += Vector2::RIGHT;
         }
@@ -64,30 +58,14 @@ impl InputHandler {
             vel += Vector2::DOWN;
         }
         if input.is_action_just_pressed("dodge") && vel.length() > 0.0 {
-            return Event::DodgeButton {
-                velocity: vel.normalized(),
-                delta,
-            };
+            return Event::DodgeButton;
         }
         if input.is_action_just_pressed("attack") {
-            if vel.length() == 0.0 {
-                return Event::AttackButton {
-                    velocity: vel,
-                    delta,
-                };
-            } else {
-                return Event::AttackButton {
-                    velocity: vel.normalized(),
-                    delta,
-                };
-            }
+            return Event::AttackButton;
         }
 
         if vel.length() > 0.0 {
-            Event::Wasd {
-                velocity: vel.normalized(),
-                delta,
-            }
+            Event::Wasd
         } else {
             Event::None
         }
