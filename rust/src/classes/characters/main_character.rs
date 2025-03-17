@@ -1,5 +1,5 @@
 use godot::{
-    classes::{AnimationPlayer, Area2D, CharacterBody2D, ICharacterBody2D, Timer},
+    classes::{AnimationPlayer, Area2D, CharacterBody2D, ICharacterBody2D, RayCast2D, Timer},
     obj::WithBaseField,
     prelude::*,
 };
@@ -48,6 +48,10 @@ pub struct MainCharacter {
     jumping_animation_timer: OnReady<f64>,
 
     #[var]
+    #[init(val = OnReady::manual())]
+    jumping_animation_length: OnReady<f64>,
+
+    #[var]
     velocity: Vector2,
 
     #[var]
@@ -61,6 +65,10 @@ pub struct MainCharacter {
     #[var]
     #[init(node = "AnimationPlayer")]
     animation_player: OnReady<Gd<AnimationPlayer>>,
+
+    #[var]
+    #[init(node = "LedgeSensor")]
+    ledge_sensor: OnReady<Gd<RayCast2D>>,
 }
 
 #[godot_api]
@@ -97,6 +105,9 @@ impl ICharacterBody2D for MainCharacter {
         self.jumping_animation_timer
             .init(jumping_animation_length as f64);
 
+        self.jumping_animation_length
+            .init(jumping_animation_length as f64);
+
         self.attack_animation_length
             .init(attack_animation_length as f64);
 
@@ -124,6 +135,7 @@ impl ICharacterBody2D for MainCharacter {
             character_state_machine::State::Falling {} => self.fall(),
             character_state_machine::State::Moving {} => self.move_character(),
             character_state_machine::State::Attacking {} => self.attack(),
+            character_state_machine::State::Grappling {} => self.grapple(),
         }
 
         self.state.handle(&event);
@@ -143,7 +155,26 @@ impl MainCharacter {
             .take_damage(self.stats.attack_damage);
     }
 
-    pub fn dodge(&mut self) {
+    fn detect_ledges(&mut self) {
+        if let Some(_collider) = self.get_ledge_sensor().get_collider() {
+            self.state.handle(&Event::GrabbedLedge);
+        }
+    }
+
+    fn grapple(&mut self) {
+        let input = Input::singleton();
+        self.base_mut().set_velocity(Vector2::ZERO);
+        self.update_animation();
+
+        if input.is_action_just_pressed("west")
+            || input.is_action_just_pressed("east")
+            || !self.get_ledge_sensor().is_colliding()
+        {
+            self.state.handle(&Event::WasdJustPressed);
+        }
+    }
+
+    fn dodge(&mut self) {
         let mut cooldown_timer = self.get_dodging_cooldown_timer();
         let time = self.get_dodging_animation_timer();
 
@@ -161,6 +192,9 @@ impl MainCharacter {
             self.update_animation();
             self.set_dodging_animation_timer(time - self.delta);
 
+            if !self.base().is_on_floor() {
+                self.state.handle(&Event::FailedFloorCheck);
+            }
             if time <= 0.0 {
                 self.reset_dodging_animation_timer();
                 self.state.handle(&Event::TimerElapsed);
@@ -169,7 +203,7 @@ impl MainCharacter {
         }
     }
 
-    pub fn attack(&mut self) {
+    fn attack(&mut self) {
         let speed = self.stats.attacking_speed;
         let time = self.get_attack_animation_timer();
         let velocity = self.velocity;
@@ -182,6 +216,9 @@ impl MainCharacter {
             self.base_mut().move_and_slide();
             self.update_animation();
             self.set_attack_animation_timer(time - self.delta);
+            if !self.base().is_on_floor() {
+                self.state.handle(&Event::FailedFloorCheck);
+            }
         }
 
         if time <= 0.0 {
@@ -190,11 +227,14 @@ impl MainCharacter {
         }
     }
 
-    pub fn idle(&mut self) {
+    fn idle(&mut self) {
         self.update_animation();
+        if !self.base().is_on_floor() {
+            self.state.handle(&Event::FailedFloorCheck);
+        }
     }
 
-    pub fn move_character(&mut self) {
+    fn move_character(&mut self) {
         let speed = self.stats.running_speed;
         let velocity = self.velocity;
 
@@ -202,16 +242,21 @@ impl MainCharacter {
         self.base_mut().set_velocity(velocity * speed);
         self.base_mut().move_and_slide();
         self.update_animation();
+
+        if !self.base().is_on_floor() {
+            self.state.handle(&Event::FailedFloorCheck);
+        }
     }
 
-    pub fn jump(&mut self) {
-        let speed = self.stats.running_speed;
+    fn jump(&mut self) {
         let time = self.get_jumping_animation_timer();
         let mut velocity = self.velocity;
 
-        velocity.y = Vector2::UP.y;
+        velocity.y = Vector2::UP.y * self.stats.jumping_speed;
+        velocity.x *= self.stats.running_speed;
         self.update_direction();
-        self.base_mut().set_velocity(velocity * speed);
+        self.detect_ledges();
+        self.base_mut().set_velocity(velocity);
         self.base_mut().move_and_slide();
         self.update_animation();
         self.set_jumping_animation_timer(time - self.delta);
@@ -222,18 +267,22 @@ impl MainCharacter {
         }
     }
 
-    pub fn fall(&mut self) {
+    fn fall(&mut self) {
         if !self.base().is_on_floor() {
             let mut velocity = self.velocity;
-            let speed = self.stats.running_speed;
+            let speed = self.stats.falling_speed;
 
             velocity.y = Vector2::DOWN.y;
             self.update_direction();
+            self.update_animation();
             self.base_mut().set_velocity(velocity * speed);
             self.base_mut().move_and_slide();
-            self.update_animation();
+            self.detect_ledges();
         } else if self.base().is_on_floor() {
             self.state.handle(&Event::OnFloor);
+            if self.get_jumping_animation_timer() < self.get_jumping_animation_length() {
+                self.reset_jumping_animation_timer();
+            }
         }
     }
 
