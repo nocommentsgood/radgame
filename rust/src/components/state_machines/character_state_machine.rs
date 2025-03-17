@@ -12,6 +12,7 @@ impl std::fmt::Display for State {
             State::Moving {} => write!(f, "run"),
             State::Falling {} => write!(f, "falling"),
             State::Jumping {} => write!(f, "jumping"),
+            State::Grappling {} => write!(f, "grapple"),
         }
     }
 }
@@ -19,9 +20,12 @@ impl std::fmt::Display for State {
 #[derive(Debug, Default)]
 pub enum Event {
     Wasd,
+    WasdJustPressed,
     DodgeButton,
     AttackButton,
     JumpButton,
+    GrabbedLedge,
+    FailedFloorCheck,
     ActionReleasedEarly,
     TimerElapsed,
     TimerInProgress,
@@ -38,6 +42,7 @@ impl CharacterStateMachine {
             Event::Wasd => Response::Transition(State::moving()),
             Event::AttackButton => Response::Transition(State::attacking()),
             Event::JumpButton => Response::Transition(State::jumping()),
+            Event::FailedFloorCheck => Response::Transition(State::falling()),
             _ => Handled,
         }
     }
@@ -49,6 +54,7 @@ impl CharacterStateMachine {
             Event::DodgeButton => Response::Transition(State::dodging()),
             Event::AttackButton => Response::Transition(State::attacking()),
             Event::JumpButton => Response::Transition(State::jumping()),
+            Event::FailedFloorCheck => Response::Transition(State::falling()),
             Event::None => Response::Transition(State::idle()),
             _ => Handled,
         }
@@ -59,6 +65,7 @@ impl CharacterStateMachine {
         match event {
             Event::TimerElapsed => Response::Transition(State::idle()),
             Event::TimerInProgress => Response::Transition(State::idle()),
+            Event::FailedFloorCheck => Response::Transition(State::falling()),
             _ => Handled,
         }
     }
@@ -75,6 +82,8 @@ impl CharacterStateMachine {
     fn jumping(event: &Event) -> Response<State> {
         match event {
             Event::TimerElapsed => Response::Transition(State::falling()),
+            Event::ActionReleasedEarly => Response::Transition(State::falling()),
+            Event::GrabbedLedge => Response::Transition(State::grappling()),
             _ => Handled,
         }
     }
@@ -83,6 +92,16 @@ impl CharacterStateMachine {
     fn falling(event: &Event) -> Response<State> {
         match event {
             Event::OnFloor => Response::Transition(State::idle()),
+            Event::GrabbedLedge => Response::Transition(State::grappling()),
+            _ => Handled,
+        }
+    }
+
+    #[state]
+    fn grappling(event: &Event) -> Response<State> {
+        match event {
+            Event::WasdJustPressed => Response::Transition(State::falling()),
+            Event::JumpButton => Response::Transition(State::jumping()),
             _ => Handled,
         }
     }

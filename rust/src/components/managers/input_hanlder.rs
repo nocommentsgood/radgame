@@ -36,6 +36,9 @@ impl InputHandler {
         if input.is_action_pressed("jump") {
             return Event::JumpButton;
         }
+        if input.is_action_just_released("jump") {
+            return Event::ActionReleasedEarly;
+        }
         if velocity.length() > 0.0 {
             Event::Wasd
         } else {
