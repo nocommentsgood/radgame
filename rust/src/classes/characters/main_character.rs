@@ -156,11 +156,7 @@ impl MainCharacter {
     }
 
     fn detect_ledges(&mut self) {
-        let mut ray = self.get_ledge_sensor();
-        ray.force_raycast_update();
-        let collision = ray.get_collider();
-
-        if let Some(_collider) = collision {
+        if let Some(_collider) = self.get_ledge_sensor().get_collider() {
             self.state.handle(&Event::GrabbedLedge);
         }
     }
@@ -169,7 +165,11 @@ impl MainCharacter {
         let input = Input::singleton();
         self.base_mut().set_velocity(Vector2::ZERO);
         self.update_animation();
-        if input.is_action_just_pressed("west") || input.is_action_just_pressed("east") {
+
+        if input.is_action_just_pressed("west")
+            || input.is_action_just_pressed("east")
+            || !self.get_ledge_sensor().is_colliding()
+        {
             self.state.handle(&Event::WasdJustPressed);
         }
     }
@@ -249,14 +249,14 @@ impl MainCharacter {
     }
 
     fn jump(&mut self) {
-        let speed = self.stats.jumping_speed;
         let time = self.get_jumping_animation_timer();
         let mut velocity = self.velocity;
 
-        velocity.y = Vector2::UP.y;
+        velocity.y = Vector2::UP.y * self.stats.jumping_speed;
+        velocity.x *= self.stats.running_speed;
         self.update_direction();
         self.detect_ledges();
-        self.base_mut().set_velocity(velocity * speed);
+        self.base_mut().set_velocity(velocity);
         self.base_mut().move_and_slide();
         self.update_animation();
         self.set_jumping_animation_timer(time - self.delta);
@@ -274,10 +274,10 @@ impl MainCharacter {
 
             velocity.y = Vector2::DOWN.y;
             self.update_direction();
-            self.detect_ledges();
+            self.update_animation();
             self.base_mut().set_velocity(velocity * speed);
             self.base_mut().move_and_slide();
-            self.update_animation();
+            self.detect_ledges();
         } else if self.base().is_on_floor() {
             self.state.handle(&Event::OnFloor);
             if self.get_jumping_animation_timer() < self.get_jumping_animation_length() {
