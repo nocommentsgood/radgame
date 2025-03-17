@@ -1,4 +1,4 @@
-[gd_scene load_steps=6 format=3 uid="uid://csphx4r51adby"]
+[gd_scene load_steps=8 format=3 uid="uid://csphx4r51adby"]
 
 [ext_resource type="PackedScene" uid="uid://cypfxvpiapsp3" path="res://ground.tscn" id="2_ainao"]
 [ext_resource type="PackedScene" uid="uid://dmnvgp7j5vtfe" path="res://main_character.tscn" id="3_1gilh"]
@@ -11,6 +11,12 @@ ambient_light_color = Color(0.910094, 0.850183, 0.435241, 1)
 ambient_light_energy = 2.52
 
 [sub_resource type="WorldBoundaryShape2D" id="WorldBoundaryShape2D_7qxfc"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_gyfs4"]
+size = Vector2(50, 10)
+
+[sub_resource type="PlaceholderTexture2D" id="PlaceholderTexture2D_d5x1h"]
+size = Vector2(50, 10)
 
 [node name="Node2D" type="Node2D"]
 
@@ -40,6 +46,17 @@ collision_mask = 0
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="WorldEnvironment/StaticBody2D"]
 shape = SubResource("WorldBoundaryShape2D_7qxfc")
+
+[node name="Platform" type="StaticBody2D" parent="WorldEnvironment"]
+position = Vector2(579, 178)
+collision_layer = 66
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="WorldEnvironment/Platform"]
+shape = SubResource("RectangleShape2D_gyfs4")
+
+[node name="Sprite2D" type="Sprite2D" parent="WorldEnvironment/Platform"]
+texture = SubResource("PlaceholderTexture2D_d5x1h")
 
 [editable path="WorldEnvironment/TestEnemy"]
 [editable path="WorldEnvironment/TestEnemy/EnemySensors"]
