@@ -4,11 +4,6 @@ use statig::{state_machine, Response};
 
 use crate::classes::characters::main_character::MainCharacter;
 
-// TODO: State machine does not need to be aware of the player, which is currently being
-// passed in. We can move all of the pointer passing to the TestEnemy class, so the
-// TestEnemy handles all of that logic and just 'listens' to it's state, and performs the
-// corresponding actions.
-
 #[derive(Default, Debug, Clone)]
 pub struct EnemyStateMachine;
 

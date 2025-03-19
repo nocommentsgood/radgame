@@ -19,50 +19,60 @@ use crate::{
 #[derive(GodotClass)]
 #[class(init, base=CharacterBody2D)]
 pub struct TestEnemy {
-    pub current_event: enemy_state_machine::EnemyEvent,
+    current_event: enemy_state_machine::EnemyEvent,
     delta: f64,
     direction: PlatformerDirection,
+    state: statig::blocking::StateMachine<EnemyStateMachine>,
+    base: Base<CharacterBody2D>,
+
     #[init(val = 1.0)]
     attack_animation_timer: f64,
+
     #[init(val = 3.5)]
     attack_cooldown_timer: f64,
+
+    #[var]
     #[init(val = 2.0)]
-    #[var]
     idle_time: f64,
+
+    #[var]
     #[init(val = 40.0)]
-    #[var]
     patrol_speed: real,
+
+    #[var]
     #[init(val = 4.0)]
-    #[var]
     patrol_time: f64,
-    #[init(val = 80.0)]
+
     #[var]
+    #[init(val = 80.0)]
     agro_speed: real,
+
     #[var]
     speed: real,
+
+    #[var]
     #[init(node = "LeftPatrolMarker")]
-    #[var]
     left_patrol_marker: OnReady<Gd<Marker2D>>,
+
+    #[var]
     #[init(node = "RightPatrolMarker")]
-    #[var]
     right_patrol_marker: OnReady<Gd<Marker2D>>,
-    #[init(val = 30)]
-    #[var]
-    health: i32,
-    #[var]
-    energy: i32,
-    #[var]
-    mana: i32,
-    #[var]
-    velocity: Vector2,
-    state: statig::blocking::StateMachine<EnemyStateMachine>,
 
     #[init(node = "AnimationPlayer")]
     animation_player: OnReady<Gd<AnimationPlayer>>,
 
-    // #[init(node = "MovementTimer")]
-    // movement_timer: OnReady<Gd<Timer>>,
-    base: Base<CharacterBody2D>,
+    #[var]
+    #[init(val = 30)]
+    health: i32,
+
+    #[var]
+    energy: i32,
+
+    #[var]
+    mana: i32,
+
+    #[var]
+    velocity: Vector2,
 }
 
 #[godot_api]
