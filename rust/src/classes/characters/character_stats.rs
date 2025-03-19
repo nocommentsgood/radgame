@@ -19,10 +19,10 @@ impl Default for CharacterStats {
             energy: Default::default(),
             mana: Default::default(),
             attack_damage: 10,
-            running_speed: 60.0,
-            jumping_speed: 90.0,
-            falling_speed: 110.0,
-            dodging_speed: 80.0,
+            running_speed: 90.0,
+            jumping_speed: 200.0,
+            falling_speed: 200.0,
+            dodging_speed: 150.0,
             attacking_speed: 10.0,
         }
     }

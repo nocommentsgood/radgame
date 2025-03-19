@@ -91,7 +91,7 @@ impl CharacterStateMachine {
     #[state]
     fn falling(event: &Event) -> Response<State> {
         match event {
-            Event::OnFloor => Response::Transition(State::idle()),
+            Event::OnFloor => Response::Transition(State::moving()),
             Event::GrabbedLedge => Response::Transition(State::grappling()),
             _ => Handled,
         }

@@ -27,8 +27,11 @@ type Event = crate::components::state_machines::character_state_machine::Event;
 pub struct MainCharacter {
     delta: f64,
     direction: PlatformerDirection,
+    velocity: Vector2,
+    active_velocity: Vector2,
     stats: CharacterStats,
     state: statig::blocking::StateMachine<CharacterStateMachine>,
+
     base: Base<CharacterBody2D>,
 
     #[var]
@@ -50,9 +53,6 @@ pub struct MainCharacter {
     #[var]
     #[init(val = OnReady::manual())]
     jumping_animation_length: OnReady<f64>,
-
-    #[var]
-    velocity: Vector2,
 
     #[var]
     #[init(val = OnReady::manual())]
@@ -228,6 +228,7 @@ impl MainCharacter {
     }
 
     fn idle(&mut self) {
+        self.active_velocity = Vector2::ZERO;
         self.update_animation();
         if !self.base().is_on_floor() {
             self.state.handle(&Event::FailedFloorCheck);
@@ -235,13 +236,14 @@ impl MainCharacter {
     }
 
     fn move_character(&mut self) {
-        let speed = self.stats.running_speed;
-        let velocity = self.velocity;
+        let target_velocity = self.velocity * self.stats.running_speed;
+        self.active_velocity = self.active_velocity.lerp(target_velocity, 0.2);
+        let velocity = self.active_velocity;
 
         self.update_direction();
-        self.base_mut().set_velocity(velocity * speed);
-        self.base_mut().move_and_slide();
         self.update_animation();
+        self.base_mut().set_velocity(velocity);
+        self.base_mut().move_and_slide();
 
         if !self.base().is_on_floor() {
             self.state.handle(&Event::FailedFloorCheck);
@@ -250,15 +252,19 @@ impl MainCharacter {
 
     fn jump(&mut self) {
         let time = self.get_jumping_animation_timer();
-        let mut velocity = self.velocity;
+        self.velocity.y = Vector2::UP.y;
+        let target_velocity = Vector2::new(
+            self.velocity.x * self.stats.running_speed,
+            self.velocity.y * self.stats.jumping_speed,
+        );
+        self.active_velocity = self.active_velocity.lerp(target_velocity, 0.2);
+        let velocity = self.active_velocity;
 
-        velocity.y = Vector2::UP.y * self.stats.jumping_speed;
-        velocity.x *= self.stats.running_speed;
         self.update_direction();
+        self.update_animation();
         self.detect_ledges();
         self.base_mut().set_velocity(velocity);
         self.base_mut().move_and_slide();
-        self.update_animation();
         self.set_jumping_animation_timer(time - self.delta);
 
         if time <= 0.0 {
@@ -269,15 +275,20 @@ impl MainCharacter {
 
     fn fall(&mut self) {
         if !self.base().is_on_floor() {
-            let mut velocity = self.velocity;
-            let speed = self.stats.falling_speed;
+            self.velocity.y = Vector2::DOWN.y;
+            let target_velocity = Vector2::new(
+                self.velocity.x * self.stats.running_speed,
+                self.velocity.y * self.stats.falling_speed,
+            );
 
-            velocity.y = Vector2::DOWN.y;
+            self.active_velocity = self.active_velocity.lerp(target_velocity, 0.1);
+            let velocity = self.active_velocity;
+
             self.update_direction();
             self.update_animation();
-            self.base_mut().set_velocity(velocity * speed);
-            self.base_mut().move_and_slide();
             self.detect_ledges();
+            self.base_mut().set_velocity(velocity);
+            self.base_mut().move_and_slide();
         } else if self.base().is_on_floor() {
             self.state.handle(&Event::OnFloor);
             if self.get_jumping_animation_timer() < self.get_jumping_animation_length() {
