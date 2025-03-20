@@ -1,6 +1,6 @@
 use godot::{
     classes::{AnimationPlayer, Area2D, CharacterBody2D, ICharacterBody2D, RayCast2D, Timer},
-    obj::WithBaseField,
+    obj::{NewAlloc, WithBaseField},
     prelude::*,
 };
 
@@ -64,6 +64,10 @@ pub struct MainCharacter {
 
     #[var]
     #[init(val = OnReady::manual())]
+    attack_animation_timer_2: OnReady<f64>,
+
+    #[var]
+    #[init(val = OnReady::manual())]
     attack_animation_length: OnReady<f64>,
 
     #[var]
@@ -97,10 +101,9 @@ impl ICharacterBody2D for MainCharacter {
 
         let attack_animation_length = self
             .get_animation_player()
-            .get_animation("attack_east_1")
+            .get_animation("attack_1_east")
             .unwrap()
-            .get_length()
-            / 1.5;
+            .get_length();
 
         let jumping_animation_length = self
             .get_animation_player()
@@ -117,6 +120,9 @@ impl ICharacterBody2D for MainCharacter {
         self.attack_animation_length
             .init(attack_animation_length as f64);
 
+        self.attack_animation_timer_2
+            .init(attack_animation_length as f64);
+
         self.attack_animation_timer
             .init(attack_animation_length as f64);
 
@@ -127,10 +133,21 @@ impl ICharacterBody2D for MainCharacter {
             .init(dodge_animation_length as f64);
     }
 
+    fn unhandled_input(&mut self, input: Gd<godot::classes::InputEvent>) {
+        if input.is_action_pressed("attack") {
+            println!("attack input");
+        }
+        if input.is_action_pressed("jump") {
+            println!("jump input");
+        }
+        if input.is_action_pressed("dodge") {
+            println!("dodge input");
+        }
+    }
+
     fn physics_process(&mut self, delta: f64) {
         let input = Input::singleton();
         let event = InputHandler::to_platformer_event(&Input::singleton());
-        self.input_event = event.clone();
 
         self.velocity = InputHandler::get_velocity(&input);
         self.delta = delta;
@@ -230,50 +247,37 @@ impl MainCharacter {
         }
 
         if time <= 0.0 {
-            self.reset_attacking_animation_timer();
-            if self.get_attack_chain_timer() > 0.0 {
-                self.set_attack_chain_timer(self.get_attack_chain_timer() - self.delta);
-                println!("attack chain timer: {}", self.get_attack_chain_timer());
-                let input = Input::singleton();
-                if input.is_action_pressed("attack") {
-                    println!("got attack 2 event");
-                    self.state.handle(&Event::AttackButton);
-                }
-                println!("attack chain timer 2: {}", self.get_attack_chain_timer());
+            if self.input_event == Event::AttackButton {
+                self.reset_attacking_animation_timer();
+                self.state.handle(&Event::AttackButton)
             } else {
-                self.set_attack_chain_timer(0.6);
-                println!("reset attack chain timer");
+                self.reset_attacking_animation_timer();
                 self.state.handle(&Event::TimerElapsed);
             }
         }
     }
 
     fn attack_2(&mut self) {
-        let speed = self.stats.attacking_speed;
-        let time = self.get_attack_animation_timer();
-        let velocity = self.velocity;
+        // let speed = self.stats.attacking_speed;
+        // let velocity = self.velocity;
+        let time = self.get_attack_animation_timer_2();
 
         if time < self.get_attack_animation_length() && time > 0.0 {
-            self.base_mut().move_and_slide();
-            self.set_attack_animation_timer(time - self.delta);
+            // self.base_mut().move_and_slide();
+            self.set_attack_animation_timer_2(time - self.delta);
         } else {
-            self.base_mut().set_velocity(velocity * speed);
-            self.base_mut().move_and_slide();
-            self.get_animation_player()
-                .play_ex()
-                .name("attack_east_2")
-                .done();
-            self.get_animation_player().advance(0.0);
-            self.set_attack_animation_timer(time - self.delta);
+            // self.base_mut().set_velocity(velocity * speed);
+            // self.base_mut().move_and_slide();
+            self.update_animation();
+            self.set_attack_animation_timer_2(time - self.delta);
 
             if !self.base().is_on_floor() {
                 self.state.handle(&Event::FailedFloorCheck);
             }
 
             if time <= 0.0 {
-                self.reset_attacking_animation_timer();
+                self.set_attack_animation_timer_2(self.get_attack_animation_length());
                 self.state.handle(&Event::TimerElapsed);
-                println!("timer elapsed in attack 2");
             }
         }
     }
@@ -381,18 +385,13 @@ impl MainCharacter {
 
         let s = format!("{}{}", state, direction);
 
-        // TODO: This check is temporary.
-        if s == "attack_east" || s == "attack_west" {
-            format!("{}{}{}", state, direction, "_1")
-        } else {
-            s
-        }
+        s
     }
 
     fn update_animation(&mut self) {
         let animation = self.get_current_animation();
         self.animation_player.play_ex().name(&animation).done();
-        self.animation_player.advance(0.0);
+        // self.animation_player.advance(0.0);
     }
 
     fn update_direction(&mut self) {

@@ -78,6 +78,11 @@ jump={
 2d_physics/layer_6="enemy hurtbox"
 2d_physics/layer_7="platform ledges"
 
+[physics]
+
+common/physics_ticks_per_second=30
+common/physics_interpolation=true
+
 [rendering]
 
 viewport/hdr_2d=true
