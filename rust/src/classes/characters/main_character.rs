@@ -30,9 +30,13 @@ pub struct MainCharacter {
     velocity: Vector2,
     active_velocity: Vector2,
     stats: CharacterStats,
+    input_event: Event,
     state: statig::blocking::StateMachine<CharacterStateMachine>,
-
     base: Base<CharacterBody2D>,
+
+    #[var]
+    #[init(val = OnReady::manual())]
+    attack_chain_timer: OnReady<f64>,
 
     #[var]
     #[init(node = "DodgingCooldownTimer")]
@@ -74,6 +78,8 @@ pub struct MainCharacter {
 #[godot_api]
 impl ICharacterBody2D for MainCharacter {
     fn ready(&mut self) {
+        self.attack_chain_timer.init(0.6);
+
         self.connect_attack_signal();
 
         // TODO: Find how to get tracks for specific animations.
@@ -124,6 +130,7 @@ impl ICharacterBody2D for MainCharacter {
     fn physics_process(&mut self, delta: f64) {
         let input = Input::singleton();
         let event = InputHandler::to_platformer_event(&Input::singleton());
+        self.input_event = event.clone();
 
         self.velocity = InputHandler::get_velocity(&input);
         self.delta = delta;
@@ -135,6 +142,7 @@ impl ICharacterBody2D for MainCharacter {
             character_state_machine::State::Falling {} => self.fall(),
             character_state_machine::State::Moving {} => self.move_character(),
             character_state_machine::State::Attacking {} => self.attack(),
+            &character_state_machine::State::Attack2 {} => self.attack_2(),
             character_state_machine::State::Grappling {} => self.grapple(),
         }
 
@@ -223,7 +231,50 @@ impl MainCharacter {
 
         if time <= 0.0 {
             self.reset_attacking_animation_timer();
-            self.state.handle(&Event::TimerElapsed);
+            if self.get_attack_chain_timer() > 0.0 {
+                self.set_attack_chain_timer(self.get_attack_chain_timer() - self.delta);
+                println!("attack chain timer: {}", self.get_attack_chain_timer());
+                let input = Input::singleton();
+                if input.is_action_pressed("attack") {
+                    println!("got attack 2 event");
+                    self.state.handle(&Event::AttackButton);
+                }
+                println!("attack chain timer 2: {}", self.get_attack_chain_timer());
+            } else {
+                self.set_attack_chain_timer(0.6);
+                println!("reset attack chain timer");
+                self.state.handle(&Event::TimerElapsed);
+            }
+        }
+    }
+
+    fn attack_2(&mut self) {
+        let speed = self.stats.attacking_speed;
+        let time = self.get_attack_animation_timer();
+        let velocity = self.velocity;
+
+        if time < self.get_attack_animation_length() && time > 0.0 {
+            self.base_mut().move_and_slide();
+            self.set_attack_animation_timer(time - self.delta);
+        } else {
+            self.base_mut().set_velocity(velocity * speed);
+            self.base_mut().move_and_slide();
+            self.get_animation_player()
+                .play_ex()
+                .name("attack_east_2")
+                .done();
+            self.get_animation_player().advance(0.0);
+            self.set_attack_animation_timer(time - self.delta);
+
+            if !self.base().is_on_floor() {
+                self.state.handle(&Event::FailedFloorCheck);
+            }
+
+            if time <= 0.0 {
+                self.reset_attacking_animation_timer();
+                self.state.handle(&Event::TimerElapsed);
+                println!("timer elapsed in attack 2");
+            }
         }
     }
 
