@@ -27,18 +27,6 @@ impl InputHandler {
         if input.is_action_pressed("west") {
             velocity += Vector2::LEFT;
         }
-        if input.is_action_just_pressed("dodge") && velocity.length() > 0.0 {
-            return Event::DodgeButton;
-        }
-        if input.is_action_just_pressed("attack") {
-            return Event::AttackButton;
-        }
-        if input.is_action_pressed("jump") {
-            return Event::JumpButton;
-        }
-        if input.is_action_just_released("jump") {
-            return Event::ActionReleasedEarly;
-        }
         if velocity.length() > 0.0 {
             Event::Wasd
         } else {

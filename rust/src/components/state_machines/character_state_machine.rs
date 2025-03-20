@@ -75,7 +75,7 @@ impl CharacterStateMachine {
     fn attacking(event: &Event) -> Response<State> {
         match event {
             Event::AttackButton => Response::Transition(State::attack_2()),
-            Event::TimerElapsed => Response::Transition(State::idle()),
+            Event::TimerElapsed => Response::Transition(State::moving()),
             _ => Handled,
         }
     }
