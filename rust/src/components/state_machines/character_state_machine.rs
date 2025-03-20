@@ -6,7 +6,8 @@ pub struct CharacterStateMachine;
 impl std::fmt::Display for State {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            State::Attacking {} => write!(f, "attack"),
+            State::Attacking {} => write!(f, "attack_1"),
+            State::Attack2 {} => write!(f, "attack_2"),
             State::Dodging {} => write!(f, "dodge"),
             State::Idle {} => write!(f, "idle"),
             State::Moving {} => write!(f, "run"),
@@ -17,7 +18,7 @@ impl std::fmt::Display for State {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, PartialEq, Clone)]
 pub enum Event {
     Wasd,
     WasdJustPressed,
@@ -73,7 +74,17 @@ impl CharacterStateMachine {
     #[state]
     fn attacking(event: &Event) -> Response<State> {
         match event {
+            Event::AttackButton => Response::Transition(State::attack_2()),
+            Event::TimerElapsed => Response::Transition(State::moving()),
+            _ => Handled,
+        }
+    }
+
+    #[state]
+    fn attack_2(event: &Event) -> Response<State> {
+        match event {
             Event::TimerElapsed => Response::Transition(State::idle()),
+            Event::FailedFloorCheck => Response::Transition(State::falling()),
             _ => Handled,
         }
     }

@@ -1,6 +1,5 @@
 use godot::{
     classes::{AnimationPlayer, Area2D, CharacterBody2D, ICharacterBody2D, RayCast2D, Timer},
-    obj::WithBaseField,
     prelude::*,
 };
 
@@ -29,10 +28,14 @@ pub struct MainCharacter {
     direction: PlatformerDirection,
     velocity: Vector2,
     active_velocity: Vector2,
+    can_attack_chain: bool,
     stats: CharacterStats,
     state: statig::blocking::StateMachine<CharacterStateMachine>,
-
     base: Base<CharacterBody2D>,
+
+    #[var]
+    #[init(val = OnReady::manual())]
+    attack_chain_timer: OnReady<f64>,
 
     #[var]
     #[init(node = "DodgingCooldownTimer")]
@@ -60,6 +63,10 @@ pub struct MainCharacter {
 
     #[var]
     #[init(val = OnReady::manual())]
+    attack_animation_timer_2: OnReady<f64>,
+
+    #[var]
+    #[init(val = OnReady::manual())]
     attack_animation_length: OnReady<f64>,
 
     #[var]
@@ -74,6 +81,8 @@ pub struct MainCharacter {
 #[godot_api]
 impl ICharacterBody2D for MainCharacter {
     fn ready(&mut self) {
+        self.attack_chain_timer.init(0.6);
+
         self.connect_attack_signal();
 
         // TODO: Find how to get tracks for specific animations.
@@ -91,10 +100,9 @@ impl ICharacterBody2D for MainCharacter {
 
         let attack_animation_length = self
             .get_animation_player()
-            .get_animation("attack_east_1")
+            .get_animation("attack_1_east")
             .unwrap()
-            .get_length()
-            / 1.5;
+            .get_length();
 
         let jumping_animation_length = self
             .get_animation_player()
@@ -111,6 +119,9 @@ impl ICharacterBody2D for MainCharacter {
         self.attack_animation_length
             .init(attack_animation_length as f64);
 
+        self.attack_animation_timer_2
+            .init(attack_animation_length as f64);
+
         self.attack_animation_timer
             .init(attack_animation_length as f64);
 
@@ -121,10 +132,24 @@ impl ICharacterBody2D for MainCharacter {
             .init(dodge_animation_length as f64);
     }
 
+    fn unhandled_input(&mut self, input: Gd<godot::classes::InputEvent>) {
+        if input.is_action_pressed("attack") {
+            self.state.handle(&Event::AttackButton);
+        }
+        if input.is_action_pressed("jump") {
+            self.state.handle(&Event::JumpButton);
+        }
+        if input.is_action_released("jump") {
+            self.state.handle(&Event::ActionReleasedEarly);
+        }
+        if input.is_action_pressed("dodge") {
+            self.state.handle(&Event::DodgeButton);
+        }
+    }
+
     fn physics_process(&mut self, delta: f64) {
         let input = Input::singleton();
         let event = InputHandler::to_platformer_event(&Input::singleton());
-
         self.velocity = InputHandler::get_velocity(&input);
         self.delta = delta;
 
@@ -135,6 +160,7 @@ impl ICharacterBody2D for MainCharacter {
             character_state_machine::State::Falling {} => self.fall(),
             character_state_machine::State::Moving {} => self.move_character(),
             character_state_machine::State::Attacking {} => self.attack(),
+            &character_state_machine::State::Attack2 {} => self.attack_2(),
             character_state_machine::State::Grappling {} => self.grapple(),
         }
 
@@ -204,11 +230,15 @@ impl MainCharacter {
     }
 
     fn attack(&mut self) {
+        self.base_mut().set_process_unhandled_input(false);
         let speed = self.stats.attacking_speed;
         let time = self.get_attack_animation_timer();
         let velocity = self.velocity;
 
         if time < self.get_attack_animation_length() && time > 0.0 {
+            if Input::singleton().is_action_just_pressed("attack") {
+                self.can_attack_chain = true;
+            }
             self.base_mut().move_and_slide();
             self.set_attack_animation_timer(time - self.delta);
         } else {
@@ -223,7 +253,33 @@ impl MainCharacter {
 
         if time <= 0.0 {
             self.reset_attacking_animation_timer();
-            self.state.handle(&Event::TimerElapsed);
+            self.base_mut().set_process_unhandled_input(true);
+            if self.can_attack_chain {
+                self.can_attack_chain = false;
+                self.state.handle(&Event::AttackButton);
+            } else {
+                self.state.handle(&Event::TimerElapsed);
+            }
+        }
+    }
+
+    fn attack_2(&mut self) {
+        let time = self.get_attack_animation_timer_2();
+
+        if time < self.get_attack_animation_length() && time > 0.0 {
+            self.set_attack_animation_timer_2(time - self.delta);
+        } else {
+            self.update_animation();
+            self.set_attack_animation_timer_2(time - self.delta);
+
+            if !self.base().is_on_floor() {
+                self.state.handle(&Event::FailedFloorCheck);
+            }
+
+            if time <= 0.0 {
+                self.set_attack_animation_timer_2(self.get_attack_animation_length());
+                self.state.handle(&Event::TimerElapsed);
+            }
         }
     }
 
@@ -307,12 +363,7 @@ impl MainCharacter {
     }
 
     fn reset_jumping_animation_timer(&mut self) {
-        let jump_animation_time = self
-            .get_animation_player()
-            .get_animation("jumping_east")
-            .unwrap()
-            .get_length();
-        self.set_jumping_animation_timer(jump_animation_time as f64);
+        self.set_jumping_animation_timer(self.get_jumping_animation_length());
     }
 
     fn reset_attacking_animation_timer(&mut self) {
@@ -324,18 +375,11 @@ impl MainCharacter {
     }
 
     fn get_current_animation(&self) -> String {
-        let direction = &self.direction;
-        let mut state = self.state.state().to_string();
-        state.push('_');
+        let mut animation = self.state.state().to_string();
+        animation.push('_');
+        animation.push_str(self.direction.to_string().as_str());
 
-        let s = format!("{}{}", state, direction);
-
-        // TODO: This check is temporary.
-        if s == "attack_east" || s == "attack_west" {
-            format!("{}{}{}", state, direction, "_1")
-        } else {
-            s
-        }
+        animation
     }
 
     fn update_animation(&mut self) {
