@@ -1,5 +1,6 @@
-[gd_scene load_steps=8 format=3 uid="uid://csphx4r51adby"]
+[gd_scene load_steps=9 format=3 uid="uid://csphx4r51adby"]
 
+[ext_resource type="PackedScene" uid="uid://cgmacri0vrmtw" path="res://health_bar.tscn" id="1_d5x1h"]
 [ext_resource type="PackedScene" uid="uid://cypfxvpiapsp3" path="res://ground.tscn" id="2_ainao"]
 [ext_resource type="PackedScene" uid="uid://dmnvgp7j5vtfe" path="res://main_character.tscn" id="3_1gilh"]
 [ext_resource type="PackedScene" uid="uid://5fcrp4sc1aqy" path="res://platformer_main_character.tscn" id="3_u6kov"]
@@ -19,6 +20,14 @@ size = Vector2(50, 10)
 size = Vector2(50, 10)
 
 [node name="Node2D" type="Node2D"]
+
+[node name="Control" parent="." instance=ExtResource("1_d5x1h")]
+top_level = true
+z_index = 2
+offset_left = -3.0
+offset_top = 4.0
+offset_right = 97.0
+offset_bottom = 204.0
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = SubResource("Environment_2k8wa")
