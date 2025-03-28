@@ -1,6 +1,7 @@
-[gd_scene load_steps=29 format=3 uid="uid://5fcrp4sc1aqy"]
+[gd_scene load_steps=30 format=3 uid="uid://5fcrp4sc1aqy"]
 
 [ext_resource type="Texture2D" uid="uid://jajkhxvbqumn" path="res://assets/entities/knight/Run.png" id="1_0xcww"]
+[ext_resource type="PackedScene" uid="uid://cgmacri0vrmtw" path="res://health_bar.tscn" id="1_wj53o"]
 [ext_resource type="Texture2D" uid="uid://c0yvk1ca22cd" path="res://assets/entities/knight/Idle.png" id="2_7jfy0"]
 [ext_resource type="Texture2D" uid="uid://b1blo7deakxv3" path="res://assets/entities/knight/Slide.png" id="3_ag48x"]
 [ext_resource type="Texture2D" uid="uid://dfjmgpggtd0hy" path="res://assets/entities/knight/Attacks.png" id="4_qct0b"]
@@ -2527,6 +2528,13 @@ drag_left_margin = 0.13
 drag_right_margin = 0.13
 editor_draw_limits = true
 editor_draw_drag_margin = true
+
+[node name="CanvasLayer" parent="Camera2D" instance=ExtResource("1_wj53o")]
+offset = Vector2(-960, -550)
+scale = Vector2(2, 3)
+transform = Transform2D(2, 0, 0, 3, -960, -550)
+follow_viewport_enabled = true
+follow_viewport_scale = 200.0
 
 [node name="DodgingCooldownTimer" type="Timer" parent="."]
 process_callback = 0

@@ -22,12 +22,6 @@ size = Vector2(50, 10)
 [node name="Node2D" type="Node2D"]
 
 [node name="HealthBar" parent="." instance=ExtResource("1_d5x1h")]
-top_level = true
-z_index = 2
-offset_left = -3.0
-offset_top = 4.0
-offset_right = 97.0
-offset_bottom = 204.0
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = SubResource("Environment_2k8wa")

@@ -2,27 +2,19 @@
 
 [ext_resource type="Texture2D" uid="uid://brdp11ksamwg" path="res://assets/ui/hud/progress_red.png" id="1_m7ell"]
 
-[node name="Control" type="Control"]
+[node name="CanvasLayer" type="CanvasLayer"]
+
+[node name="Control" type="Control" parent="."]
 layout_direction = 2
 layout_mode = 3
 anchors_preset = 0
-offset_right = 100.0
-offset_bottom = 200.0
 
-[node name="AspectRatioContainer" type="AspectRatioContainer" parent="."]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-ratio = 0.2858
+[node name="CenterContainer" type="CenterContainer" parent="Control"]
+layout_mode = 0
+offset_right = 18.0
+offset_bottom = 48.0
 
-[node name="PanelContainer" type="PanelContainer" parent="AspectRatioContainer"]
-layout_direction = 2
-layout_mode = 2
-
-[node name="TextureProgressBar" type="TextureProgressBar" parent="AspectRatioContainer/PanelContainer"]
+[node name="TextureProgressBar" type="TextureProgressBar" parent="Control/CenterContainer"]
 layout_mode = 2
 size_flags_horizontal = 4
 min_value = 1.0
@@ -30,8 +22,7 @@ max_value = 10.0
 value = 10.0
 fill_mode = 2
 nine_patch_stretch = true
-stretch_margin_left = 21
-stretch_margin_top = 12
-stretch_margin_right = 19
-stretch_margin_bottom = 6
+stretch_margin_top = 20
+stretch_margin_right = 12
+stretch_margin_bottom = 20
 texture_progress = ExtResource("1_m7ell")
