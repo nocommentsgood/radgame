@@ -21,7 +21,7 @@ size = Vector2(50, 10)
 
 [node name="Node2D" type="Node2D"]
 
-[node name="Control" parent="." instance=ExtResource("1_d5x1h")]
+[node name="HealthBar" parent="." instance=ExtResource("1_d5x1h")]
 top_level = true
 z_index = 2
 offset_left = -3.0
@@ -69,3 +69,4 @@ texture = SubResource("PlaceholderTexture2D_d5x1h")
 
 [editable path="WorldEnvironment/TestEnemy"]
 [editable path="WorldEnvironment/TestEnemy/EnemySensors"]
+[editable path="WorldEnvironment/MainCharacter"]
