@@ -2,7 +2,7 @@
 
 [ext_resource type="Texture2D" uid="uid://brdp11ksamwg" path="res://assets/ui/hud/progress_red.png" id="1_m7ell"]
 
-[node name="CanvasLayer" type="CanvasLayer"]
+[node name="HealthBar" type="HealthBar"]
 
 [node name="Control" type="Control" parent="."]
 layout_direction = 2
@@ -18,8 +18,8 @@ offset_bottom = 48.0
 layout_mode = 2
 size_flags_horizontal = 4
 min_value = 1.0
-max_value = 10.0
-value = 10.0
+max_value = 50.0
+value = 50.0
 fill_mode = 2
 nine_patch_stretch = true
 stretch_margin_top = 20

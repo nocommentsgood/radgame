@@ -21,8 +21,6 @@ size = Vector2(50, 10)
 
 [node name="Node2D" type="Node2D"]
 
-[node name="HealthBar" parent="." instance=ExtResource("1_d5x1h")]
-
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = SubResource("Environment_2k8wa")
 
@@ -61,6 +59,9 @@ shape = SubResource("RectangleShape2D_gyfs4")
 [node name="Sprite2D" type="Sprite2D" parent="WorldEnvironment/Platform"]
 texture = SubResource("PlaceholderTexture2D_d5x1h")
 
+[node name="HealthBar" parent="." instance=ExtResource("1_d5x1h")]
+
+[connection signal="player_health_changed" from="WorldEnvironment/MainCharacter" to="HealthBar" method="on_player_health_changed"]
+
 [editable path="WorldEnvironment/TestEnemy"]
 [editable path="WorldEnvironment/TestEnemy/EnemySensors"]
-[editable path="WorldEnvironment/MainCharacter"]

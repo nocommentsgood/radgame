@@ -55,6 +55,10 @@ impl InputHandler {
             return Event::AttackButton;
         }
 
+        if input.is_action_just_pressed("heal") {
+            return Event::HealingButton;
+        }
+
         if vel.length() > 0.0 {
             Event::Wasd
         } else {
