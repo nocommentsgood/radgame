@@ -2,7 +2,7 @@
 
 // Player ====================================================
 // Player character signals
-pub const SIGNAL_PLAYER_DAMAGED: &str = "player_damaged";
+pub const SIGNAL_HEALTH_CHANGED: &str = "player_health_changed";
 pub const SIGNAL_PLAYER_HURTBOX_ENTERED: &str = "body_entered";
 pub const SIGNAL_PLAYER_DIED: &str = "player_died";
 

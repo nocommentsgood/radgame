@@ -70,6 +70,14 @@ pub struct MainCharacter {
     attack_animation_length: OnReady<f64>,
 
     #[var]
+    #[init(val = OnReady::manual())]
+    healing_animation_length: OnReady<f64>,
+
+    #[var]
+    #[init(val = OnReady::manual())]
+    healing_animation_timer: OnReady<f64>,
+
+    #[var]
     #[init(node = "AnimationPlayer")]
     animation_player: OnReady<Gd<AnimationPlayer>>,
 
@@ -110,6 +118,12 @@ impl ICharacterBody2D for MainCharacter {
             .unwrap()
             .get_length();
 
+        let healing_animation_length = self
+            .get_animation_player()
+            .get_animation("heal_east")
+            .unwrap()
+            .get_length();
+
         self.jumping_animation_timer
             .init(jumping_animation_length as f64);
 
@@ -130,6 +144,12 @@ impl ICharacterBody2D for MainCharacter {
 
         self.dodging_animation_timer
             .init(dodge_animation_length as f64);
+
+        self.healing_animation_length
+            .init(healing_animation_length as f64);
+
+        self.healing_animation_timer
+            .init(healing_animation_length as f64);
     }
 
     fn unhandled_input(&mut self, input: Gd<godot::classes::InputEvent>) {
@@ -144,6 +164,9 @@ impl ICharacterBody2D for MainCharacter {
         }
         if input.is_action_pressed("dodge") {
             self.state.handle(&Event::DodgeButton);
+        }
+        if input.is_action_pressed("heal") {
+            self.state.handle(&Event::HealingButton);
         }
     }
 
@@ -160,7 +183,8 @@ impl ICharacterBody2D for MainCharacter {
             character_state_machine::State::Falling {} => self.fall(),
             character_state_machine::State::Moving {} => self.move_character(),
             character_state_machine::State::Attacking {} => self.attack(),
-            &character_state_machine::State::Attack2 {} => self.attack_2(),
+            character_state_machine::State::Attack2 {} => self.attack_2(),
+            character_state_machine::State::Healing {} => self.heal(),
             character_state_machine::State::Grappling {} => self.grapple(),
         }
 
@@ -171,7 +195,7 @@ impl ICharacterBody2D for MainCharacter {
 #[godot_api]
 impl MainCharacter {
     #[signal]
-    fn player_damaged(previous_health: i32, new_health: i32, damage_amount: i32);
+    fn player_health_changed(previous_health: i32, new_health: i32, damage_amount: i32);
 
     #[func]
     fn on_body_entered_hurtbox(&mut self, body: Gd<Node2D>) {
@@ -329,6 +353,34 @@ impl MainCharacter {
         }
     }
 
+    fn heal(&mut self) {
+        let time = self.get_healing_animation_timer();
+        let current_health = self.stats.health;
+        self.velocity = Vector2::ZERO;
+        let velocity = self.velocity;
+
+        self.update_direction();
+        self.update_animation();
+        self.base_mut().set_velocity(velocity);
+        self.set_healing_animation_timer(time - self.delta);
+
+        if time <= 0.0 {
+            self.stats.heal();
+            let new_health = self.stats.health;
+            let amount = self.stats.healing_amount;
+            self.base_mut().emit_signal(
+                constants::SIGNAL_HEALTH_CHANGED,
+                &[
+                    current_health.to_variant(),
+                    new_health.to_variant(),
+                    amount.to_variant(),
+                ],
+            );
+            self.set_healing_animation_timer(self.get_healing_animation_length());
+            self.state.handle(&Event::TimerElapsed);
+        }
+    }
+
     fn fall(&mut self) {
         if !self.base().is_on_floor() {
             self.velocity.y = Vector2::DOWN.y;
@@ -429,8 +481,9 @@ impl Damageable for MainCharacter {
         let current_health = previous_health.saturating_sub(amount);
 
         self.set_health(current_health);
+        println!("emitting damaged signal");
         self.base_mut().emit_signal(
-            constants::SIGNAL_PLAYER_DAMAGED,
+            constants::SIGNAL_HEALTH_CHANGED,
             &[
                 previous_health.to_variant(),
                 current_health.to_variant(),

@@ -1,5 +1,6 @@
-[gd_scene load_steps=8 format=3 uid="uid://csphx4r51adby"]
+[gd_scene load_steps=9 format=3 uid="uid://csphx4r51adby"]
 
+[ext_resource type="PackedScene" uid="uid://cgmacri0vrmtw" path="res://health_bar.tscn" id="1_d5x1h"]
 [ext_resource type="PackedScene" uid="uid://cypfxvpiapsp3" path="res://ground.tscn" id="2_ainao"]
 [ext_resource type="PackedScene" uid="uid://dmnvgp7j5vtfe" path="res://main_character.tscn" id="3_1gilh"]
 [ext_resource type="PackedScene" uid="uid://5fcrp4sc1aqy" path="res://platformer_main_character.tscn" id="3_u6kov"]
@@ -57,6 +58,10 @@ shape = SubResource("RectangleShape2D_gyfs4")
 
 [node name="Sprite2D" type="Sprite2D" parent="WorldEnvironment/Platform"]
 texture = SubResource("PlaceholderTexture2D_d5x1h")
+
+[node name="HealthBar" parent="." instance=ExtResource("1_d5x1h")]
+
+[connection signal="player_health_changed" from="WorldEnvironment/MainCharacter" to="HealthBar" method="on_player_health_changed"]
 
 [editable path="WorldEnvironment/TestEnemy"]
 [editable path="WorldEnvironment/TestEnemy/EnemySensors"]

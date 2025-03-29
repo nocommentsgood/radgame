@@ -944,7 +944,6 @@ _data = {
 [sub_resource type="AnimationLibrary" id="AnimationLibrary_k01ch"]
 
 [node name="MainCharacter" type="MainCharacter"]
-dodging_speed = 100.0
 motion_mode = 1
 slide_on_ceiling = false
 
