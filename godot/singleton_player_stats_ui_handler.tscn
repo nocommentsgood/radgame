@@ -1,0 +1,3 @@
+[gd_scene format=3 uid="uid://de4fa0o4noi7q"]
+
+[node name="SingletonLoader" type="SingletonLoader"]

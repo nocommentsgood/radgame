@@ -1,5 +1,7 @@
 use godot::{
-    classes::{AnimationPlayer, Area2D, CharacterBody2D, ICharacterBody2D, RayCast2D, Timer},
+    classes::{
+        AnimationPlayer, Area2D, CharacterBody2D, ICharacterBody2D, Input, RayCast2D, Timer,
+    },
     prelude::*,
 };
 
@@ -195,7 +197,10 @@ impl ICharacterBody2D for MainCharacter {
 #[godot_api]
 impl MainCharacter {
     #[signal]
-    fn player_health_changed(previous_health: i32, new_health: i32, damage_amount: i32);
+    pub fn player_health_changed(previous_health: i32, new_health: i32, damage_amount: i32);
+
+    #[signal]
+    fn player_died();
 
     #[func]
     fn on_body_entered_hurtbox(&mut self, body: Gd<Node2D>) {
@@ -233,6 +238,10 @@ impl MainCharacter {
         } else if time < self.get_dodging_animation_length() && time > 0.0 {
             self.base_mut().move_and_slide();
             self.set_dodging_animation_timer(time - self.delta);
+
+            if !self.base().is_on_floor() {
+                self.state.handle(&Event::FailedFloorCheck);
+            }
         } else {
             let speed = self.stats.dodging_speed;
             let velocity = self.velocity;
@@ -368,14 +377,9 @@ impl MainCharacter {
             self.stats.heal();
             let new_health = self.stats.health;
             let amount = self.stats.healing_amount;
-            self.base_mut().emit_signal(
-                constants::SIGNAL_HEALTH_CHANGED,
-                &[
-                    current_health.to_variant(),
-                    new_health.to_variant(),
-                    amount.to_variant(),
-                ],
-            );
+            self.signals()
+                .player_health_changed()
+                .emit(current_health, new_health, amount);
             self.set_healing_animation_timer(self.get_healing_animation_length());
             self.state.handle(&Event::TimerElapsed);
         }
@@ -405,6 +409,8 @@ impl MainCharacter {
         }
     }
 
+    // From the discord, accessing signals for builtin Godot classes through typed signals will
+    // be added in the future. In the meantime it must be done through the Godot api.
     fn connect_attack_signal(&mut self) {
         let mut hurtbox = self.base().get_node_as::<Area2D>(PLAYER_HURTBOX);
         let callable = self
@@ -441,7 +447,7 @@ impl MainCharacter {
     }
 
     fn update_direction(&mut self) {
-        if !self.velocity.is_zero_approx() {
+        if !self.velocity.x.is_zero_approx() {
             self.direction = PlatformerDirection::from_platformer_velocity(&self.velocity)
         }
     }
@@ -481,20 +487,13 @@ impl Damageable for MainCharacter {
         let current_health = previous_health.saturating_sub(amount);
 
         self.set_health(current_health);
-        println!("emitting damaged signal");
-        self.base_mut().emit_signal(
-            constants::SIGNAL_HEALTH_CHANGED,
-            &[
-                previous_health.to_variant(),
-                current_health.to_variant(),
-                amount.to_variant(),
-            ],
-        );
+        self.signals()
+            .player_health_changed()
+            .emit(previous_health, current_health, amount);
 
         if self.is_dead() {
             println!("You died");
-            self.base_mut()
-                .emit_signal(constants::SIGNAL_PLAYER_DIED, &[]);
+            self.signals().player_died().emit();
             self.base_mut().queue_free();
         }
     }

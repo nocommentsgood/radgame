@@ -1,6 +1,6 @@
 use godot::{
     classes::{AnimationPlayer, Area2D, CharacterBody2D, ICharacterBody2D, Marker2D},
-    obj::WithBaseField,
+    obj::{WithBaseField, WithSignals},
     prelude::*,
 };
 
@@ -331,8 +331,7 @@ impl Damageable for TestEnemy {
         self.set_health(current_health);
 
         if self.is_dead() {
-            self.base_mut()
-                .emit_signal(constants::SIGNAL_TESTENEMY_DIED, &[]);
+            self.signals().test_enemy_died().emit();
         }
     }
 }
