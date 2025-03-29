@@ -1,5 +1,7 @@
 use godot::{
-    classes::{AnimationPlayer, Area2D, CharacterBody2D, ICharacterBody2D, RayCast2D, Timer},
+    classes::{
+        AnimationPlayer, Area2D, CharacterBody2D, ICharacterBody2D, Input, RayCast2D, Timer,
+    },
     prelude::*,
 };
 
@@ -195,7 +197,10 @@ impl ICharacterBody2D for MainCharacter {
 #[godot_api]
 impl MainCharacter {
     #[signal]
-    fn player_health_changed(previous_health: i32, new_health: i32, damage_amount: i32);
+    pub fn player_health_changed(previous_health: f64, new_health: f64, damage_amount: f64);
+
+    #[signal]
+    fn player_died();
 
     #[func]
     fn on_body_entered_hurtbox(&mut self, body: Gd<Node2D>) {
@@ -405,6 +410,8 @@ impl MainCharacter {
         }
     }
 
+    // From the discord, accessing signals for builtin Godot classes through typed signals will
+    // be added in the future. In the meantime it must be done through the Godot api.
     fn connect_attack_signal(&mut self) {
         let mut hurtbox = self.base().get_node_as::<Area2D>(PLAYER_HURTBOX);
         let callable = self
@@ -482,19 +489,15 @@ impl Damageable for MainCharacter {
 
         self.set_health(current_health);
         println!("emitting damaged signal");
-        self.base_mut().emit_signal(
-            constants::SIGNAL_HEALTH_CHANGED,
-            &[
-                previous_health.to_variant(),
-                current_health.to_variant(),
-                amount.to_variant(),
-            ],
+        self.signals().player_health_changed().emit(
+            previous_health as f64,
+            current_health as f64,
+            amount as f64,
         );
 
         if self.is_dead() {
             println!("You died");
-            self.base_mut()
-                .emit_signal(constants::SIGNAL_PLAYER_DIED, &[]);
+            self.signals().player_died().emit();
             self.base_mut().queue_free();
         }
     }

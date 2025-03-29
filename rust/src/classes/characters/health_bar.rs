@@ -1,5 +1,6 @@
 use godot::{
-    classes::{CanvasLayer, ICanvasLayer, TextureProgressBar},
+    classes::{CanvasLayer, TextureProgressBar},
+    obj::WithBaseField,
     prelude::*,
 };
 
@@ -10,20 +11,7 @@ pub struct HealthBar {
 }
 
 #[godot_api]
-impl ICanvasLayer for HealthBar {
-    fn ready(&mut self) {
-        self.connect_signals();
-    }
-}
-
-#[godot_api]
 impl HealthBar {
-    fn connect_signals(&mut self) {
-        let callable = self.base().callable("on_player_health_changed");
-        self.base_mut()
-            .connect(crate::utils::constants::SIGNAL_HEALTH_CHANGED, &callable);
-    }
-
     fn update_range_value(&mut self, value: f64) {
         let mut bar = self
             .base()
