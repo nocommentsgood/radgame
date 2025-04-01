@@ -126,11 +126,11 @@ impl TestEnemy {
         }
     }
 
-    #[func]
-    fn on_hurtbox_entered(&mut self, body: Gd<Node2D>) {
-        let mut damageable = DynGd::<Node2D, dyn Damageable>::from_godot(body);
-        damageable.dyn_bind_mut().take_damage(10);
-    }
+    // #[func]
+    // fn on_hurtbox_entered(&mut self, body: Gd<Node2D>) {
+    //     let mut damageable = DynGd::<Node2D, dyn Damageable>::from_godot(body);
+    //     damageable.dyn_bind_mut().take_damage(10);
+    // }
 
     #[func]
     fn on_aggro_area_exited(&mut self, body: Gd<Node2D>) {
@@ -157,8 +157,8 @@ impl TestEnemy {
         aggro_area.connect(constants::SIGNAL_AGGRO_AREA_EXITED, &callable);
 
         // Connect to hurtboxes
-        let callable = self.base().callable(constants::CALLABLE_ON_HURTBOX_ENTERED);
-        hurtboxes.connect(constants::SIGNAL_HURTBOX_ENTERED, &callable);
+        // let callable = self.base().callable(constants::CALLABLE_ON_HURTBOX_ENTERED);
+        // hurtboxes.connect(constants::SIGNAL_HURTBOX_ENTERED, &callable);
     }
 
     fn furthest_patrol_marker_distance(&self) -> Vector2 {

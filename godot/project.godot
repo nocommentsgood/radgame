@@ -21,8 +21,8 @@ PlayerStatsUIHandler="*res://singleton_player_stats_ui_handler.tscn"
 
 [display]
 
-window/size/viewport_width=1920
-window/size/viewport_height=1080
+window/size/viewport_width=900
+window/size/viewport_height=750
 window/stretch/mode="viewport"
 window/stretch/aspect="expand"
 window/stretch/scale=3.5
@@ -79,6 +79,11 @@ heal={
 "events": [Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":-1,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":0,"physical_keycode":81,"key_label":0,"unicode":113,"location":0,"echo":false,"script":null)
 ]
 }
+parry={
+"deadzone": 0.2,
+"events": [Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":-1,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":0,"physical_keycode":74,"key_label":0,"unicode":106,"location":0,"echo":false,"script":null)
+]
+}
 
 [layer_names]
 
@@ -91,7 +96,8 @@ heal={
 
 [physics]
 
-common/physics_ticks_per_second=20
+common/physics_ticks_per_second=10
+common/max_physics_steps_per_frame=10
 common/physics_interpolation=true
 
 [rendering]

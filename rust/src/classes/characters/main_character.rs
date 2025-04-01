@@ -1,7 +1,9 @@
 use godot::{
     classes::{
-        AnimationPlayer, Area2D, CharacterBody2D, ICharacterBody2D, Input, RayCast2D, Timer,
+        AnimationPlayer, Area2D, CharacterBody2D, CollisionObject2D, ICharacterBody2D, Input,
+        RayCast2D, ShapeCast2D, Timer,
     },
+    obj::WithBaseField,
     prelude::*,
 };
 
@@ -26,7 +28,6 @@ type Event = crate::components::state_machines::character_state_machine::Event;
 #[derive(GodotClass)]
 #[class(init, base=CharacterBody2D)]
 pub struct MainCharacter {
-    delta: f64,
     direction: PlatformerDirection,
     velocity: Vector2,
     active_velocity: Vector2,
@@ -80,6 +81,14 @@ pub struct MainCharacter {
     healing_animation_timer: OnReady<f64>,
 
     #[var]
+    #[init(val = OnReady::manual())]
+    parry_animation_length: OnReady<f64>,
+
+    #[var]
+    #[init(val = OnReady::manual())]
+    parry_animation_timer: OnReady<f64>,
+
+    #[var]
     #[init(node = "AnimationPlayer")]
     animation_player: OnReady<Gd<AnimationPlayer>>,
 
@@ -126,6 +135,12 @@ impl ICharacterBody2D for MainCharacter {
             .unwrap()
             .get_length();
 
+        let parry_animation_length = self
+            .get_animation_player()
+            .get_animation("parry_east")
+            .unwrap()
+            .get_length();
+
         self.jumping_animation_timer
             .init(jumping_animation_length as f64);
 
@@ -152,6 +167,12 @@ impl ICharacterBody2D for MainCharacter {
 
         self.healing_animation_timer
             .init(healing_animation_length as f64);
+
+        self.parry_animation_length
+            .init(parry_animation_length as f64);
+
+        self.parry_animation_timer
+            .init(parry_animation_length as f64);
     }
 
     fn unhandled_input(&mut self, input: Gd<godot::classes::InputEvent>) {
@@ -170,13 +191,17 @@ impl ICharacterBody2D for MainCharacter {
         if input.is_action_pressed("heal") {
             self.state.handle(&Event::HealingButton);
         }
+        if input.is_action_pressed("parry") {
+            self.state.handle(&Event::ParryButton);
+        }
     }
 
-    fn physics_process(&mut self, delta: f64) {
+    fn physics_process(&mut self, _delta: f64) {
         let input = Input::singleton();
         let event = InputHandler::to_platformer_event(&Input::singleton());
         self.velocity = InputHandler::get_velocity(&input);
-        self.delta = delta;
+
+        dbg!(self.state.state());
 
         match self.state.state() {
             character_state_machine::State::Idle {} => self.idle(),
@@ -186,10 +211,10 @@ impl ICharacterBody2D for MainCharacter {
             character_state_machine::State::Moving {} => self.move_character(),
             character_state_machine::State::Attacking {} => self.attack(),
             character_state_machine::State::Attack2 {} => self.attack_2(),
+            character_state_machine::State::Parry {} => self.parry(),
             character_state_machine::State::Healing {} => self.heal(),
             character_state_machine::State::Grappling {} => self.grapple(),
         }
-
         self.state.handle(&event);
     }
 }
@@ -200,7 +225,14 @@ impl MainCharacter {
     pub fn player_health_changed(previous_health: i32, new_health: i32, damage_amount: i32);
 
     #[signal]
+    fn parried_attack();
+
+    #[signal]
     fn player_died();
+
+    fn connect_parry(&self) {
+        let this = self.to_gd();
+    }
 
     #[func]
     fn on_body_entered_hurtbox(&mut self, body: Gd<Node2D>) {
@@ -210,20 +242,30 @@ impl MainCharacter {
             .take_damage(self.stats.attack_damage);
     }
 
-    fn detect_ledges(&mut self) {
-        if let Some(_collider) = self.get_ledge_sensor().get_collider() {
-            self.state.handle(&Event::GrabbedLedge);
+    fn on_area_entered_hitbox(&mut self, area: Gd<Area2D>) {
+        if !self.check_parry_collisions(area) {
+            self.take_damage(10);
         }
     }
 
+    fn detect_ledges(&mut self) {
+        if self.get_ledge_sensor().is_colliding() {
+            self.base_mut().set_velocity(Vector2::ZERO);
+            self.state.handle(&Event::GrabbedLedge);
+            if let Some(obj) = self.get_ledge_sensor().get_collider() {
+                let collider = obj.cast::<CollisionObject2D>();
+            }
+        }
+    }
+
+    // TODO: Ledge grappling is buggy.
     fn grapple(&mut self) {
         let input = Input::singleton();
         self.base_mut().set_velocity(Vector2::ZERO);
         self.update_animation();
 
-        if input.is_action_just_pressed("west")
-            || input.is_action_just_pressed("east")
-            || !self.get_ledge_sensor().is_colliding()
+        if input.is_action_just_pressed("west") & self.get_ledge_sensor().is_colliding()
+            || input.is_action_just_pressed("east") & self.get_ledge_sensor().is_colliding()
         {
             self.state.handle(&Event::WasdJustPressed);
         }
@@ -232,12 +274,13 @@ impl MainCharacter {
     fn dodge(&mut self) {
         let mut cooldown_timer = self.get_dodging_cooldown_timer();
         let time = self.get_dodging_animation_timer();
+        let delta = self.base().get_physics_process_delta_time();
 
         if cooldown_timer.get_time_left() > 0.0 {
             self.state.handle(&Event::TimerInProgress);
         } else if time < self.get_dodging_animation_length() && time > 0.0 {
             self.base_mut().move_and_slide();
-            self.set_dodging_animation_timer(time - self.delta);
+            self.set_dodging_animation_timer(time - delta);
 
             if !self.base().is_on_floor() {
                 self.state.handle(&Event::FailedFloorCheck);
@@ -249,7 +292,7 @@ impl MainCharacter {
             self.base_mut().set_velocity(velocity * speed);
             self.base_mut().move_and_slide();
             self.update_animation();
-            self.set_dodging_animation_timer(time - self.delta);
+            self.set_dodging_animation_timer(time - delta);
 
             if !self.base().is_on_floor() {
                 self.state.handle(&Event::FailedFloorCheck);
@@ -267,18 +310,19 @@ impl MainCharacter {
         let speed = self.stats.attacking_speed;
         let time = self.get_attack_animation_timer();
         let velocity = self.velocity;
+        let delta = self.base().get_physics_process_delta_time();
 
         if time < self.get_attack_animation_length() && time > 0.0 {
             if Input::singleton().is_action_just_pressed("attack") {
                 self.can_attack_chain = true;
             }
             self.base_mut().move_and_slide();
-            self.set_attack_animation_timer(time - self.delta);
+            self.set_attack_animation_timer(time - delta);
         } else {
             self.base_mut().set_velocity(velocity * speed);
             self.base_mut().move_and_slide();
             self.update_animation();
-            self.set_attack_animation_timer(time - self.delta);
+            self.set_attack_animation_timer(time - delta);
             if !self.base().is_on_floor() {
                 self.state.handle(&Event::FailedFloorCheck);
             }
@@ -298,12 +342,13 @@ impl MainCharacter {
 
     fn attack_2(&mut self) {
         let time = self.get_attack_animation_timer_2();
+        let delta = self.base().get_physics_process_delta_time();
 
         if time < self.get_attack_animation_length() && time > 0.0 {
-            self.set_attack_animation_timer_2(time - self.delta);
+            self.set_attack_animation_timer_2(time - delta);
         } else {
             self.update_animation();
-            self.set_attack_animation_timer_2(time - self.delta);
+            self.set_attack_animation_timer_2(time - delta);
 
             if !self.base().is_on_floor() {
                 self.state.handle(&Event::FailedFloorCheck);
@@ -341,6 +386,7 @@ impl MainCharacter {
 
     fn jump(&mut self) {
         let time = self.get_jumping_animation_timer();
+        let delta = self.base().get_physics_process_delta_time();
         self.velocity.y = Vector2::UP.y;
         let target_velocity = Vector2::new(
             self.velocity.x * self.stats.running_speed,
@@ -354,7 +400,7 @@ impl MainCharacter {
         self.detect_ledges();
         self.base_mut().set_velocity(velocity);
         self.base_mut().move_and_slide();
-        self.set_jumping_animation_timer(time - self.delta);
+        self.set_jumping_animation_timer(time - delta);
 
         if time <= 0.0 {
             self.reset_jumping_animation_timer();
@@ -365,13 +411,14 @@ impl MainCharacter {
     fn heal(&mut self) {
         let time = self.get_healing_animation_timer();
         let current_health = self.stats.health;
+        let delta = self.base().get_physics_process_delta_time();
         self.velocity = Vector2::ZERO;
         let velocity = self.velocity;
 
         self.update_direction();
         self.update_animation();
         self.base_mut().set_velocity(velocity);
-        self.set_healing_animation_timer(time - self.delta);
+        self.set_healing_animation_timer(time - delta);
 
         if time <= 0.0 {
             self.stats.heal();
@@ -406,6 +453,29 @@ impl MainCharacter {
             if self.get_jumping_animation_timer() < self.get_jumping_animation_length() {
                 self.reset_jumping_animation_timer();
             }
+        }
+    }
+
+    fn parry(&mut self) {
+        let time = self.get_parry_animation_timer();
+        let delta = self.base().get_physics_process_delta_time();
+        self.update_animation();
+        self.set_parry_animation_timer(time - delta);
+
+        if time <= 0.0 {
+            self.set_parry_animation_timer(self.get_parry_animation_length());
+            self.state.handle(&Event::TimerElapsed);
+        }
+    }
+
+    fn check_parry_collisions(&mut self, enemy_hurtbox: Gd<Area2D>) -> bool {
+        let parry_cast = self.base().get_node_as::<ShapeCast2D>("ShapeCast2D");
+
+        if parry_cast.is_colliding() && enemy_hurtbox.is_in_group("enemy_parryable_attack") {
+            println!("PARRY COLLIDING");
+            true
+        } else {
+            false
         }
     }
 

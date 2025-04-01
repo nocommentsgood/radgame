@@ -15,6 +15,7 @@ impl std::fmt::Display for State {
             State::Jumping {} => write!(f, "jumping"),
             State::Grappling {} => write!(f, "grapple"),
             State::Healing {} => write!(f, "heal"),
+            State::Parry {} => write!(f, "parry"),
         }
     }
 }
@@ -26,6 +27,7 @@ pub enum Event {
     DodgeButton,
     AttackButton,
     JumpButton,
+    ParryButton,
     GrabbedLedge,
     HealingButton,
     FailedFloorCheck,
@@ -46,6 +48,7 @@ impl CharacterStateMachine {
             Event::AttackButton => Response::Transition(State::attacking()),
             Event::JumpButton => Response::Transition(State::jumping()),
             Event::HealingButton => Response::Transition(State::healing()),
+            Event::ParryButton => Response::Transition(State::parry()),
             Event::FailedFloorCheck => Response::Transition(State::falling()),
             _ => Handled,
         }
@@ -123,6 +126,14 @@ impl CharacterStateMachine {
 
     #[state]
     fn healing(event: &Event) -> Response<State> {
+        match event {
+            Event::TimerElapsed => Response::Transition(State::idle()),
+            _ => Handled,
+        }
+    }
+
+    #[state]
+    fn parry(event: &Event) -> Response<State> {
         match event {
             Event::TimerElapsed => Response::Transition(State::idle()),
             _ => Handled,
