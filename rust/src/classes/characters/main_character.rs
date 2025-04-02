@@ -103,6 +103,7 @@ impl ICharacterBody2D for MainCharacter {
         self.attack_chain_timer.init(0.6);
 
         self.connect_attack_signal();
+        self.connect_parry();
 
         // TODO: Find how to get tracks for specific animations.
         // That way we can dynamically divide by scaling speed.
@@ -231,7 +232,12 @@ impl MainCharacter {
     fn player_died();
 
     fn connect_parry(&self) {
-        let this = self.to_gd();
+        let mut this = self.to_gd();
+        let mut hitbox = self.base().get_node_as::<Area2D>("Hurtbox");
+        hitbox
+            .signals()
+            .body_entered()
+            .connect(move |area| this.bind_mut().on_body_entered_hurtbox(area));
     }
 
     #[func]
@@ -243,8 +249,11 @@ impl MainCharacter {
     }
 
     fn on_area_entered_hitbox(&mut self, area: Gd<Area2D>) {
+        println!("area in hurtbox");
         if !self.check_parry_collisions(area) {
             self.take_damage(10);
+        } else {
+            self.signals().parried_attack().emit();
         }
     }
 
