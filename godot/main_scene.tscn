@@ -1,9 +1,8 @@
-[gd_scene load_steps=10 format=3 uid="uid://csphx4r51adby"]
+[gd_scene load_steps=9 format=3 uid="uid://csphx4r51adby"]
 
 [ext_resource type="PackedScene" uid="uid://cgmacri0vrmtw" path="res://health_bar.tscn" id="1_d5x1h"]
 [ext_resource type="PackedScene" uid="uid://cypfxvpiapsp3" path="res://ground.tscn" id="2_ainao"]
 [ext_resource type="PackedScene" uid="uid://dmnvgp7j5vtfe" path="res://main_character.tscn" id="3_1gilh"]
-[ext_resource type="Texture2D" uid="uid://c0yvk1ca22cd" path="res://assets/entities/knight/Idle.png" id="3_8mm7a"]
 [ext_resource type="PackedScene" uid="uid://5fcrp4sc1aqy" path="res://platformer_main_character.tscn" id="3_u6kov"]
 
 [sub_resource type="Environment" id="Environment_2k8wa"]
@@ -29,11 +28,6 @@ environment = SubResource("Environment_2k8wa")
 
 [node name="TestEnemy" parent="WorldEnvironment" instance=ExtResource("3_1gilh")]
 position = Vector2(214, 230)
-
-[node name="Sprite2D" parent="WorldEnvironment/TestEnemy" index="1"]
-texture = ExtResource("3_8mm7a")
-hframes = 2
-vframes = 4
 
 [node name="LeftPatrolMarker" parent="WorldEnvironment/TestEnemy" index="4"]
 position = Vector2(168, 236)

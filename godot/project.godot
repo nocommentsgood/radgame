@@ -93,10 +93,10 @@ parry={
 2d_physics/layer_5="player hurtbox"
 2d_physics/layer_6="enemy hurtbox"
 2d_physics/layer_7="platform ledges"
+2d_physics/layer_8="player physics"
 
 [physics]
 
-common/physics_ticks_per_second=10
 common/max_physics_steps_per_frame=10
 common/physics_interpolation=true
 
