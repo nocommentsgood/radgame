@@ -1,6 +1,6 @@
 use godot::{
     classes::{AnimationPlayer, Area2D, CharacterBody2D, ICharacterBody2D, Marker2D},
-    obj::{WithBaseField, WithSignals},
+    obj::WithBaseField,
     prelude::*,
 };
 

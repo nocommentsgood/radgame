@@ -1,3 +1,5 @@
+use std::ops::Deref;
+
 use godot::{
     classes::{
         AnimationPlayer, Area2D, CharacterBody2D, CollisionObject2D, ICharacterBody2D, Input,
@@ -88,6 +90,12 @@ pub struct MainCharacter {
     #[init(val = OnReady::manual())]
     parry_animation_timer: OnReady<f64>,
 
+    #[init(val = OnReady::manual())]
+    parry_timer: OnReady<f64>,
+
+    #[init(val = OnReady::manual())]
+    perfect_parry_timer: OnReady<f64>,
+
     #[var]
     #[init(node = "AnimationPlayer")]
     animation_player: OnReady<Gd<AnimationPlayer>>,
@@ -101,6 +109,9 @@ pub struct MainCharacter {
 impl ICharacterBody2D for MainCharacter {
     fn ready(&mut self) {
         self.attack_chain_timer.init(0.6);
+        self.parry_timer.init(self.stats.parry_length);
+        self.perfect_parry_timer
+            .init(self.stats.perfect_parry_length);
 
         self.connect_attack_signal();
         self.connect_parry();
@@ -202,8 +213,6 @@ impl ICharacterBody2D for MainCharacter {
         let event = InputHandler::to_platformer_event(&Input::singleton());
         self.velocity = InputHandler::get_velocity(&input);
 
-        dbg!(self.state.state());
-
         match self.state.state() {
             character_state_machine::State::Idle {} => self.idle(),
             character_state_machine::State::Dodging {} => self.dodge(),
@@ -233,11 +242,11 @@ impl MainCharacter {
 
     fn connect_parry(&self) {
         let mut this = self.to_gd();
-        let mut hitbox = self.base().get_node_as::<Area2D>("Hurtbox");
+        let mut hitbox = self.base().get_node_as::<Area2D>("Hitbox");
         hitbox
             .signals()
-            .body_entered()
-            .connect(move |area| this.bind_mut().on_body_entered_hurtbox(area));
+            .area_entered()
+            .connect(move |area| this.bind_mut().on_area_entered_hitbox(area));
     }
 
     #[func]
@@ -249,11 +258,11 @@ impl MainCharacter {
     }
 
     fn on_area_entered_hitbox(&mut self, area: Gd<Area2D>) {
-        println!("area in hurtbox");
-        if !self.check_parry_collisions(area) {
-            self.take_damage(10);
-        } else {
-            self.signals().parried_attack().emit();
+        let owner = area.get_parent().unwrap().get_parent().unwrap();
+        let a = area.get_parents();
+        println!("parent: {}", owner);
+        if !self.parried_attack() {
+            self.take_damage(5);
         }
     }
 
@@ -470,19 +479,30 @@ impl MainCharacter {
         let delta = self.base().get_physics_process_delta_time();
         self.update_animation();
         self.set_parry_animation_timer(time - delta);
+        *self.parry_timer -= delta;
+        *self.perfect_parry_timer -= delta;
 
         if time <= 0.0 {
             self.set_parry_animation_timer(self.get_parry_animation_length());
+            *self.parry_timer = 0.7;
+            *self.perfect_parry_timer = 0.3;
             self.state.handle(&Event::TimerElapsed);
         }
     }
 
-    fn check_parry_collisions(&mut self, enemy_hurtbox: Gd<Area2D>) -> bool {
-        let parry_cast = self.base().get_node_as::<ShapeCast2D>("ShapeCast2D");
-
-        if parry_cast.is_colliding() && enemy_hurtbox.is_in_group("enemy_parryable_attack") {
-            println!("PARRY COLLIDING");
-            true
+    fn parried_attack(&mut self) -> bool {
+        if let State::Parry {} = self.state.state() {
+            if *self.perfect_parry_timer < 0.3 && *self.perfect_parry_timer > 0.0 {
+                self.signals().parried_attack().emit();
+                self.reset_perfect_parry_timer();
+                true
+            } else if *self.parry_timer < 0.7 && *self.parry_timer > 0.0 {
+                self.signals().parried_attack().emit();
+                self.reset_parry_timer();
+                true
+            } else {
+                false
+            }
         } else {
             false
         }
@@ -497,6 +517,14 @@ impl MainCharacter {
             .callable(constants::CALLABLE_ON_PLAYER_HURTBOX_ENTERED);
 
         hurtbox.connect(constants::SIGNAL_PLAYER_HURTBOX_ENTERED, &callable);
+    }
+
+    fn reset_parry_timer(&mut self) {
+        *self.parry_timer = self.stats.parry_length;
+    }
+
+    fn reset_perfect_parry_timer(&mut self) {
+        *self.perfect_parry_timer = self.stats.perfect_parry_length;
     }
 
     fn reset_jumping_animation_timer(&mut self) {
