@@ -11,7 +11,8 @@ size = Vector2(173, 20)
 
 [node name="EnemySensors" type="Node2D"]
 
-[node name="Hurtboxes" type="Area2D" parent="." groups=["enemy_parryable_attack"]]
+[node name="Hurtboxes" type="Hurtbox" parent="." groups=["enemy_parryable_attack"]]
+attack_damage = 5
 collision_layer = 32
 collision_mask = 4
 

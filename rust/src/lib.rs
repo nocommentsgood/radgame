@@ -3,7 +3,8 @@ use godot::prelude::*;
 pub mod utils;
 mod classes {
     pub mod characters;
-    pub mod enemies;
+    pub mod components;
+    mod enemies;
 }
 
 mod components {

@@ -11,7 +11,7 @@ use crate::{
         movements::PlatformerDirection,
     },
     traits::components::character_components::{
-        character_resources::CharacterResources, damageable::Damageable, damaging::Damaging,
+        character_resources::CharacterResources, damageable::Damageable,
     },
     utils::*,
 };
@@ -126,12 +126,6 @@ impl TestEnemy {
         }
     }
 
-    // #[func]
-    // fn on_hurtbox_entered(&mut self, body: Gd<Node2D>) {
-    //     let mut damageable = DynGd::<Node2D, dyn Damageable>::from_godot(body);
-    //     damageable.dyn_bind_mut().take_damage(10);
-    // }
-
     #[func]
     fn on_aggro_area_exited(&mut self, body: Gd<Node2D>) {
         if body.is_in_group("player") {
@@ -141,7 +135,6 @@ impl TestEnemy {
 
     fn connect_area_nodes(&mut self) {
         let player_sensors = self.base().get_node_as::<Node2D>(constants::ENEMY_SENSORS);
-        let mut hurtboxes = player_sensors.get_node_as::<Area2D>("Hurtboxes");
         let mut aggro_area = player_sensors.get_node_as::<Area2D>("AggroArea");
 
         // Connect to player enters aggro range
@@ -155,10 +148,6 @@ impl TestEnemy {
             .base()
             .callable(constants::CALLABLE_ON_AGGRO_AREA_EXITED);
         aggro_area.connect(constants::SIGNAL_AGGRO_AREA_EXITED, &callable);
-
-        // Connect to hurtboxes
-        // let callable = self.base().callable(constants::CALLABLE_ON_HURTBOX_ENTERED);
-        // hurtboxes.connect(constants::SIGNAL_HURTBOX_ENTERED, &callable);
     }
 
     fn furthest_patrol_marker_distance(&self) -> Vector2 {
@@ -336,5 +325,9 @@ impl Damageable for TestEnemy {
     }
 }
 
-#[godot_dyn]
-impl Damaging for TestEnemy {}
+// #[godot_dyn]
+// impl Damaging for TestEnemy {
+//     fn damage_amount(&self) {
+//         self.
+//     }
+// }
