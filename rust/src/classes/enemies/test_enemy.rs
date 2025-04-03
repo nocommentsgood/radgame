@@ -324,10 +324,3 @@ impl Damageable for TestEnemy {
         }
     }
 }
-
-// #[godot_dyn]
-// impl Damaging for TestEnemy {
-//     fn damage_amount(&self) {
-//         self.
-//     }
-// }

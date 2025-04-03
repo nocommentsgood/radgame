@@ -1,15 +1,14 @@
-use std::ops::Deref;
-
 use godot::{
     classes::{
         AnimationPlayer, Area2D, CharacterBody2D, CollisionObject2D, ICharacterBody2D, Input,
-        RayCast2D, ShapeCast2D, Timer,
+        RayCast2D, Timer,
     },
     obj::WithBaseField,
     prelude::*,
 };
 
 use crate::{
+    classes::components::hurtbox::Hurtbox,
     components::{
         managers::input_hanlder::InputHandler,
         state_machines::{
@@ -258,11 +257,11 @@ impl MainCharacter {
     }
 
     fn on_area_entered_hitbox(&mut self, area: Gd<Area2D>) {
-        let owner = area.get_parent().unwrap().get_parent().unwrap();
-        let a = area.get_parents();
-        println!("parent: {}", owner);
-        if !self.parried_attack() {
-            self.take_damage(5);
+        if let Ok(hurtbox) = area.try_cast::<Hurtbox>() {
+            let damage = hurtbox.bind().get_attack_damage();
+            if !self.parried_attack() {
+                self.take_damage(damage);
+            }
         }
     }
 
@@ -492,11 +491,13 @@ impl MainCharacter {
 
     fn parried_attack(&mut self) -> bool {
         if let State::Parry {} = self.state.state() {
-            if *self.perfect_parry_timer < 0.3 && *self.perfect_parry_timer > 0.0 {
+            if *self.perfect_parry_timer > 0.0 {
+                println!("\nPERFECT PARRY\n");
                 self.signals().parried_attack().emit();
                 self.reset_perfect_parry_timer();
                 true
-            } else if *self.parry_timer < 0.7 && *self.parry_timer > 0.0 {
+            } else if *self.parry_timer > 0.0 {
+                println!("\nNORMAL PARRY\n");
                 self.signals().parried_attack().emit();
                 self.reset_parry_timer();
                 true
@@ -607,4 +608,8 @@ impl Damageable for MainCharacter {
 }
 
 #[godot_dyn]
-impl Damaging for MainCharacter {}
+impl Damaging for MainCharacter {
+    fn damage_amount(&self) -> i32 {
+        self.stats.attack_damage
+    }
+}
