@@ -87,6 +87,12 @@ impl ICharacterBody2D for MainCharacter {
             .unwrap()
             .get_length();
 
+        let parry_animation_length = self
+            .get_animation_player()
+            .get_animation("parry_east")
+            .unwrap()
+            .get_length();
+
         self.timer_component = TimerComponent::new(
             0.6,
             dodge_animation_length.into(),
@@ -94,6 +100,9 @@ impl ICharacterBody2D for MainCharacter {
             attack_animation_length.into(),
             attack_animation_length.into(),
             healing_animation_length.into(),
+            parry_animation_length.into(),
+            self.stats.parry_length,
+            self.stats.perfect_parry_length,
         );
     }
 
@@ -390,32 +399,32 @@ impl MainCharacter {
     }
 
     fn parry(&mut self) {
-        let time = self.get_parry_animation_timer();
+        let time = self.timer_component.parry_animation_timer.value;
         let delta = self.base().get_physics_process_delta_time();
         self.update_animation();
-        self.set_parry_animation_timer(time - delta);
-        *self.parry_timer -= delta;
-        *self.perfect_parry_timer -= delta;
+        self.timer_component.parry_animation_timer.value -= delta;
+        self.timer_component.parry_timer.value -= delta;
+        self.timer_component.perfect_parry_timer.value -= delta;
 
         if time <= 0.0 {
-            self.set_parry_animation_timer(self.get_parry_animation_length());
-            *self.parry_timer = 0.7;
-            *self.perfect_parry_timer = 0.3;
+            self.timer_component.parry_animation_timer.reset();
+            self.timer_component.parry_timer.reset();
+            self.timer_component.perfect_parry_timer.reset();
             self.state.handle(&Event::TimerElapsed);
         }
     }
 
     fn parried_attack(&mut self) -> bool {
         if let State::Parry {} = self.state.state() {
-            if *self.perfect_parry_timer > 0.0 {
+            if self.timer_component.perfect_parry_timer.value > 0.0 {
                 println!("\nPERFECT PARRY\n");
                 self.signals().parried_attack().emit();
-                self.reset_perfect_parry_timer();
+                self.timer_component.perfect_parry_timer.reset();
                 true
-            } else if *self.parry_timer > 0.0 {
+            } else if self.timer_component.parry_timer.value > 0.0 {
                 println!("\nNORMAL PARRY\n");
                 self.signals().parried_attack().emit();
-                self.reset_parry_timer();
+                self.timer_component.parry_timer.reset();
                 true
             } else {
                 false

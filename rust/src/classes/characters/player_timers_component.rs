@@ -29,9 +29,13 @@ pub struct TimerComponent {
     pub attack_animation_timer: Timer,
     pub attack_animation_timer_2: Timer,
     pub healing_animation_timer: Timer,
+    pub parry_animation_timer: Timer,
+    pub parry_timer: Timer,
+    pub perfect_parry_timer: Timer,
 }
 
 impl TimerComponent {
+    // stinky
     pub fn new(
         attack_chain_timer: f64,
         dodging_animation_timer: f64,
@@ -39,6 +43,9 @@ impl TimerComponent {
         attack_animation_timer: f64,
         attack_animation_timer_2: f64,
         healing_animation_timer: f64,
+        parry_animation_timer: f64,
+        parry_timer: f64,
+        perfect_parry_timer: f64,
     ) -> Self {
         TimerComponent {
             attack_chain_timer: Timer::new(attack_chain_timer),
@@ -47,6 +54,9 @@ impl TimerComponent {
             attack_animation_timer: Timer::new(attack_animation_timer),
             attack_animation_timer_2: Timer::new(attack_animation_timer_2),
             healing_animation_timer: Timer::new(healing_animation_timer),
+            parry_animation_timer: Timer::new(parry_animation_timer),
+            parry_timer: Timer::new(parry_timer),
+            perfect_parry_timer: Timer::new(perfect_parry_timer),
         }
     }
 }
