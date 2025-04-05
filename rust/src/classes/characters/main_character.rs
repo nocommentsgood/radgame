@@ -42,20 +42,6 @@ pub struct MainCharacter {
     #[init(node = "DodgingCooldownTimer")]
     dodging_cooldown_timer: OnReady<Gd<Timer>>,
     #[var]
-    #[init(val = OnReady::manual())]
-    parry_animation_length: OnReady<f64>,
-
-    #[var]
-    #[init(val = OnReady::manual())]
-    parry_animation_timer: OnReady<f64>,
-
-    #[init(val = OnReady::manual())]
-    parry_timer: OnReady<f64>,
-
-    #[init(val = OnReady::manual())]
-    perfect_parry_timer: OnReady<f64>,
-
-    #[var]
     #[init(node = "AnimationPlayer")]
     animation_player: OnReady<Gd<AnimationPlayer>>,
 
