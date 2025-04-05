@@ -12,6 +12,8 @@ pub struct CharacterStats {
     pub falling_speed: real,
     pub dodging_speed: real,
     pub attacking_speed: real,
+    pub parry_length: f64,
+    pub perfect_parry_length: f64,
 }
 
 impl Default for CharacterStats {
@@ -28,6 +30,8 @@ impl Default for CharacterStats {
             falling_speed: 200.0,
             dodging_speed: 150.0,
             attacking_speed: 10.0,
+            parry_length: 0.7,
+            perfect_parry_length: 0.3,
         }
     }
 }

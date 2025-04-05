@@ -14,7 +14,7 @@ ambient_light_energy = 2.52
 [sub_resource type="WorldBoundaryShape2D" id="WorldBoundaryShape2D_7qxfc"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_gyfs4"]
-size = Vector2(50, 10)
+size = Vector2(50, 8)
 
 [sub_resource type="PlaceholderTexture2D" id="PlaceholderTexture2D_d5x1h"]
 size = Vector2(50, 10)
@@ -54,9 +54,12 @@ collision_layer = 66
 collision_mask = 0
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="WorldEnvironment/Platform"]
+position = Vector2(0, 1)
 shape = SubResource("RectangleShape2D_gyfs4")
 
 [node name="Sprite2D" type="Sprite2D" parent="WorldEnvironment/Platform"]
+position = Vector2(0, 0.999996)
+scale = Vector2(1, 0.800001)
 texture = SubResource("PlaceholderTexture2D_d5x1h")
 
 [node name="HealthBar" parent="." instance=ExtResource("1_d5x1h")]
