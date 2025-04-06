@@ -168,20 +168,21 @@ impl MainCharacter {
             .connect(move |area| this.bind_mut().on_area_entered_hitbox(area));
     }
 
-    #[func]
-    fn on_body_entered_hurtbox(&mut self, body: Gd<Node2D>) {
-        let mut damagable = DynGd::<Node2D, dyn Damageable>::from_godot(body);
-        damagable
-            .dyn_bind_mut()
-            .take_damage(self.stats.attack_damage);
-    }
+    // #[func]
+    // fn on_body_entered_hurtbox(&mut self, body: Gd<Node2D>) {
+    //     let mut damagable = DynGd::<Node2D, dyn Damageable>::from_godot(body);
+    //     damagable
+    //         .dyn_bind_mut()
+    //         .take_damage(self.stats.attack_damage);
+    // }
 
     fn on_area_entered_hitbox(&mut self, area: Gd<Area2D>) {
-        if let Ok(hurtbox) = area.try_cast::<Hurtbox>() {
-            let damage = hurtbox.bind().get_attack_damage();
-            if !self.parried_attack() {
-                self.take_damage(damage);
-            }
+        if !self.parried_attack() {
+            let damaging = DynGd::<Area2D, dyn Damaging>::from_godot(area);
+            let target = self.to_gd().upcast::<Node2D>();
+            let _guard = self.base_mut();
+            let damageable = DynGd::<Node2D, dyn Damageable>::from_godot(target);
+            damaging.dyn_bind().do_damage(damageable);
         }
     }
 

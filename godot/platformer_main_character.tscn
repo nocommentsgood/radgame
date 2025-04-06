@@ -3009,7 +3009,8 @@ position = Vector2(0, 6)
 shape = SubResource("CapsuleShape2D_wj53o")
 debug_color = Color(0.921577, 0.109072, 0.631514, 0.42)
 
-[node name="Hurtbox" type="Area2D" parent="."]
+[node name="Hurtbox" type="Hurtbox" parent="."]
+attack_damage = 10
 collision_layer = 0
 collision_mask = 8
 input_pickable = false

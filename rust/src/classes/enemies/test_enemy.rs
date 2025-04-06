@@ -11,7 +11,7 @@ use crate::{
         movements::PlatformerDirection,
     },
     traits::components::character_components::{
-        character_resources::CharacterResources, damageable::Damageable,
+        character_resources::CharacterResources, damageable::Damageable, damaging::Damaging,
     },
     utils::*,
 };
@@ -115,7 +115,15 @@ impl TestEnemy {
         }
     }
 
-    #[func]
+    fn on_area_entered_hitbox(&mut self, area: Gd<Area2D>) {
+        println!("area entered enemy hitbox");
+        let damaging = DynGd::<Area2D, dyn Damaging>::from_godot(area);
+        let target = self.to_gd().upcast::<Node2D>();
+        let _guard = self.base_mut();
+        let damageable = DynGd::<Node2D, dyn Damageable>::from_godot(target);
+        damaging.dyn_bind().do_damage(damageable);
+    }
+
     fn on_aggro_area_entered(&mut self, body: Gd<Node2D>) {
         if body.is_in_group("player") {
             if let Ok(player) = body.try_cast::<MainCharacter>() {
@@ -126,7 +134,6 @@ impl TestEnemy {
         }
     }
 
-    #[func]
     fn on_aggro_area_exited(&mut self, body: Gd<Node2D>) {
         if body.is_in_group("player") {
             self.current_event = enemy_state_machine::EnemyEvent::LostPlayer;
@@ -136,18 +143,27 @@ impl TestEnemy {
     fn connect_area_nodes(&mut self) {
         let player_sensors = self.base().get_node_as::<Node2D>(constants::ENEMY_SENSORS);
         let mut aggro_area = player_sensors.get_node_as::<Area2D>("AggroArea");
+        let mut hitbox = player_sensors.get_node_as::<Area2D>("Hitbox");
+        let mut this = self.to_gd();
 
-        // Connect to player enters aggro range
-        let callable = self
-            .base()
-            .callable(constants::CALLABLE_ON_AGGRO_AREA_ENTERED);
-        aggro_area.connect(constants::SIGNAL_AGRRO_AREA_ENTERED, &callable);
+        hitbox
+            .signals()
+            .area_entered()
+            .connect(move |area| this.bind_mut().on_area_entered_hitbox(area));
+
+        // connect to player enters aggro range
+        let mut this = self.to_gd();
+        aggro_area
+            .signals()
+            .body_entered()
+            .connect(move |body| this.bind_mut().on_aggro_area_entered(body));
 
         // Connect to player leaves aggro range
-        let callable = self
-            .base()
-            .callable(constants::CALLABLE_ON_AGGRO_AREA_EXITED);
-        aggro_area.connect(constants::SIGNAL_AGGRO_AREA_EXITED, &callable);
+        let mut this = self.to_gd();
+        aggro_area
+            .signals()
+            .body_exited()
+            .connect(move |body| this.bind_mut().on_aggro_area_exited(body));
     }
 
     fn furthest_patrol_marker_distance(&self) -> Vector2 {

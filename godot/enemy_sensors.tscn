@@ -1,4 +1,4 @@
-[gd_scene load_steps=4 format=3 uid="uid://ktv3myqxd2dt"]
+[gd_scene load_steps=5 format=3 uid="uid://ktv3myqxd2dt"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_1p0qd"]
 size = Vector2(20, 43)
@@ -8,6 +8,9 @@ size = Vector2(34, 43)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_j0yqt"]
 size = Vector2(173, 20)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_0n8mu"]
+size = Vector2(20, 42)
 
 [node name="EnemySensors" type="Node2D"]
 
@@ -50,3 +53,11 @@ collision_mask = 4
 position = Vector2(3, 8)
 shape = SubResource("RectangleShape2D_j0yqt")
 debug_color = Color(0.998547, 0, 0.139145, 0.42)
+
+[node name="Hitbox" type="Area2D" parent="." groups=["enemy"]]
+collision_layer = 8
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Hitbox"]
+position = Vector2(0, 10)
+shape = SubResource("RectangleShape2D_0n8mu")
