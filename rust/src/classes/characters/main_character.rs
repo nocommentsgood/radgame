@@ -56,6 +56,13 @@ impl ICharacterBody2D for MainCharacter {
         self.connect_attack_signal();
         self.connect_parry();
 
+        let mut this = self.to_gd();
+        let mut hurtbox = self.base().get_node_as::<Area2D>("Hurtbox");
+        hurtbox
+            .signals()
+            .area_entered()
+            .connect(move |area| this.bind_mut().on_area_entered_hurtbox(area));
+
         // TODO: Find how to get tracks for specific animations.
         // That way we can dynamically divide by scaling speed.
 
@@ -168,13 +175,9 @@ impl MainCharacter {
             .connect(move |area| this.bind_mut().on_area_entered_hitbox(area));
     }
 
-    // #[func]
-    // fn on_body_entered_hurtbox(&mut self, body: Gd<Node2D>) {
-    //     let mut damagable = DynGd::<Node2D, dyn Damageable>::from_godot(body);
-    //     damagable
-    //         .dyn_bind_mut()
-    //         .take_damage(self.stats.attack_damage);
-    // }
+    fn on_area_entered_hurtbox(&mut self, area: Gd<Area2D>) {
+        println!("got hitbox from player: {}", area);
+    }
 
     fn on_area_entered_hitbox(&mut self, area: Gd<Area2D>) {
         if !self.parried_attack() {

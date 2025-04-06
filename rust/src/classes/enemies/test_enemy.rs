@@ -79,10 +79,6 @@ pub struct TestEnemy {
 impl ICharacterBody2D for TestEnemy {
     fn ready(&mut self) {
         self.connect_area_nodes();
-
-        let callable = self.base().callable(constants::CALLABLE_DESTROY_ENEMY);
-        self.base_mut()
-            .connect(constants::SIGNAL_TESTENEMY_DIED, &callable);
     }
 
     fn physics_process(&mut self, delta: f64) {
@@ -108,9 +104,9 @@ impl TestEnemy {
     #[signal]
     fn can_attack_player();
 
-    #[func]
     fn destroy(&mut self) {
         if self.is_dead() {
+            self.signals().test_enemy_died().emit();
             self.base_mut().queue_free();
         }
     }
@@ -141,10 +137,11 @@ impl TestEnemy {
     }
 
     fn connect_area_nodes(&mut self) {
-        let player_sensors = self.base().get_node_as::<Node2D>(constants::ENEMY_SENSORS);
-        let mut aggro_area = player_sensors.get_node_as::<Area2D>("AggroArea");
-        let mut hitbox = player_sensors.get_node_as::<Area2D>("Hitbox");
+        let sensors = self.base().get_node_as::<Node2D>(constants::ENEMY_SENSORS);
+        let mut aggro_area = sensors.get_node_as::<Area2D>("AggroArea");
+        let mut hitbox = sensors.get_node_as::<Area2D>("Hitbox");
         let mut this = self.to_gd();
+        println!("hitbox is: {}", hitbox);
 
         hitbox
             .signals()
@@ -336,7 +333,7 @@ impl Damageable for TestEnemy {
         self.set_health(current_health);
 
         if self.is_dead() {
-            self.signals().test_enemy_died().emit();
+            self.destroy();
         }
     }
 }

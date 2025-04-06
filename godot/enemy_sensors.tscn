@@ -16,6 +16,7 @@ size = Vector2(20, 42)
 
 [node name="Hurtboxes" type="Hurtbox" parent="." groups=["enemy_parryable_attack"]]
 attack_damage = 5
+visible = false
 collision_layer = 32
 collision_mask = 4
 
@@ -32,6 +33,7 @@ disabled = true
 debug_color = Color(0.452949, 0.595386, 0, 0.42)
 
 [node name="AttackArea" type="Area2D" parent="."]
+visible = false
 collision_layer = 0
 collision_mask = 4
 
@@ -46,6 +48,7 @@ shape = SubResource("RectangleShape2D_l7ghs")
 debug_color = Color(0.808802, 0.15934, 0.920065, 0.42)
 
 [node name="AggroArea" type="Area2D" parent="."]
+visible = false
 collision_layer = 0
 collision_mask = 4
 
@@ -54,7 +57,7 @@ position = Vector2(3, 8)
 shape = SubResource("RectangleShape2D_j0yqt")
 debug_color = Color(0.998547, 0, 0.139145, 0.42)
 
-[node name="Hitbox" type="Area2D" parent="." groups=["enemy"]]
+[node name="Hitbox" type="Area2D" parent="."]
 collision_layer = 8
 collision_mask = 0
 
