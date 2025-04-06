@@ -211,12 +211,11 @@ impl MainCharacter {
     fn dodge(&mut self) {
         let delta = self.base().get_physics_process_delta_time();
         let mut cooldown_timer = self.get_dodging_cooldown_timer();
-        let animation_time = self.timer_component.dodging_animation_timer.clone();
+        let time = self.timer_component.dodging_animation_timer.value;
 
         if cooldown_timer.get_time_left() > 0.0 {
             self.state.handle(&Event::TimerInProgress);
-        } else if animation_time.value < animation_time.initial_value()
-            && animation_time.value > 0.0
+        } else if time < self.timer_component.dodging_animation_timer.initial_value() && time > 0.0
         {
             self.base_mut().move_and_slide();
             self.timer_component.dodging_animation_timer.value -= delta;
@@ -236,7 +235,7 @@ impl MainCharacter {
             if !self.base().is_on_floor() {
                 self.state.handle(&Event::FailedFloorCheck);
             }
-            if animation_time.value <= 0.0 {
+            if time <= 0.0 {
                 self.timer_component.dodging_animation_timer.reset();
                 self.state.handle(&Event::TimerElapsed);
                 cooldown_timer.start();
@@ -280,10 +279,16 @@ impl MainCharacter {
     }
 
     fn attack_2(&mut self) {
-        let time = self.timer_component.attack_animation_timer_2.clone();
+        let time = self.timer_component.attack_animation_timer_2.value;
         let delta = self.base().get_physics_process_delta_time();
 
-        if time.value < time.initial_value() && time.value > 0.0 {
+        if time
+            < self
+                .timer_component
+                .attack_animation_timer_2
+                .initial_value()
+            && time > 0.0
+        {
             self.timer_component.attack_animation_timer_2.value -= delta;
         } else {
             self.update_animation();
@@ -293,7 +298,7 @@ impl MainCharacter {
                 self.state.handle(&Event::FailedFloorCheck);
             }
 
-            if time.value <= 0.0 {
+            if time <= 0.0 {
                 self.timer_component.attack_animation_timer_2.reset();
                 self.state.handle(&Event::TimerElapsed);
             }
@@ -324,7 +329,7 @@ impl MainCharacter {
     }
 
     fn jump(&mut self) {
-        let time = self.timer_component.jumping_animation_timer.clone();
+        let time = self.timer_component.jumping_animation_timer.value;
         let delta = self.base().get_physics_process_delta_time();
         self.velocity.y = Vector2::UP.y;
         let target_velocity = Vector2::new(
@@ -341,14 +346,14 @@ impl MainCharacter {
         self.base_mut().move_and_slide();
         self.timer_component.jumping_animation_timer.value -= delta;
 
-        if time.value <= 0.0 {
+        if time <= 0.0 {
             self.timer_component.jumping_animation_timer.reset();
             self.state.handle(&Event::TimerElapsed);
         }
     }
 
     fn heal(&mut self) {
-        let time = self.timer_component.healing_animation_timer.clone();
+        let time = self.timer_component.healing_animation_timer.value;
         let delta = self.base().get_physics_process_delta_time();
         let current_health = self.stats.health;
         let delta = self.base().get_physics_process_delta_time();
@@ -360,7 +365,7 @@ impl MainCharacter {
         self.base_mut().set_velocity(velocity);
         self.timer_component.healing_animation_timer.value -= delta;
 
-        if time.value <= 0.0 {
+        if time <= 0.0 {
             self.stats.heal();
             let new_health = self.stats.health;
             let amount = self.stats.healing_amount;
