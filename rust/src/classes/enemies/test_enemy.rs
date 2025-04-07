@@ -78,11 +78,7 @@ pub struct TestEnemy {
 #[godot_api]
 impl ICharacterBody2D for TestEnemy {
     fn ready(&mut self) {
-        self.connect_area_nodes();
-
-        let callable = self.base().callable(constants::CALLABLE_DESTROY_ENEMY);
-        self.base_mut()
-            .connect(constants::SIGNAL_TESTENEMY_DIED, &callable);
+        self.connect_signals();
     }
 
     fn physics_process(&mut self, delta: f64) {
@@ -108,13 +104,6 @@ impl TestEnemy {
     #[signal]
     fn can_attack_player();
 
-    #[func]
-    fn destroy(&mut self) {
-        if self.is_dead() {
-            self.base_mut().queue_free();
-        }
-    }
-
     fn on_area_entered_hitbox(&mut self, area: Gd<Area2D>) {
         println!("area entered enemy hitbox");
         let damaging = DynGd::<Area2D, dyn Damaging>::from_godot(area);
@@ -124,13 +113,21 @@ impl TestEnemy {
         damaging.dyn_bind().do_damage(damageable);
     }
 
-    fn on_aggro_area_entered(&mut self, body: Gd<Node2D>) {
-        if body.is_in_group("player") {
-            if let Ok(player) = body.try_cast::<MainCharacter>() {
-                self.current_event = enemy_state_machine::EnemyEvent::FoundPlayer {
-                    player: player.clone(),
+    fn on_aggro_area_entered(&mut self, area: Gd<Area2D>) {
+        if area.is_in_group("player") {
+            let r = area.get_pare
+            if let Some(player) = area.get_parent() {
+                if let Ok(player) = player.try_cast::<MainCharacter>() {
+                    self.current_event = enemy_state_machine::EnemyEvent::FoundPlayer {
+                        player: player.clone(),
+                    }
                 }
             }
+            // if let Ok(player) = area.try_cast::<MainCharacter>() {
+            //     self.current_event = enemy_state_machine::EnemyEvent::FoundPlayer {
+            //         player: player.clone(),
+            //     }
+            // }
         }
     }
 
@@ -140,12 +137,12 @@ impl TestEnemy {
         }
     }
 
-    fn connect_area_nodes(&mut self) {
+    fn connect_signals(&mut self) {
         let player_sensors = self.base().get_node_as::<Node2D>(constants::ENEMY_SENSORS);
         let mut aggro_area = player_sensors.get_node_as::<Area2D>("AggroArea");
         let mut hitbox = player_sensors.get_node_as::<Area2D>("Hitbox");
-        let mut this = self.to_gd();
 
+        let mut this = self.to_gd();
         hitbox
             .signals()
             .area_entered()
@@ -155,8 +152,8 @@ impl TestEnemy {
         let mut this = self.to_gd();
         aggro_area
             .signals()
-            .body_entered()
-            .connect(move |body| this.bind_mut().on_aggro_area_entered(body));
+            .area_entered()
+            .connect(move |area| this.bind_mut().on_aggro_area_entered(area));
 
         // Connect to player leaves aggro range
         let mut this = self.to_gd();
@@ -337,6 +334,7 @@ impl Damageable for TestEnemy {
 
         if self.is_dead() {
             self.signals().test_enemy_died().emit();
+            self.base_mut().queue_free();
         }
     }
 }

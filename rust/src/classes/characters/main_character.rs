@@ -168,14 +168,6 @@ impl MainCharacter {
             .connect(move |area| this.bind_mut().on_area_entered_hitbox(area));
     }
 
-    // #[func]
-    // fn on_body_entered_hurtbox(&mut self, body: Gd<Node2D>) {
-    //     let mut damagable = DynGd::<Node2D, dyn Damageable>::from_godot(body);
-    //     damagable
-    //         .dyn_bind_mut()
-    //         .take_damage(self.stats.attack_damage);
-    // }
-
     fn on_area_entered_hitbox(&mut self, area: Gd<Area2D>) {
         if !self.parried_attack() {
             let damaging = DynGd::<Area2D, dyn Damaging>::from_godot(area);
