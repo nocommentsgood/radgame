@@ -712,7 +712,3 @@ gizmo_extents = 100.0
 top_level = true
 position = Vector2(50, 0)
 gizmo_extents = 100.0
-
-[connection signal="area_entered" from="EnemySensors/Hitbox" to="." method="on_area_entered_hitbox"]
-
-[editable path="EnemySensors"]

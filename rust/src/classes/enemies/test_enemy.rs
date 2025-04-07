@@ -105,7 +105,6 @@ impl TestEnemy {
     fn can_attack_player();
 
     fn on_area_entered_hitbox(&mut self, area: Gd<Area2D>) {
-        println!("area entered enemy hitbox");
         let damaging = DynGd::<Area2D, dyn Damaging>::from_godot(area);
         let target = self.to_gd().upcast::<Node2D>();
         let _guard = self.base_mut();
@@ -115,7 +114,6 @@ impl TestEnemy {
 
     fn on_aggro_area_entered(&mut self, area: Gd<Area2D>) {
         if area.is_in_group("player") {
-            let r = area.get_pare
             if let Some(player) = area.get_parent() {
                 if let Ok(player) = player.try_cast::<MainCharacter>() {
                     self.current_event = enemy_state_machine::EnemyEvent::FoundPlayer {
@@ -123,16 +121,11 @@ impl TestEnemy {
                     }
                 }
             }
-            // if let Ok(player) = area.try_cast::<MainCharacter>() {
-            //     self.current_event = enemy_state_machine::EnemyEvent::FoundPlayer {
-            //         player: player.clone(),
-            //     }
-            // }
         }
     }
 
-    fn on_aggro_area_exited(&mut self, body: Gd<Node2D>) {
-        if body.is_in_group("player") {
+    fn on_aggro_area_exited(&mut self, area: Gd<Area2D>) {
+        if area.is_in_group("player") {
             self.current_event = enemy_state_machine::EnemyEvent::LostPlayer;
         }
     }
@@ -142,6 +135,7 @@ impl TestEnemy {
         let mut aggro_area = player_sensors.get_node_as::<Area2D>("AggroArea");
         let mut hitbox = player_sensors.get_node_as::<Area2D>("Hitbox");
 
+        // connect hitbox to entering areas
         let mut this = self.to_gd();
         hitbox
             .signals()
@@ -159,8 +153,8 @@ impl TestEnemy {
         let mut this = self.to_gd();
         aggro_area
             .signals()
-            .body_exited()
-            .connect(move |body| this.bind_mut().on_aggro_area_exited(body));
+            .area_exited()
+            .connect(move |area| this.bind_mut().on_aggro_area_exited(area));
     }
 
     fn furthest_patrol_marker_distance(&self) -> Vector2 {
