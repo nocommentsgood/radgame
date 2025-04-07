@@ -11,7 +11,7 @@ use crate::{
         movements::PlatformerDirection,
     },
     traits::components::character_components::{
-        character_resources::CharacterResources, damageable::Damageable,
+        character_resources::CharacterResources, damageable::Damageable, damaging::Damaging,
     },
     utils::*,
 };
@@ -78,11 +78,7 @@ pub struct TestEnemy {
 #[godot_api]
 impl ICharacterBody2D for TestEnemy {
     fn ready(&mut self) {
-        self.connect_area_nodes();
-
-        let callable = self.base().callable(constants::CALLABLE_DESTROY_ENEMY);
-        self.base_mut()
-            .connect(constants::SIGNAL_TESTENEMY_DIED, &callable);
+        self.connect_signals();
     }
 
     fn physics_process(&mut self, delta: f64) {
@@ -108,46 +104,57 @@ impl TestEnemy {
     #[signal]
     fn can_attack_player();
 
-    #[func]
-    fn destroy(&mut self) {
-        if self.is_dead() {
-            self.base_mut().queue_free();
-        }
+    fn on_area_entered_hitbox(&mut self, area: Gd<Area2D>) {
+        let damaging = DynGd::<Area2D, dyn Damaging>::from_godot(area);
+        let target = self.to_gd().upcast::<Node2D>();
+        let _guard = self.base_mut();
+        let damageable = DynGd::<Node2D, dyn Damageable>::from_godot(target);
+        damaging.dyn_bind().do_damage(damageable);
     }
 
-    #[func]
-    fn on_aggro_area_entered(&mut self, body: Gd<Node2D>) {
-        if body.is_in_group("player") {
-            if let Ok(player) = body.try_cast::<MainCharacter>() {
-                self.current_event = enemy_state_machine::EnemyEvent::FoundPlayer {
-                    player: player.clone(),
+    fn on_aggro_area_entered(&mut self, area: Gd<Area2D>) {
+        if area.is_in_group("player") {
+            if let Some(player) = area.get_parent() {
+                if let Ok(player) = player.try_cast::<MainCharacter>() {
+                    self.current_event = enemy_state_machine::EnemyEvent::FoundPlayer {
+                        player: player.clone(),
+                    }
                 }
             }
         }
     }
 
-    #[func]
-    fn on_aggro_area_exited(&mut self, body: Gd<Node2D>) {
-        if body.is_in_group("player") {
+    fn on_aggro_area_exited(&mut self, area: Gd<Area2D>) {
+        if area.is_in_group("player") {
             self.current_event = enemy_state_machine::EnemyEvent::LostPlayer;
         }
     }
 
-    fn connect_area_nodes(&mut self) {
+    fn connect_signals(&mut self) {
         let player_sensors = self.base().get_node_as::<Node2D>(constants::ENEMY_SENSORS);
         let mut aggro_area = player_sensors.get_node_as::<Area2D>("AggroArea");
+        let mut hitbox = player_sensors.get_node_as::<Area2D>("Hitbox");
 
-        // Connect to player enters aggro range
-        let callable = self
-            .base()
-            .callable(constants::CALLABLE_ON_AGGRO_AREA_ENTERED);
-        aggro_area.connect(constants::SIGNAL_AGRRO_AREA_ENTERED, &callable);
+        // connect hitbox to entering areas
+        let mut this = self.to_gd();
+        hitbox
+            .signals()
+            .area_entered()
+            .connect(move |area| this.bind_mut().on_area_entered_hitbox(area));
+
+        // connect to player enters aggro range
+        let mut this = self.to_gd();
+        aggro_area
+            .signals()
+            .area_entered()
+            .connect(move |area| this.bind_mut().on_aggro_area_entered(area));
 
         // Connect to player leaves aggro range
-        let callable = self
-            .base()
-            .callable(constants::CALLABLE_ON_AGGRO_AREA_EXITED);
-        aggro_area.connect(constants::SIGNAL_AGGRO_AREA_EXITED, &callable);
+        let mut this = self.to_gd();
+        aggro_area
+            .signals()
+            .area_exited()
+            .connect(move |area| this.bind_mut().on_aggro_area_exited(area));
     }
 
     fn furthest_patrol_marker_distance(&self) -> Vector2 {
@@ -321,6 +328,7 @@ impl Damageable for TestEnemy {
 
         if self.is_dead() {
             self.signals().test_enemy_died().emit();
+            self.base_mut().queue_free();
         }
     }
 }

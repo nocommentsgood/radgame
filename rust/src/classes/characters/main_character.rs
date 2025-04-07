@@ -53,8 +53,7 @@ pub struct MainCharacter {
 #[godot_api]
 impl ICharacterBody2D for MainCharacter {
     fn ready(&mut self) {
-        self.connect_attack_signal();
-        self.connect_parry();
+        self.connect_hitbox();
 
         // TODO: Find how to get tracks for specific animations.
         // That way we can dynamically divide by scaling speed.
@@ -159,7 +158,7 @@ impl MainCharacter {
     #[signal]
     fn player_died();
 
-    fn connect_parry(&self) {
+    fn connect_hitbox(&self) {
         let mut this = self.to_gd();
         let mut hitbox = self.base().get_node_as::<Area2D>("Hitbox");
         hitbox
@@ -168,20 +167,13 @@ impl MainCharacter {
             .connect(move |area| this.bind_mut().on_area_entered_hitbox(area));
     }
 
-    #[func]
-    fn on_body_entered_hurtbox(&mut self, body: Gd<Node2D>) {
-        let mut damagable = DynGd::<Node2D, dyn Damageable>::from_godot(body);
-        damagable
-            .dyn_bind_mut()
-            .take_damage(self.stats.attack_damage);
-    }
-
     fn on_area_entered_hitbox(&mut self, area: Gd<Area2D>) {
-        if let Ok(hurtbox) = area.try_cast::<Hurtbox>() {
-            let damage = hurtbox.bind().get_attack_damage();
-            if !self.parried_attack() {
-                self.take_damage(damage);
-            }
+        if !self.parried_attack() {
+            let damaging = DynGd::<Area2D, dyn Damaging>::from_godot(area);
+            let target = self.to_gd().upcast::<Node2D>();
+            let _guard = self.base_mut();
+            let damageable = DynGd::<Node2D, dyn Damageable>::from_godot(target);
+            damaging.dyn_bind().do_damage(damageable);
         }
     }
 
@@ -437,17 +429,6 @@ impl MainCharacter {
         } else {
             false
         }
-    }
-
-    // From the discord, accessing signals for builtin Godot classes through typed signals will
-    // be added in the future. In the meantime it must be done through the Godot api.
-    fn connect_attack_signal(&mut self) {
-        let mut hurtbox = self.base().get_node_as::<Area2D>(PLAYER_HURTBOX);
-        let callable = self
-            .base()
-            .callable(constants::CALLABLE_ON_PLAYER_HURTBOX_ENTERED);
-
-        hurtbox.connect(constants::SIGNAL_PLAYER_HURTBOX_ENTERED, &callable);
     }
 
     fn get_current_animation(&self) -> String {
