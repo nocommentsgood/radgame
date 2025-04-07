@@ -175,10 +175,6 @@ impl MainCharacter {
             .connect(move |area| this.bind_mut().on_area_entered_hitbox(area));
     }
 
-    fn on_area_entered_hurtbox(&mut self, area: Gd<Area2D>) {
-        println!("got hitbox from player: {}", area);
-    }
-
     fn on_area_entered_hitbox(&mut self, area: Gd<Area2D>) {
         if !self.parried_attack() {
             let damaging = DynGd::<Area2D, dyn Damaging>::from_godot(area);
