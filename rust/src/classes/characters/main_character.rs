@@ -8,7 +8,6 @@ use godot::{
 };
 
 use crate::{
-    classes::components::hurtbox::Hurtbox,
     components::{
         managers::input_hanlder::InputHandler,
         state_machines::{
@@ -19,7 +18,6 @@ use crate::{
     traits::components::character_components::{
         character_resources::CharacterResources, damageable::Damageable, damaging::Damaging,
     },
-    utils::constants::{self, PLAYER_HURTBOX},
 };
 
 use super::{character_stats::CharacterStats, player_timers_component::TimerComponent};
@@ -346,7 +344,6 @@ impl MainCharacter {
 
     fn heal(&mut self) {
         let time = self.timer_component.healing_animation_timer.value;
-        let delta = self.base().get_physics_process_delta_time();
         let current_health = self.stats.health;
         let delta = self.base().get_physics_process_delta_time();
         self.velocity = Vector2::ZERO;
