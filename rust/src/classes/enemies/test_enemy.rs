@@ -25,7 +25,7 @@ pub struct TestEnemy {
     state: statig::blocking::StateMachine<EnemyStateMachine>,
     base: Base<CharacterBody2D>,
 
-    #[init(val = 1.0)]
+    #[init(val = 1.8)]
     attack_animation_timer: f64,
 
     #[init(val = 3.5)]
@@ -184,7 +184,7 @@ impl TestEnemy {
     }
 
     fn reset_attack_animation_timer(&mut self) {
-        self.attack_animation_timer = 1.0;
+        self.attack_animation_timer = 1.8;
     }
 
     fn reset_attack_cooldown_timer(&mut self) {

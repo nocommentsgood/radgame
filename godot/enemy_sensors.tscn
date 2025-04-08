@@ -16,7 +16,6 @@ size = Vector2(20, 42)
 
 [node name="Hurtboxes" type="Hurtbox" parent="." groups=["enemy_parryable_attack"]]
 attack_damage = 5
-visible = false
 collision_layer = 32
 collision_mask = 4
 
