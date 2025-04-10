@@ -21,17 +21,17 @@ impl Default for CharacterStats {
         Self {
             health: 30,
             max_health: 40,
-            healing_amount: 5,
+            healing_amount: 20,
             energy: Default::default(),
             mana: Default::default(),
             attack_damage: 10,
-            running_speed: 90.0,
+            running_speed: 150.0,
             jumping_speed: 200.0,
-            falling_speed: 200.0,
-            dodging_speed: 150.0,
+            falling_speed: 250.0,
+            dodging_speed: 250.0,
             attacking_speed: 10.0,
-            parry_length: 0.7,
-            perfect_parry_length: 0.3,
+            parry_length: 0.3,
+            perfect_parry_length: 0.15,
         }
     }
 }
