@@ -1,9 +1,10 @@
-[gd_scene load_steps=9 format=3 uid="uid://csphx4r51adby"]
+[gd_scene load_steps=8 format=3 uid="uid://csphx4r51adby"]
 
 [ext_resource type="PackedScene" uid="uid://cgmacri0vrmtw" path="res://health_bar.tscn" id="1_d5x1h"]
 [ext_resource type="PackedScene" uid="uid://cypfxvpiapsp3" path="res://ground.tscn" id="2_ainao"]
 [ext_resource type="PackedScene" uid="uid://dmnvgp7j5vtfe" path="res://main_character.tscn" id="3_1gilh"]
 [ext_resource type="PackedScene" uid="uid://5fcrp4sc1aqy" path="res://platformer_main_character.tscn" id="3_u6kov"]
+[ext_resource type="PackedScene" uid="uid://bxmujepg5jgwa" path="res://platform.tscn" id="4_8mm7a"]
 
 [sub_resource type="Environment" id="Environment_2k8wa"]
 background_mode = 2
@@ -12,12 +13,6 @@ ambient_light_color = Color(0.910094, 0.850183, 0.435241, 1)
 ambient_light_energy = 2.52
 
 [sub_resource type="WorldBoundaryShape2D" id="WorldBoundaryShape2D_7qxfc"]
-
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_gyfs4"]
-size = Vector2(50, 8)
-
-[sub_resource type="PlaceholderTexture2D" id="PlaceholderTexture2D_d5x1h"]
-size = Vector2(50, 10)
 
 [node name="Node2D" type="Node2D"]
 
@@ -48,19 +43,17 @@ collision_mask = 0
 [node name="CollisionShape2D" type="CollisionShape2D" parent="WorldEnvironment/StaticBody2D"]
 shape = SubResource("WorldBoundaryShape2D_7qxfc")
 
-[node name="Platform" type="StaticBody2D" parent="WorldEnvironment"]
+[node name="Platform" parent="WorldEnvironment" instance=ExtResource("4_8mm7a")]
 position = Vector2(579, 178)
-collision_layer = 66
-collision_mask = 0
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="WorldEnvironment/Platform"]
-position = Vector2(0, 1)
-shape = SubResource("RectangleShape2D_gyfs4")
+[node name="Platform2" parent="WorldEnvironment" instance=ExtResource("4_8mm7a")]
+position = Vector2(406, 108)
 
-[node name="Sprite2D" type="Sprite2D" parent="WorldEnvironment/Platform"]
-position = Vector2(0, 0.999996)
-scale = Vector2(1, 0.800001)
-texture = SubResource("PlaceholderTexture2D_d5x1h")
+[node name="Platform3" parent="WorldEnvironment" instance=ExtResource("4_8mm7a")]
+position = Vector2(299, 164)
+
+[node name="Platform4" parent="WorldEnvironment" instance=ExtResource("4_8mm7a")]
+position = Vector2(269, -21)
 
 [node name="HealthBar" parent="." instance=ExtResource("1_d5x1h")]
 
