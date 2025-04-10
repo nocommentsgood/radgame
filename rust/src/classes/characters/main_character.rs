@@ -72,11 +72,13 @@ impl ICharacterBody2D for MainCharacter {
             .unwrap()
             .get_length();
 
-        let jumping_animation_length = self
-            .get_animation_player()
-            .get_animation("jumping_east")
-            .unwrap()
-            .get_length();
+        // let jumping_animation_length = self
+        //     .get_animation_player()
+        //     .get_animation("jumping_east")
+        //     .unwrap()
+        //     .get_length();
+
+        let jumping_animation_length = 0.3;
 
         let healing_animation_length = self
             .get_animation_player()
@@ -129,6 +131,8 @@ impl ICharacterBody2D for MainCharacter {
         let event = InputHandler::to_platformer_event(&Input::singleton());
         self.velocity = InputHandler::get_velocity(&input);
 
+        // dbg!(&self.state.state());
+
         match self.state.state() {
             character_state_machine::State::Idle {} => self.idle(),
             character_state_machine::State::Dodging {} => self.dodge(),
@@ -180,7 +184,12 @@ impl MainCharacter {
             self.base_mut().set_velocity(Vector2::ZERO);
             self.state.handle(&Event::GrabbedLedge);
             if let Some(obj) = self.get_ledge_sensor().get_collider() {
-                let collider = obj.cast::<CollisionObject2D>();
+                let collision = obj.cast::<CollisionObject2D>();
+                let shape_id = self.get_ledge_sensor().get_collider_shape();
+                let owner = collision.shape_find_owner(shape_id);
+                let shape = collision.shape_owner_get_owner(owner);
+                let s = shape.unwrap().cast::<godot::classes::CollisionShape2D>();
+                dbg!(&s.get_shape().unwrap().get_rect());
             }
         }
     }
@@ -305,7 +314,7 @@ impl MainCharacter {
 
     fn move_character(&mut self) {
         let target_velocity = self.velocity * self.stats.running_speed;
-        self.active_velocity = self.active_velocity.lerp(target_velocity, 0.2);
+        self.active_velocity = self.active_velocity.lerp(target_velocity, 0.5);
         let velocity = self.active_velocity;
 
         self.update_direction();
@@ -323,10 +332,10 @@ impl MainCharacter {
         let delta = self.base().get_physics_process_delta_time();
         self.velocity.y = Vector2::UP.y;
         let target_velocity = Vector2::new(
-            self.velocity.x * self.stats.running_speed,
+            self.velocity.x * self.stats.running_speed * 0.9,
             self.velocity.y * self.stats.jumping_speed,
         );
-        self.active_velocity = self.active_velocity.lerp(target_velocity, 0.2);
+        self.active_velocity = self.active_velocity.lerp(target_velocity, 0.9);
         let velocity = self.active_velocity;
 
         self.update_direction();
@@ -349,7 +358,7 @@ impl MainCharacter {
         self.velocity = Vector2::ZERO;
         let velocity = self.velocity;
 
-        self.update_direction();
+        // self.update_direction();
         self.update_animation();
         self.base_mut().set_velocity(velocity);
         self.timer_component.healing_animation_timer.value -= delta;
@@ -374,7 +383,7 @@ impl MainCharacter {
                 self.velocity.y * self.stats.falling_speed,
             );
 
-            self.active_velocity = self.active_velocity.lerp(target_velocity, 0.1);
+            self.active_velocity = self.active_velocity.lerp(target_velocity, 0.4);
             let velocity = self.active_velocity;
 
             self.update_direction();
