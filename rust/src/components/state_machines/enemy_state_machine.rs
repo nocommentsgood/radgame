@@ -5,7 +5,9 @@ use statig::{state_machine, Response};
 use crate::classes::characters::main_character::MainCharacter;
 
 #[derive(Default, Debug, Clone)]
-pub struct EnemyStateMachine;
+pub struct EnemyStateMachine {
+    just_chain_attacked: bool,
+}
 
 #[derive(Default, Debug)]
 pub enum EnemyEvent {
@@ -14,7 +16,6 @@ pub enum EnemyEvent {
     },
     LostPlayer,
     InAttackRange,
-    DamagedByPlayer,
     TimerElapsed,
     #[default]
     None,
@@ -27,6 +28,7 @@ impl std::fmt::Display for State {
             State::Idle {} => write!(f, "idle"),
             State::ChasePlayer { .. } => write!(f, "patrol"),
             State::Attack { .. } => write!(f, "attack"),
+            State::Attack2 { .. } => write!(f, "chain_attack"),
         }
     }
 }
@@ -51,18 +53,34 @@ impl EnemyStateMachine {
         }
     }
 
-    #[allow(unused_variables)]
     #[state(superstate = "aggresive")]
-    fn chase_player(event: &EnemyEvent, player: &Gd<MainCharacter>) -> Response<State> {
+    fn chase_player(&mut self, event: &EnemyEvent, player: &Gd<MainCharacter>) -> Response<State> {
         match event {
             EnemyEvent::LostPlayer => Response::Super,
-            EnemyEvent::InAttackRange => Response::Transition(State::attack(player.clone())),
+            EnemyEvent::InAttackRange => {
+                if self.just_chain_attacked {
+                    self.just_chain_attacked = false;
+                    Response::Transition(State::attack(player.clone()))
+                } else {
+                    self.just_chain_attacked = true;
+                    Response::Transition(State::attack_2(player.clone()))
+                }
+            }
             _ => Handled,
         }
     }
 
     #[state(superstate = "aggresive")]
     fn attack(event: &EnemyEvent, player: &Gd<MainCharacter>) -> Response<State> {
+        match event {
+            EnemyEvent::LostPlayer => Response::Super,
+            EnemyEvent::TimerElapsed => Response::Transition(State::chase_player(player.clone())),
+            _ => Handled,
+        }
+    }
+
+    #[state(superstate = "aggresive")]
+    fn attack_2(event: &EnemyEvent, player: &Gd<MainCharacter>) -> Response<State> {
         match event {
             EnemyEvent::LostPlayer => Response::Super,
             EnemyEvent::TimerElapsed => Response::Transition(State::chase_player(player.clone())),

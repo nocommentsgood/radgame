@@ -31,6 +31,9 @@ pub struct TestEnemy {
     #[init(val = 3.5)]
     attack_cooldown_timer: f64,
 
+    #[init(val = 2.7)]
+    chain_attack_timer: f64,
+
     #[var]
     #[init(val = 2.0)]
     idle_time: f64,
@@ -90,8 +93,8 @@ impl ICharacterBody2D for TestEnemy {
             enemy_state_machine::State::ChasePlayer { player } => self.chase_player(player.clone()),
             enemy_state_machine::State::Patrol {} => self.patrol(),
             enemy_state_machine::State::Attack { player } => self.attack(player.clone()),
+            enemy_state_machine::State::Attack2 { player } => self.chain_attack(player.clone()),
         }
-        self.update_animation();
         self.update_timers();
     }
 }
@@ -183,6 +186,10 @@ impl TestEnemy {
         velocity
     }
 
+    fn reset_chain_attack_timer(&mut self) {
+        self.chain_attack_timer = 2.7;
+    }
+
     fn reset_attack_animation_timer(&mut self) {
         self.attack_animation_timer = 1.8;
     }
@@ -205,9 +212,22 @@ impl TestEnemy {
         self.base_mut().set_velocity(Vector2::ZERO);
         self.velocity = Vector2::ZERO;
         self.attack_animation_timer -= self.delta;
+        self.update_animation();
 
         if self.attack_animation_timer <= 0.0 {
             self.reset_attack_animation_timer();
+            self.current_event = enemy_state_machine::EnemyEvent::TimerElapsed;
+        }
+    }
+
+    fn chain_attack(&mut self, _player: Gd<MainCharacter>) {
+        self.base_mut().set_velocity(Vector2::ZERO);
+        self.velocity = Vector2::ZERO;
+        self.chain_attack_timer -= self.delta;
+        self.update_animation();
+
+        if self.chain_attack_timer <= 0.0 {
+            self.reset_chain_attack_timer();
             self.current_event = enemy_state_machine::EnemyEvent::TimerElapsed;
         }
     }
@@ -218,6 +238,7 @@ impl TestEnemy {
         let velocity = self.get_velocity();
 
         self.direction = PlatformerDirection::from_platformer_velocity(&self.velocity);
+        self.update_animation();
         self.base_mut().set_velocity(velocity * speed);
         self.base_mut().move_and_slide();
         self.set_patrol_time(time - self.delta);
@@ -234,12 +255,12 @@ impl TestEnemy {
         let time = self.get_idle_time();
         self.direction = PlatformerDirection::from_platformer_velocity(&Vector2::ZERO);
         self.velocity = Vector2::ZERO;
+        self.update_animation();
         self.base_mut().set_velocity(Vector2::ZERO);
         self.set_idle_time(time - self.delta);
 
         if time <= 0.0 {
             self.reset_idle_time();
-
             self.set_velocity(self.furthest_patrol_marker_distance());
             self.current_event = enemy_state_machine::EnemyEvent::TimerElapsed;
         } else {
@@ -258,6 +279,7 @@ impl TestEnemy {
             .normalized_or_zero();
 
         self.direction = PlatformerDirection::from_platformer_velocity(&velocity);
+        self.update_animation();
         self.base_mut().set_velocity(velocity * speed);
         self.base_mut().move_and_slide();
 
