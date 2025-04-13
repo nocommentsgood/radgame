@@ -14,6 +14,8 @@ pub enum EnemyEvent {
     FoundPlayer {
         player: Gd<MainCharacter>,
     },
+    FailedFloorCheck,
+    OnFloor,
     LostPlayer,
     InAttackRange,
     TimerElapsed,
@@ -29,6 +31,7 @@ impl std::fmt::Display for State {
             State::ChasePlayer { .. } => write!(f, "patrol"),
             State::Attack { .. } => write!(f, "attack"),
             State::Attack2 { .. } => write!(f, "chain_attack"),
+            State::Falling { .. } => write!(f, "fall"),
         }
     }
 }
@@ -40,6 +43,7 @@ impl EnemyStateMachine {
         match event {
             EnemyEvent::TimerElapsed => Response::Transition(State::patrol()),
             EnemyEvent::FoundPlayer { player: _player } => Response::Super,
+            EnemyEvent::FailedFloorCheck => Response::Transition(State::falling()),
             _ => Response::Handled,
         }
     }
@@ -49,6 +53,7 @@ impl EnemyStateMachine {
         match event {
             EnemyEvent::TimerElapsed => Response::Transition(State::idle()),
             EnemyEvent::FoundPlayer { player: _player } => Response::Super,
+            EnemyEvent::FailedFloorCheck => Response::Transition(State::falling()),
             _ => Handled,
         }
     }
@@ -57,6 +62,7 @@ impl EnemyStateMachine {
     fn chase_player(&mut self, event: &EnemyEvent, player: &Gd<MainCharacter>) -> Response<State> {
         match event {
             EnemyEvent::LostPlayer => Response::Super,
+            EnemyEvent::FailedFloorCheck => Response::Transition(State::falling()),
             EnemyEvent::InAttackRange => {
                 if self.just_chain_attacked {
                     self.just_chain_attacked = false;
@@ -73,6 +79,7 @@ impl EnemyStateMachine {
     #[state(superstate = "aggresive")]
     fn attack(event: &EnemyEvent, player: &Gd<MainCharacter>) -> Response<State> {
         match event {
+            EnemyEvent::FailedFloorCheck => Response::Transition(State::falling()),
             EnemyEvent::LostPlayer => Response::Super,
             EnemyEvent::TimerElapsed => Response::Transition(State::chase_player(player.clone())),
             _ => Handled,
@@ -82,8 +89,17 @@ impl EnemyStateMachine {
     #[state(superstate = "aggresive")]
     fn attack_2(event: &EnemyEvent, player: &Gd<MainCharacter>) -> Response<State> {
         match event {
+            EnemyEvent::FailedFloorCheck => Response::Transition(State::falling()),
             EnemyEvent::LostPlayer => Response::Super,
             EnemyEvent::TimerElapsed => Response::Transition(State::chase_player(player.clone())),
+            _ => Handled,
+        }
+    }
+
+    #[state]
+    fn falling(event: &EnemyEvent) -> Response<State> {
+        match event {
+            EnemyEvent::OnFloor => Response::Transition(State::idle()),
             _ => Handled,
         }
     }

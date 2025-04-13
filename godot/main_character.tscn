@@ -908,11 +908,9 @@ libraries = {
 [node name="EnemySensors" parent="." instance=ExtResource("4_2q423")]
 
 [node name="LeftPatrolMarker" type="Marker2D" parent="."]
-top_level = true
 position = Vector2(-50, 0)
 gizmo_extents = 100.0
 
 [node name="RightPatrolMarker" type="Marker2D" parent="."]
-top_level = true
 position = Vector2(50, 0)
 gizmo_extents = 100.0

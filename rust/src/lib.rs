@@ -4,7 +4,7 @@ pub mod utils;
 mod classes {
     pub mod characters;
     pub mod components;
-    mod enemies;
+    pub mod enemies;
 }
 
 mod components {

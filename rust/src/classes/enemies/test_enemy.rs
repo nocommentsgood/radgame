@@ -72,6 +72,7 @@ impl ICharacterBody2D for TestEnemy {
 
     fn physics_process(&mut self, _delta: f64) {
         self.state.handle(&self.current_event);
+        self.check_floor();
 
         match self.state.state() {
             enemy_state_machine::State::Idle {} => self.idle(),
@@ -79,7 +80,9 @@ impl ICharacterBody2D for TestEnemy {
             enemy_state_machine::State::Patrol {} => self.patrol(),
             enemy_state_machine::State::Attack { player } => self.attack(player.clone()),
             enemy_state_machine::State::Attack2 { player } => self.chain_attack(player.clone()),
+            enemy_state_machine::State::Falling {} => self.fall(),
         }
+
         self.update_timers();
     }
 }
@@ -87,10 +90,17 @@ impl ICharacterBody2D for TestEnemy {
 #[godot_api]
 impl TestEnemy {
     #[signal]
-    fn test_enemy_died();
+    pub fn test_enemy_died();
 
     #[signal]
     fn can_attack_player();
+
+    fn check_floor(&mut self) {
+        if !self.base().is_on_floor() {
+            self.state
+                .handle(&enemy_state_machine::EnemyEvent::FailedFloorCheck);
+        }
+    }
 
     fn on_area_entered_hitbox(&mut self, area: Gd<Area2D>) {
         let damaging = DynGd::<Area2D, dyn Damaging>::from_godot(area);
@@ -281,6 +291,17 @@ impl TestEnemy {
         state.push('_');
 
         format!("{}{}", state, direciton)
+    }
+
+    fn fall(&mut self) {
+        self.velocity.y = Vector2::DOWN.y * self.agro_speed;
+        let velocity = self.velocity;
+        self.base_mut().set_velocity(velocity);
+        self.base_mut().move_and_slide();
+
+        if self.base().is_on_floor() {
+            self.state.handle(&enemy_state_machine::EnemyEvent::OnFloor);
+        }
     }
 
     fn update_animation(&mut self) {
