@@ -35,6 +35,9 @@ pub struct TestEnemy {
     #[init(val = 80.0)]
     agro_speed: real,
 
+    #[init(val = 40.0)]
+    attack_speed: real,
+
     #[var]
     speed: real,
 
@@ -184,6 +187,7 @@ impl TestEnemy {
     // Leaving this somewhat open ended in case more timers are added later
     fn update_timers(&mut self) {
         let delta = self.base().get_physics_process_delta_time();
+
         // Update attack cooldown timer
         let attack_cooldown = self.timers.attack_cooldown.clone();
         if attack_cooldown.value < attack_cooldown.initial_value() && attack_cooldown.value > 0.0 {
@@ -196,10 +200,12 @@ impl TestEnemy {
     fn attack(&mut self, _player: Gd<MainCharacter>) {
         let time = self.timers.attack_animation.value;
         let delta = self.base().get_physics_process_delta_time();
-        self.base_mut().set_velocity(Vector2::ZERO);
-        self.velocity = Vector2::ZERO;
+        let speed = self.attack_speed;
+        let velocity = self.velocity;
         self.timers.attack_animation.value -= delta;
         self.update_animation();
+        self.base_mut().set_velocity(velocity * speed);
+        self.base_mut().move_and_slide();
 
         if time <= 0.0 {
             self.timers.attack_animation.reset();
@@ -210,10 +216,12 @@ impl TestEnemy {
     fn chain_attack(&mut self, _player: Gd<MainCharacter>) {
         let time = self.timers.chain_attack.value;
         let delta = self.base().get_physics_process_delta_time();
-        self.base_mut().set_velocity(Vector2::ZERO);
-        self.velocity = Vector2::ZERO;
+        let velocity = self.velocity;
+        let speed = self.attack_speed;
         self.timers.chain_attack.value -= delta;
         self.update_animation();
+        self.base_mut().set_velocity(velocity * speed);
+        self.base_mut().move_and_slide();
 
         if time <= 0.0 {
             self.timers.chain_attack.reset();
@@ -227,7 +235,7 @@ impl TestEnemy {
         let velocity = self.get_velocity();
         let delta = self.base().get_physics_process_delta_time();
 
-        self.direction = PlatformerDirection::from_platformer_velocity(&self.velocity);
+        self.update_direction();
         self.update_animation();
         self.base_mut().set_velocity(velocity * speed);
         self.base_mut().move_and_slide();
@@ -244,8 +252,8 @@ impl TestEnemy {
     fn idle(&mut self) {
         let time = self.timers.idle.value;
         let delta = self.base().get_physics_process_delta_time();
-        self.direction = PlatformerDirection::from_platformer_velocity(&Vector2::ZERO);
-        self.velocity = Vector2::ZERO;
+        // self.velocity = Vector2::ZERO;
+        self.update_direction();
         self.update_animation();
         self.base_mut().set_velocity(Vector2::ZERO);
         self.timers.idle.value -= delta;
@@ -264,13 +272,17 @@ impl TestEnemy {
         let delta = self.base().get_physics_process_delta_time();
         let speed = self.agro_speed;
         let player_position = player.get_position();
-        let velocity = self
-            .base()
-            .get_position()
-            .direction_to(player_position)
-            .normalized_or_zero();
+        let velocity = Vector2::new(
+            self.base()
+                .get_position()
+                .direction_to(player_position)
+                .normalized_or_zero()
+                .x,
+            0.0,
+        );
 
-        self.direction = PlatformerDirection::from_platformer_velocity(&velocity);
+        self.velocity = velocity;
+        self.update_direction();
         self.update_animation();
         self.base_mut().set_velocity(velocity * speed);
         self.base_mut().move_and_slide();
@@ -307,6 +319,12 @@ impl TestEnemy {
     fn update_animation(&mut self) {
         let animation = self.get_current_animation();
         self.animation_player.play_ex().name(&animation).done();
+    }
+
+    fn update_direction(&mut self) {
+        if !self.velocity.x.is_zero_approx() {
+            self.direction = PlatformerDirection::from_platformer_velocity(&self.velocity);
+        }
     }
 }
 

@@ -17,6 +17,7 @@ use crate::{
     },
     traits::components::character_components::{
         character_resources::CharacterResources, damageable::Damageable, damaging::Damaging,
+        player::Player,
     },
 };
 
@@ -441,7 +442,7 @@ impl MainCharacter {
 
     fn update_direction(&mut self) {
         if !self.velocity.x.is_zero_approx() {
-            self.direction = PlatformerDirection::from_platformer_velocity(&self.velocity)
+            self.direction = PlatformerDirection::from_platformer_velocity(&self.velocity);
         }
     }
 }
@@ -498,3 +499,6 @@ impl Damaging for MainCharacter {
         self.stats.attack_damage
     }
 }
+
+#[godot_dyn]
+impl Player for MainCharacter {}

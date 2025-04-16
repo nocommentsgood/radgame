@@ -7,7 +7,7 @@ size = Vector2(20, 43)
 size = Vector2(34, 43)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_j0yqt"]
-size = Vector2(173, 20)
+size = Vector2(325, 132)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_0n8mu"]
 size = Vector2(20, 42)
@@ -32,7 +32,6 @@ disabled = true
 debug_color = Color(0.452949, 0.595386, 0, 0.42)
 
 [node name="AttackArea" type="Area2D" parent="."]
-visible = false
 collision_layer = 0
 collision_mask = 4
 
@@ -47,12 +46,11 @@ shape = SubResource("RectangleShape2D_l7ghs")
 debug_color = Color(0.808802, 0.15934, 0.920065, 0.42)
 
 [node name="AggroArea" type="Area2D" parent="."]
-visible = false
 collision_layer = 0
 collision_mask = 4
 
 [node name="AggroShape" type="CollisionShape2D" parent="AggroArea"]
-position = Vector2(3, 8)
+position = Vector2(0, 11)
 shape = SubResource("RectangleShape2D_j0yqt")
 debug_color = Color(0.998547, 0, 0.139145, 0.42)
 

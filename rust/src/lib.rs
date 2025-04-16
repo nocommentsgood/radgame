@@ -5,6 +5,7 @@ mod classes {
     pub mod characters;
     pub mod components;
     pub mod enemies;
+    pub mod scenes;
 }
 
 mod components {

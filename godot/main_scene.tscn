@@ -64,7 +64,7 @@ position = Vector2(629, -16)
 [node name="Platform9" parent="WorldEnvironment" instance=ExtResource("4_8mm7a")]
 position = Vector2(714, -61)
 
-[node name="EnemySpawner" type="EnemySpawner" parent="WorldEnvironment"]
+[node name="LevelManager" type="LevelManager" parent="WorldEnvironment"]
 
 [node name="HealthBar" parent="." instance=ExtResource("1_d5x1h")]
 
