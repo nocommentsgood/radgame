@@ -1,10 +1,11 @@
-[gd_scene load_steps=8 format=4 uid="uid://csphx4r51adby"]
+[gd_scene load_steps=9 format=4 uid="uid://csphx4r51adby"]
 
 [ext_resource type="PackedScene" uid="uid://cgmacri0vrmtw" path="res://health_bar.tscn" id="1_d5x1h"]
 [ext_resource type="PackedScene" uid="uid://cypfxvpiapsp3" path="res://ground.tscn" id="2_ainao"]
 [ext_resource type="PackedScene" uid="uid://dmnvgp7j5vtfe" path="res://main_character.tscn" id="3_1gilh"]
 [ext_resource type="PackedScene" uid="uid://5fcrp4sc1aqy" path="res://platformer_main_character.tscn" id="3_u6kov"]
 [ext_resource type="PackedScene" uid="uid://cd0op7qykfeac" path="res://platform.tscn" id="4_8mm7a"]
+[ext_resource type="PackedScene" uid="uid://bcae4wnfye0do" path="res://projectile_enemy.tscn" id="5_hq1ik"]
 
 [sub_resource type="Environment" id="Environment_2k8wa"]
 background_mode = 2
@@ -28,6 +29,9 @@ position = Vector2(215, 218)
 
 [node name="MainCharacter" parent="WorldEnvironment" instance=ExtResource("3_u6kov")]
 position = Vector2(465, 219)
+
+[node name="ProjectileEnemy" parent="WorldEnvironment" instance=ExtResource("5_hq1ik")]
+position = Vector2(461, -9)
 
 [node name="StaticBody2D" type="StaticBody2D" parent="WorldEnvironment"]
 position = Vector2(289, 252)

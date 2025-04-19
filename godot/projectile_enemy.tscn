@@ -1,0 +1,31 @@
+[gd_scene load_steps=4 format=3 uid="uid://bcae4wnfye0do"]
+
+[ext_resource type="Texture2D" uid="uid://bluq4jmeunkg7" path="res://assets/entities/samurai/IDLE.png" id="2_ws556"]
+
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_wloix"]
+height = 44.0
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_wkbwq"]
+size = Vector2(418.5, 270)
+
+[node name="ProjectileEnemy" type="ProjectileEnemy"]
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+position = Vector2(4, -11)
+texture = ExtResource("2_ws556")
+hframes = 9
+
+[node name="Hitbox" type="Area2D" parent="."]
+collision_layer = 8
+collision_mask = 4
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Hitbox"]
+shape = SubResource("CapsuleShape2D_wloix")
+
+[node name="AggroArea" type="Area2D" parent="."]
+collision_layer = 0
+collision_mask = 4
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="AggroArea"]
+shape = SubResource("RectangleShape2D_wkbwq")
+debug_color = Color(0.824637, 0.388991, 0.23875, 0.42)

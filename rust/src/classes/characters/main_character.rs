@@ -305,6 +305,7 @@ impl MainCharacter {
         let target_velocity = self.velocity * self.stats.running_speed;
         self.active_velocity = self.active_velocity.lerp(target_velocity, 0.5);
         let velocity = self.active_velocity;
+        godot_print!("player velocity: {}", velocity);
 
         self.update_direction();
         self.update_animation();

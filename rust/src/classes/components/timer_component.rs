@@ -5,7 +5,7 @@ pub struct Timer {
 }
 
 impl Timer {
-    fn new(value: f64) -> Self {
+    pub fn new(value: f64) -> Self {
         Timer {
             value,
             init_value: value,
