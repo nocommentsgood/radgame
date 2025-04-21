@@ -31,7 +31,7 @@ position = Vector2(215, 218)
 position = Vector2(465, 219)
 
 [node name="ProjectileEnemy" parent="WorldEnvironment" instance=ExtResource("5_hq1ik")]
-position = Vector2(461, -9)
+position = Vector2(902, 215)
 
 [node name="StaticBody2D" type="StaticBody2D" parent="WorldEnvironment"]
 position = Vector2(289, 252)

@@ -408,22 +408,23 @@ impl MainCharacter {
     }
 
     fn parried_attack(&mut self) -> bool {
-        if let State::Parry {} = self.state.state() {
-            if self.timers.perfect_parry_timer.value > 0.0 {
-                println!("\nPERFECT PARRY\n");
-                self.signals().parried_attack().emit();
-                self.timers.perfect_parry_timer.reset();
-                true
-            } else if self.timers.parry_timer.value > 0.0 {
-                println!("\nNORMAL PARRY\n");
-                self.signals().parried_attack().emit();
-                self.timers.parry_timer.reset();
-                true
-            } else {
-                false
+        match self.state.state() {
+            State::Parry {} => {
+                if self.timers.perfect_parry_timer.value > 0.0 {
+                    println!("\nPERFECT PARRY\n");
+                    self.signals().parried_attack().emit();
+                    self.timers.perfect_parry_timer.reset();
+                    true
+                } else if self.timers.parry_timer.value > 0.0 {
+                    println!("\nNORMAL PARRY\n");
+                    self.signals().parried_attack().emit();
+                    self.timers.parry_timer.reset();
+                    true
+                } else {
+                    false
+                }
             }
-        } else {
-            false
+            _ => false,
         }
     }
 

@@ -3,7 +3,7 @@ use godot::{classes::Area2D, prelude::*};
 
 use crate::classes::components::timer_component::Timer;
 
-const BULLET_SPEED: real = 10.0;
+const BULLET_SPEED: real = 500.0;
 
 #[derive(GodotClass)]
 #[class(init, base=Node2D)]
@@ -40,7 +40,7 @@ impl ProjectileEnemy {
         let mut bullet = self
             .projectile_scene
             .instantiate_as::<enemies::projectile::Projectile>();
-        bullet.set_global_position(position);
+        let target = position.direction_to(target).normalized_or_zero();
         bullet.bind_mut().velocity = target * BULLET_SPEED;
         self.base_mut()
             .call_deferred("add_child", &[bullet.to_variant()]);
@@ -48,11 +48,8 @@ impl ProjectileEnemy {
 
     fn on_aggro_area_entered(&mut self, area: Gd<Area2D>) {
         if area.is_in_group("player") {
-            println!("player in range");
-            godot_print!("player position: {}", area.get_position());
-            godot_print!("player global position: {}", area.get_global_position());
-            let target = area.get_global_position().normalized_or_zero();
-            godot_print!("target velocity is: {}", target);
+            let target = area.get_global_position();
+            godot_print!("target pos: {}", target);
             self.shoot_projectile(target);
         }
     }
