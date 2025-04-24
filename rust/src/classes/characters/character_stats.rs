@@ -1,12 +1,12 @@
 use godot::builtin::real;
 
 pub struct CharacterStats {
-    pub health: i32,
-    pub max_health: i32,
-    pub healing_amount: i32,
-    pub energy: i32,
-    pub mana: i32,
-    pub attack_damage: i32,
+    pub health: u32,
+    pub max_health: u32,
+    pub healing_amount: u32,
+    pub energy: u32,
+    pub mana: u32,
+    pub attack_damage: u32,
     pub running_speed: real,
     pub jumping_speed: real,
     pub falling_speed: real,
@@ -19,8 +19,8 @@ pub struct CharacterStats {
 impl Default for CharacterStats {
     fn default() -> Self {
         Self {
-            health: 30,
-            max_health: 40,
+            health: 50,
+            max_health: 50,
             healing_amount: 20,
             energy: Default::default(),
             mana: Default::default(),

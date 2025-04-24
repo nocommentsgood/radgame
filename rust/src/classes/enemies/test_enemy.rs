@@ -54,13 +54,13 @@ pub struct TestEnemy {
 
     #[var]
     #[init(val = 100)]
-    health: i32,
+    health: u32,
 
     #[var]
-    energy: i32,
+    energy: u32,
 
     #[var]
-    mana: i32,
+    mana: u32,
 
     #[var]
     velocity: Vector2,
@@ -330,42 +330,46 @@ impl TestEnemy {
 
 #[godot_dyn]
 impl CharacterResources for TestEnemy {
-    fn get_health(&self) -> i32 {
+    fn get_health(&self) -> u32 {
         self.health
     }
 
-    fn set_health(&mut self, amount: i32) {
+    fn set_health(&mut self, amount: u32) {
         self.health = amount;
     }
 
-    fn get_energy(&self) -> i32 {
+    fn get_energy(&self) -> u32 {
         self.energy
     }
 
-    fn set_energy(&mut self, amount: i32) {
+    fn set_energy(&mut self, amount: u32) {
         self.energy = amount;
     }
 
-    fn get_mana(&self) -> i32 {
+    fn get_mana(&self) -> u32 {
         self.mana
     }
 
-    fn set_mana(&mut self, amount: i32) {
+    fn set_mana(&mut self, amount: u32) {
         self.mana = amount;
     }
 }
 
 #[godot_dyn]
 impl Damageable for TestEnemy {
-    fn take_damage(&mut self, amount: i32) {
+    fn take_damage(&mut self, amount: u32) {
         let mut current_health = self.get_health();
 
         current_health = current_health.saturating_sub(amount);
         self.set_health(current_health);
 
         if self.is_dead() {
-            self.signals().test_enemy_died().emit();
-            self.base_mut().queue_free();
+            self.destroy();
         }
+    }
+
+    fn destroy(&mut self) {
+        self.signals().test_enemy_died().emit();
+        self.base_mut().queue_free();
     }
 }

@@ -8,6 +8,7 @@ use godot::{
 };
 
 use crate::{
+    classes::enemies::projectile::Projectile,
     components::{
         managers::input_hanlder::InputHandler,
         state_machines::{
@@ -19,6 +20,7 @@ use crate::{
         character_resources::CharacterResources, damageable::Damageable, damaging::Damaging,
         player::Player,
     },
+    utils::collision_layers,
 };
 
 use super::character_stats::CharacterStats;
@@ -127,6 +129,7 @@ impl ICharacterBody2D for MainCharacter {
         let event = InputHandler::to_platformer_event(&Input::singleton());
         self.velocity = InputHandler::get_velocity(&input);
 
+        // dbg!(&self.stats.health);
         // dbg!(&self.state.state());
 
         match self.state.state() {
@@ -148,7 +151,7 @@ impl ICharacterBody2D for MainCharacter {
 #[godot_api]
 impl MainCharacter {
     #[signal]
-    pub fn player_health_changed(previous_health: i32, new_health: i32, damage_amount: i32);
+    pub fn player_health_changed(previous_health: u32, new_health: u32, damage_amount: u32);
 
     #[signal]
     fn parried_attack();
@@ -166,11 +169,14 @@ impl MainCharacter {
     }
 
     fn on_area_entered_hitbox(&mut self, area: Gd<Area2D>) {
-        if !self.parried_attack() {
+        if !self.parried_attack(area.clone()) {
             let damaging = DynGd::<Area2D, dyn Damaging>::from_godot(area);
             let target = self.to_gd().upcast::<Node2D>();
             let _guard = self.base_mut();
             let damageable = DynGd::<Node2D, dyn Damageable>::from_godot(target);
+            dbg!(&damaging);
+            let amount = damaging.dyn_bind().damage_amount();
+            println!("amoutn: {amount}");
             damaging.dyn_bind().do_damage(damageable);
         }
     }
@@ -305,7 +311,6 @@ impl MainCharacter {
         let target_velocity = self.velocity * self.stats.running_speed;
         self.active_velocity = self.active_velocity.lerp(target_velocity, 0.5);
         let velocity = self.active_velocity;
-        godot_print!("player velocity: {}", velocity);
 
         self.update_direction();
         self.update_animation();
@@ -407,16 +412,30 @@ impl MainCharacter {
         }
     }
 
-    fn parried_attack(&mut self) -> bool {
+    fn parried_attack(&mut self, area: Gd<Area2D>) -> bool {
         match self.state.state() {
             State::Parry {} => {
                 if self.timers.perfect_parry_timer.value > 0.0 {
                     println!("\nPERFECT PARRY\n");
+                    if area.is_in_group("enemy_projectile") {
+                        if let Some(parent) = area.get_parent() {
+                            if let Ok(mut projectile) = parent.try_cast::<Projectile>() {
+                                projectile.bind_mut().on_parried();
+                            }
+                        }
+                    }
                     self.signals().parried_attack().emit();
                     self.timers.perfect_parry_timer.reset();
                     true
                 } else if self.timers.parry_timer.value > 0.0 {
                     println!("\nNORMAL PARRY\n");
+                    if area.is_in_group("enemy_projectile") {
+                        if let Some(parent) = area.get_parent() {
+                            if let Ok(mut projectile) = parent.try_cast::<Projectile>() {
+                                projectile.bind_mut().on_parried();
+                            }
+                        }
+                    }
                     self.signals().parried_attack().emit();
                     self.timers.parry_timer.reset();
                     true
@@ -451,36 +470,37 @@ impl MainCharacter {
 
 #[godot_dyn]
 impl CharacterResources for MainCharacter {
-    fn get_health(&self) -> i32 {
+    fn get_health(&self) -> u32 {
         self.stats.health
     }
 
-    fn set_health(&mut self, amount: i32) {
+    fn set_health(&mut self, amount: u32) {
         self.stats.health = amount;
     }
 
-    fn get_energy(&self) -> i32 {
+    fn get_energy(&self) -> u32 {
         self.stats.energy
     }
 
-    fn set_energy(&mut self, amount: i32) {
+    fn set_energy(&mut self, amount: u32) {
         self.stats.energy = amount;
     }
 
-    fn get_mana(&self) -> i32 {
+    fn get_mana(&self) -> u32 {
         self.stats.mana
     }
 
-    fn set_mana(&mut self, amount: i32) {
+    fn set_mana(&mut self, amount: u32) {
         self.stats.mana = amount;
     }
 }
 
 #[godot_dyn]
 impl Damageable for MainCharacter {
-    fn take_damage(&mut self, amount: i32) {
+    fn take_damage(&mut self, amount: u32) {
         let previous_health = self.get_health();
         let current_health = previous_health.saturating_sub(amount);
+        println!("previous health {previous_health} ... current health {current_health}");
 
         self.set_health(current_health);
         self.signals()
@@ -489,15 +509,19 @@ impl Damageable for MainCharacter {
 
         if self.is_dead() {
             println!("You died");
-            self.signals().player_died().emit();
-            self.base_mut().queue_free();
+            self.destroy();
         }
+    }
+
+    fn destroy(&mut self) {
+        self.signals().player_died().emit();
+        self.base_mut().queue_free();
     }
 }
 
 #[godot_dyn]
 impl Damaging for MainCharacter {
-    fn damage_amount(&self) -> i32 {
+    fn damage_amount(&self) -> u32 {
         self.stats.attack_damage
     }
 }
