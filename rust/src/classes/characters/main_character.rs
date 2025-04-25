@@ -20,7 +20,6 @@ use crate::{
         character_resources::CharacterResources, damageable::Damageable, damaging::Damaging,
         player::Player,
     },
-    utils::collision_layers,
 };
 
 use super::character_stats::CharacterStats;
