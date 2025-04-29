@@ -1,5 +1,8 @@
 use super::character_resources::CharacterResources;
 
+/// Implement on entities that are capable of being damaged. See also: trait Damaging.
+/// Implementor is responsible for providing their own 'destroy' function.
+/// This trait is 'dyn compatible' and can be used with godot_dyn macro.
 pub trait Damageable: CharacterResources {
     fn take_damage(&mut self, amount: u32) {
         let mut current_health = self.get_health();

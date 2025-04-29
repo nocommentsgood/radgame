@@ -1,4 +1,4 @@
-[gd_scene load_steps=5 format=3 uid="uid://bcae4wnfye0do"]
+[gd_scene load_steps=6 format=3 uid="uid://bcae4wnfye0do"]
 
 [ext_resource type="Texture2D" uid="uid://bluq4jmeunkg7" path="res://assets/entities/samurai/IDLE.png" id="2_ws556"]
 
@@ -9,7 +9,10 @@ height = 44.0
 radius = 334.181
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_wkbwq"]
-radius = 182.718
+radius = 263.549
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_wloix"]
+size = Vector2(950, 700)
 
 [node name="ProjectileEnemy" type="ProjectileEnemy"]
 
@@ -33,7 +36,18 @@ collision_mask = 4
 shape = SubResource("CircleShape2D_wloix")
 debug_color = Color(0.824637, 0.388991, 0.23875, 0.42)
 
-[node name="Area2D" type="Area2D" parent="."]
+[node name="AttackArea" type="Area2D" parent="."]
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Area2D"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="AttackArea"]
 shape = SubResource("CircleShape2D_wkbwq")
+
+[node name="MovementLimit" type="Area2D" parent="."]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="MovementLimit"]
+shape = SubResource("RectangleShape2D_wloix")
+
+[node name="EastMarker" type="Marker2D" parent="."]
+position = Vector2(481, -2)
+
+[node name="WestMarker" type="Marker2D" parent="."]
+position = Vector2(-437, -3)

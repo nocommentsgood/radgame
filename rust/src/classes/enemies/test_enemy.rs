@@ -252,7 +252,6 @@ impl TestEnemy {
     fn idle(&mut self) {
         let time = self.timers.idle.value;
         let delta = self.base().get_physics_process_delta_time();
-        // self.velocity = Vector2::ZERO;
         self.update_direction();
         self.update_animation();
         self.base_mut().set_velocity(Vector2::ZERO);

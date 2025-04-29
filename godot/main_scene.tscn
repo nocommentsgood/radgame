@@ -23,7 +23,6 @@ position = Vector2(215, 218)
 position = Vector2(465, 219)
 
 [node name="ProjectileEnemy" parent="TileMapLayer" instance=ExtResource("5_hq1ik")]
-position = Vector2(902, 215)
 
 [node name="Platform" parent="TileMapLayer" instance=ExtResource("4_8mm7a")]
 position = Vector2(125, 60)
