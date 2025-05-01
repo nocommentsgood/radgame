@@ -170,7 +170,7 @@ impl TestEnemy {
             .get_global_position()
             .distance_to(right.get_global_position());
 
-        let target = if left_distance <= right_distance {
+        let target = if left_distance >= right_distance {
             left
         } else {
             right

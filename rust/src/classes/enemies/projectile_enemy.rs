@@ -28,6 +28,8 @@ pub struct ProjectileEnemy {
     stats: CharacterStats,
     #[init(val = 80.0)]
     aggro_speed: real,
+    #[init(val = 40.0)]
+    patrol_speed: real,
     state: statig::blocking::StateMachine<EnemyStateMachine>,
     timers: EnemyTimers,
     base: Base<Node2D>,
@@ -94,6 +96,19 @@ impl ProjectileEnemy {
             .call_deferred("add_child", &[bullet.to_variant()]);
     }
 
+    fn on_attack_area_entered(&mut self, area: Gd<Area2D>) {
+        if area.is_in_group("player") {
+            if let Some(player) = area.get_parent() {
+                if let Ok(player) = player.try_cast::<MainCharacter>() {
+                    self.state
+                        .handle(&enemy_state_machine::EnemyEvent::FoundPlayer {
+                            player: player.clone(),
+                        })
+                }
+            }
+        }
+    }
+
     fn on_aggro_area_entered(&mut self, area: Gd<Area2D>) {
         if area.is_in_group("player") {
             if let Some(player) = area.get_parent() {
@@ -141,7 +156,7 @@ impl ProjectileEnemy {
 
     fn idle(&mut self) {
         let time = self.timers.idle.value;
-        let delta = self.base().get_physics_process_delta_time();
+        let delta = self.base().get_process_delta_time();
         // self.update_direction();
         // self.update_animation();
         self.velocity = Vector2::ZERO;
@@ -156,9 +171,10 @@ impl ProjectileEnemy {
     }
 
     fn attack(&mut self, player: Gd<MainCharacter>) {
+        println!("attacking");
         let target = player.get_position();
         let time = self.timers.attack_animation.value;
-        let delta = self.base().get_physics_process_delta_time();
+        let delta = self.base().get_process_delta_time();
         self.shoot_projectile(target);
         self.timers.attack_animation.value -= delta;
         // self.update_animation();
@@ -175,7 +191,7 @@ impl ProjectileEnemy {
     fn chain_attack(&mut self, player: Gd<MainCharacter>) {
         let target = player.get_position();
         let time = self.timers.chain_attack.value;
-        let delta = self.base().get_physics_process_delta_time();
+        let delta = self.base().get_process_delta_time();
         // let velocity = self.velocity;
         // let speed = self.attack_speed;
         self.timers.chain_attack.value -= delta;
@@ -191,26 +207,35 @@ impl ProjectileEnemy {
         }
     }
 
+    fn can_attack_player(&mut self) {
+        let delta = self.base().get_process_delta_time();
+        let attack_range = self.base().get_node_as::<Area2D>("AttackArea");
+        if attack_range.has_overlapping_bodies()
+            && self.timers.attack_cooldown.value == self.timers.attack_cooldown.initial_value()
+        {
+            println!("in attack range");
+            self.state
+                .handle(&enemy_state_machine::EnemyEvent::InAttackRange);
+            self.timers.attack_cooldown.value -= delta;
+        }
+    }
+
     fn chase_player(&mut self, player: Gd<MainCharacter>) {
         let attack_range = self.base().get_node_as::<Area2D>("AttackArea");
         let delta = self.base().get_process_delta_time();
-        let player_position = player.get_position();
-        let position = self.base().get_position();
-        let velocity = Vector2::new(
-            position
-                .direction_to(player_position)
-                .normalized_or_zero()
-                .x,
-            0.0,
-        ) * 80.0;
+        let player_position = player.get_global_position();
+        let position = self.base().get_global_position();
+        let velocity =
+            Vector2::new(position.direction_to(player_position).x, 0.0) * self.aggro_speed;
         self.velocity = velocity;
 
         self.base_mut()
-            .set_position(velocity + position * delta as f32);
+            .set_position(position + velocity * delta as f32);
 
         if attack_range.has_overlapping_bodies()
             && self.timers.attack_cooldown.value == self.timers.attack_cooldown.initial_value()
         {
+            println!("in attack range");
             self.state
                 .handle(&enemy_state_machine::EnemyEvent::InAttackRange);
             self.timers.attack_cooldown.value -= delta;
@@ -221,40 +246,35 @@ impl ProjectileEnemy {
         let right = &*self.east_marker;
         let left_distance = self
             .base()
-            .get_position()
+            .get_global_position()
             .distance_to(left.get_global_position());
         let right_distance = self
             .base()
-            .get_position()
+            .get_global_position()
             .distance_to(right.get_global_position());
+        println!("left_distance: {left_distance}");
+        println!("right_distance: {right_distance}");
 
-        let target = if left_distance <= right_distance {
+        let target = if left_distance >= right_distance {
             left
         } else {
             right
         };
-
         let velocity = self
             .base()
-            .get_position()
-            .direction_to(target.get_global_position())
-            .normalized_or_zero();
+            .get_global_position()
+            .direction_to(target.get_global_position());
         velocity
     }
 
     fn patrol(&mut self) {
         let time = self.timers.patrol.value;
         let delta = self.base().get_process_delta_time();
-        let velocity = self.velocity * 40.0;
-        let position = self.base().get_position();
-        println!("velocity: {}", velocity);
-        println!("position: {position}");
+        let position = self.base().get_global_position();
+        let velocity = self.velocity * self.patrol_speed * delta as f32;
 
-        self.base_mut()
-            .set_position(velocity + position * delta as f32);
-
+        self.base_mut().set_global_position(position + velocity);
         self.timers.patrol.value -= delta;
-
         if time <= 0.0 {
             self.timers.patrol.reset();
             self.state
