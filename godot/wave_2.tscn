@@ -1,0 +1,23 @@
+[gd_scene load_steps=2 format=3 uid="uid://dlsrre1qid8e5"]
+
+[ext_resource type="PackedScene" uid="uid://dmnvgp7j5vtfe" path="res://main_character.tscn" id="1_memej"]
+
+[node name="Wave2" type="Wave2"]
+
+[node name="TestEnemy" parent="." instance=ExtResource("1_memej")]
+position = Vector2(477, -37)
+
+[node name="TestEnemy2" parent="." instance=ExtResource("1_memej")]
+position = Vector2(605, -34)
+
+[node name="TestEnemy3" parent="." instance=ExtResource("1_memej")]
+position = Vector2(211, -32)
+
+[node name="TestEnemy4" parent="." instance=ExtResource("1_memej")]
+position = Vector2(349, -34)
+
+[node name="TestEnemy5" parent="." instance=ExtResource("1_memej")]
+position = Vector2(700, -35)
+
+[node name="TestEnemy6" parent="." instance=ExtResource("1_memej")]
+position = Vector2(105, -31)

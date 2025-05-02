@@ -1,0 +1,18 @@
+[gd_scene load_steps=3 format=3 uid="uid://bh5oo6002wig6"]
+
+[ext_resource type="Texture2D" uid="uid://q1a1jbjvcyhp" path="res://assets/bullet.webp" id="1_a85iw"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_qxf0c"]
+
+[node name="Node2D" type="Projectile"]
+
+[node name="Hurtbox" type="Hurtbox" parent="." groups=["enemy_projectile"]]
+attack_damage = 10
+collision_layer = 32
+collision_mask = 6
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Hurtbox"]
+shape = SubResource("CircleShape2D_qxf0c")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+texture = ExtResource("1_a85iw")

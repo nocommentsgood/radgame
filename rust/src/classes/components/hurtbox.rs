@@ -10,13 +10,13 @@ use crate::traits::components::character_components::damaging::Damaging;
 #[class(init, base=Area2D)]
 pub struct Hurtbox {
     #[export]
-    attack_damage: i32,
+    attack_damage: u32,
     base: Base<Area2D>,
 }
 
 #[godot_dyn]
 impl Damaging for Hurtbox {
-    fn damage_amount(&self) -> i32 {
+    fn damage_amount(&self) -> u32 {
         self.attack_damage
     }
 }

@@ -22,7 +22,7 @@ impl Timer {
 }
 
 #[derive(Default)]
-pub struct TimerComponent {
+pub struct PlayerTimers {
     pub attack_chain_timer: Timer,
     pub dodging_animation_timer: Timer,
     pub jumping_animation_timer: Timer,
@@ -34,7 +34,7 @@ pub struct TimerComponent {
     pub perfect_parry_timer: Timer,
 }
 
-impl TimerComponent {
+impl PlayerTimers {
     // stinky
     pub fn new(
         attack_chain_timer: f64,
@@ -47,7 +47,7 @@ impl TimerComponent {
         parry_timer: f64,
         perfect_parry_timer: f64,
     ) -> Self {
-        TimerComponent {
+        PlayerTimers {
             attack_chain_timer: Timer::new(attack_chain_timer),
             dodging_animation_timer: Timer::new(dodging_animation_timer),
             jumping_animation_timer: Timer::new(jumping_animation_timer),
@@ -57,6 +57,33 @@ impl TimerComponent {
             parry_animation_timer: Timer::new(parry_animation_timer),
             parry_timer: Timer::new(parry_timer),
             perfect_parry_timer: Timer::new(perfect_parry_timer),
+        }
+    }
+}
+
+#[derive(Default, Clone)]
+pub struct EnemyTimers {
+    pub attack_animation: Timer,
+    pub attack_cooldown: Timer,
+    pub chain_attack: Timer,
+    pub idle: Timer,
+    pub patrol: Timer,
+}
+
+impl EnemyTimers {
+    pub fn new(
+        attack_animation: f64,
+        attack_cooldown: f64,
+        chain_attack: f64,
+        idle: f64,
+        patrol: f64,
+    ) -> Self {
+        EnemyTimers {
+            attack_animation: Timer::new(attack_animation),
+            attack_cooldown: Timer::new(attack_cooldown),
+            chain_attack: Timer::new(chain_attack),
+            idle: Timer::new(idle),
+            patrol: Timer::new(patrol),
         }
     }
 }

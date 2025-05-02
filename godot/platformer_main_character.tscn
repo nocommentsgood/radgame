@@ -8,9 +8,8 @@
 [ext_resource type="Texture2D" uid="uid://ce0gi3hbut7lr" path="res://assets/entities/knight/Hanging.png" id="6_oh0hv"]
 [ext_resource type="Texture2D" uid="uid://dglamocvoyw16" path="res://assets/entities/knight/Health.png" id="8_18xsm"]
 
-[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_wynde"]
-radius = 8.0
-height = 50.0
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_wj53o"]
+size = Vector2(16, 46.5)
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_wj53o"]
 radius = 8.0
@@ -214,11 +213,35 @@ tracks/15/keys = {
 "update": 0,
 "values": [Vector2(20, 0)]
 }
+tracks/16/type = "value"
+tracks/16/imported = false
+tracks/16/enabled = true
+tracks/16/path = NodePath("LedgeSensor:position")
+tracks/16/interp = 1
+tracks/16/loop_wrap = true
+tracks/16/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Vector2(0, -23)]
+}
+tracks/17/type = "value"
+tracks/17/imported = false
+tracks/17/enabled = true
+tracks/17/path = NodePath("Sprite2D:skew")
+tracks/17/interp = 1
+tracks/17/loop_wrap = true
+tracks/17/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [0.0]
+}
 
 [sub_resource type="Animation" id="Animation_my085"]
 resource_name = "attack_1_east"
-length = 0.7
-step = 0.1
+length = 0.5
+step = 0.07
 tracks/0/type = "value"
 tracks/0/imported = false
 tracks/0/enabled = true
@@ -286,7 +309,7 @@ tracks/5/path = NodePath("Sprite2D:frame")
 tracks/5/interp = 1
 tracks/5/loop_wrap = true
 tracks/5/keys = {
-"times": PackedFloat32Array(0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6),
+"times": PackedFloat32Array(0, 0.07, 0.142857, 0.214286, 0.285714, 0.357143, 0.428571),
 "transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1),
 "update": 1,
 "values": [0, 1, 2, 3, 4, 5, 6]
@@ -1384,7 +1407,19 @@ tracks/12/keys = {
 "times": PackedFloat32Array(0),
 "transitions": PackedFloat32Array(1),
 "update": 0,
-"values": [Vector2(15, 0)]
+"values": [Vector2(10, 0)]
+}
+tracks/13/type = "value"
+tracks/13/imported = false
+tracks/13/enabled = true
+tracks/13/path = NodePath("LedgeSensor:position")
+tracks/13/interp = 1
+tracks/13/loop_wrap = true
+tracks/13/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Vector2(0, -23)]
 }
 
 [sub_resource type="Animation" id="Animation_n5uwk"]
@@ -1544,7 +1579,19 @@ tracks/12/keys = {
 "times": PackedFloat32Array(0),
 "transitions": PackedFloat32Array(1),
 "update": 0,
-"values": [Vector2(-15, 0)]
+"values": [Vector2(-10, 0)]
+}
+tracks/13/type = "value"
+tracks/13/imported = false
+tracks/13/enabled = true
+tracks/13/path = NodePath("LedgeSensor:position")
+tracks/13/interp = 1
+tracks/13/loop_wrap = true
+tracks/13/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Vector2(0, -23)]
 }
 
 [sub_resource type="Animation" id="Animation_wj53o"]
@@ -2202,6 +2249,30 @@ tracks/11/keys = {
 "update": 0,
 "values": [0.0]
 }
+tracks/12/type = "value"
+tracks/12/imported = false
+tracks/12/enabled = true
+tracks/12/path = NodePath("LedgeSensor:target_position")
+tracks/12/interp = 1
+tracks/12/loop_wrap = true
+tracks/12/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Vector2(10, 0)]
+}
+tracks/13/type = "value"
+tracks/13/imported = false
+tracks/13/enabled = true
+tracks/13/path = NodePath("LedgeSensor:position")
+tracks/13/interp = 1
+tracks/13/loop_wrap = true
+tracks/13/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Vector2(0, -23)]
+}
 
 [sub_resource type="Animation" id="Animation_n1qle"]
 resource_name = "jumping_west"
@@ -2351,11 +2422,35 @@ tracks/11/keys = {
 "update": 0,
 "values": [0.0]
 }
+tracks/12/type = "value"
+tracks/12/imported = false
+tracks/12/enabled = true
+tracks/12/path = NodePath("LedgeSensor:target_position")
+tracks/12/interp = 1
+tracks/12/loop_wrap = true
+tracks/12/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Vector2(-10, 0)]
+}
+tracks/13/type = "value"
+tracks/13/imported = false
+tracks/13/enabled = true
+tracks/13/path = NodePath("LedgeSensor:position")
+tracks/13/interp = 1
+tracks/13/loop_wrap = true
+tracks/13/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Vector2(0, -23)]
+}
 
 [sub_resource type="Animation" id="Animation_a3lah"]
 resource_name = "parry_east"
-length = 0.7
-step = 0.1
+length = 0.3
+step = 0.04
 tracks/0/type = "value"
 tracks/0/imported = false
 tracks/0/enabled = true
@@ -2423,10 +2518,10 @@ tracks/5/path = NodePath("Sprite2D:frame")
 tracks/5/interp = 1
 tracks/5/loop_wrap = true
 tracks/5/keys = {
-"times": PackedFloat32Array(0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6),
-"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1),
+"times": PackedFloat32Array(0, 0.04, 0.08, 0.12, 0.16, 0.2),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1),
 "update": 1,
-"values": [0, 1, 2, 3, 4, 5, 6]
+"values": [0, 1, 2, 5, 3, 6]
 }
 tracks/6/type = "value"
 tracks/6/imported = false
@@ -2774,6 +2869,18 @@ tracks/7/keys = {
 "update": 0,
 "values": [Vector2(26, 10)]
 }
+tracks/8/type = "value"
+tracks/8/imported = false
+tracks/8/enabled = false
+tracks/8/path = NodePath("Sprite2D:skew")
+tracks/8/interp = 1
+tracks/8/loop_wrap = true
+tracks/8/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [0.122173]
+}
 
 [sub_resource type="Animation" id="Animation_qaxu3"]
 resource_name = "run_west"
@@ -2874,6 +2981,18 @@ tracks/7/keys = {
 "transitions": PackedFloat32Array(1),
 "update": 0,
 "values": [Vector2(-26, 10)]
+}
+tracks/8/type = "value"
+tracks/8/imported = false
+tracks/8/enabled = false
+tracks/8/path = NodePath("Sprite2D:skew")
+tracks/8/interp = 1
+tracks/8/loop_wrap = true
+tracks/8/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [-0.122173]
 }
 
 [sub_resource type="Animation" id="Animation_lnf2a"]
@@ -2998,7 +3117,7 @@ slide_on_ceiling = false
 
 [node name="PhysicsShape" type="CollisionShape2D" parent="."]
 position = Vector2(0, 6)
-shape = SubResource("CapsuleShape2D_wynde")
+shape = SubResource("RectangleShape2D_wj53o")
 
 [node name="Hitbox" type="Area2D" parent="." groups=["player"]]
 collision_layer = 4
@@ -3026,8 +3145,6 @@ position_smoothing_enabled = true
 rotation_smoothing_enabled = true
 drag_horizontal_enabled = true
 drag_vertical_enabled = true
-drag_left_margin = 0.13
-drag_right_margin = 0.13
 editor_draw_limits = true
 editor_draw_drag_margin = true
 
@@ -3054,6 +3171,7 @@ libraries = {
 playback_auto_capture = false
 
 [node name="LedgeSensor" type="RayCast2D" parent="."]
+process_priority = -2
 position = Vector2(0, -23)
 target_position = Vector2(20, 0)
 collision_mask = 64
