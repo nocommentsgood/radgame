@@ -16,8 +16,6 @@ use godot::{
 
 use crate::classes::components::timer_component::Timer;
 
-use super::patrol_component::PatrolComponent;
-
 const BULLET_SPEED: real = 500.0;
 
 #[derive(GodotClass)]
@@ -53,13 +51,10 @@ impl INode2D for ProjectileEnemy {
         self.timers = EnemyTimers::new(1.8, 2.0, 1.0, 2.0, 2.0);
         self.stats.health = 20;
         self.connect_signals();
-        let spawn_position = self.base().get_global_position();
         self.shoot_cooldown = Timer::new(2.0);
     }
 
     fn process(&mut self, _delta: f64) {
-        // dbg!(&self.state.state());
-        // dbg!(&self.velocity);
         match self.state.state() {
             enemy_state_machine::State::Idle {} => self.idle(),
             enemy_state_machine::State::Attack2 { player } => {
@@ -72,6 +67,7 @@ impl INode2D for ProjectileEnemy {
                 self.attack(player.clone());
             }
         }
+        self.update_timers();
     }
 }
 
@@ -96,19 +92,6 @@ impl ProjectileEnemy {
             .call_deferred("add_child", &[bullet.to_variant()]);
     }
 
-    fn on_attack_area_entered(&mut self, area: Gd<Area2D>) {
-        if area.is_in_group("player") {
-            if let Some(player) = area.get_parent() {
-                if let Ok(player) = player.try_cast::<MainCharacter>() {
-                    self.state
-                        .handle(&enemy_state_machine::EnemyEvent::FoundPlayer {
-                            player: player.clone(),
-                        })
-                }
-            }
-        }
-    }
-
     fn on_aggro_area_entered(&mut self, area: Gd<Area2D>) {
         if area.is_in_group("player") {
             if let Some(player) = area.get_parent() {
@@ -129,36 +112,9 @@ impl ProjectileEnemy {
         }
     }
 
-    fn connect_signals(&mut self) {
-        // Connect player enters aggro area
-        let mut aggro = self.base().get_node_as::<Area2D>("AggroArea");
-        let mut this = self.to_gd();
-        aggro
-            .signals()
-            .area_entered()
-            .connect(move |area| this.bind_mut().on_aggro_area_entered(area));
-
-        // Connect player exits aggro area
-        let mut this = self.to_gd();
-        aggro
-            .signals()
-            .area_exited()
-            .connect(move |area| this.bind_mut().on_aggro_area_exited(area));
-
-        // Connect hitbox
-        let mut this = self.to_gd();
-        let mut hitbox = self.base().get_node_as::<Area2D>("Hitbox");
-        hitbox
-            .signals()
-            .area_entered()
-            .connect(move |area| this.bind_mut().on_area_entered_hitbox(area));
-    }
-
     fn idle(&mut self) {
         let time = self.timers.idle.value;
         let delta = self.base().get_process_delta_time();
-        // self.update_direction();
-        // self.update_animation();
         self.velocity = Vector2::ZERO;
         self.timers.idle.value -= delta;
 
@@ -171,15 +127,16 @@ impl ProjectileEnemy {
     }
 
     fn attack(&mut self, player: Gd<MainCharacter>) {
-        println!("attacking");
-        let target = player.get_position();
+        let target = player.get_global_position();
         let time = self.timers.attack_animation.value;
         let delta = self.base().get_process_delta_time();
-        self.shoot_projectile(target);
+        let attack_cooldown = self.timers.attack_cooldown.clone();
+        if attack_cooldown.value == attack_cooldown.initial_value() {
+            self.shoot_projectile(target);
+            self.timers.attack_cooldown.value -= delta;
+        }
+        self.timers.attack_cooldown.value -= delta;
         self.timers.attack_animation.value -= delta;
-        // self.update_animation();
-        // self.base_mut().set_velocity(velocity * speed);
-        // self.base_mut().move_and_slide();
 
         if time <= 0.0 {
             self.timers.attack_animation.reset();
@@ -192,31 +149,12 @@ impl ProjectileEnemy {
         let target = player.get_position();
         let time = self.timers.chain_attack.value;
         let delta = self.base().get_process_delta_time();
-        // let velocity = self.velocity;
-        // let speed = self.attack_speed;
         self.timers.chain_attack.value -= delta;
-        self.shoot_projectile(target);
-        // self.update_animation();
-        // self.base_mut().set_velocity(velocity * speed);
-        // self.base_mut().move_and_slide();
 
         if time <= 0.0 {
             self.timers.chain_attack.reset();
             self.state
                 .handle(&enemy_state_machine::EnemyEvent::TimerElapsed);
-        }
-    }
-
-    fn can_attack_player(&mut self) {
-        let delta = self.base().get_process_delta_time();
-        let attack_range = self.base().get_node_as::<Area2D>("AttackArea");
-        if attack_range.has_overlapping_bodies()
-            && self.timers.attack_cooldown.value == self.timers.attack_cooldown.initial_value()
-        {
-            println!("in attack range");
-            self.state
-                .handle(&enemy_state_machine::EnemyEvent::InAttackRange);
-            self.timers.attack_cooldown.value -= delta;
         }
     }
 
@@ -235,12 +173,23 @@ impl ProjectileEnemy {
         if attack_range.has_overlapping_bodies()
             && self.timers.attack_cooldown.value == self.timers.attack_cooldown.initial_value()
         {
-            println!("in attack range");
             self.state
                 .handle(&enemy_state_machine::EnemyEvent::InAttackRange);
-            self.timers.attack_cooldown.value -= delta;
         }
     }
+
+    fn update_timers(&mut self) {
+        let delta = self.base().get_process_delta_time();
+
+        // Update attack cooldown timer
+        let attack_cooldown = self.timers.attack_cooldown.clone();
+        if attack_cooldown.value < attack_cooldown.initial_value() && attack_cooldown.value > 0.0 {
+            self.timers.attack_cooldown.value -= delta;
+        } else if attack_cooldown.value <= 0.0 {
+            self.timers.attack_cooldown.reset();
+        }
+    }
+
     fn furthest_patrol_marker_distance(&self) -> Vector2 {
         let left = &*self.west_marker;
         let right = &*self.east_marker;
@@ -252,8 +201,6 @@ impl ProjectileEnemy {
             .base()
             .get_global_position()
             .distance_to(right.get_global_position());
-        println!("left_distance: {left_distance}");
-        println!("right_distance: {right_distance}");
 
         let target = if left_distance >= right_distance {
             left
@@ -280,6 +227,31 @@ impl ProjectileEnemy {
             self.state
                 .handle(&enemy_state_machine::EnemyEvent::TimerElapsed);
         }
+    }
+
+    fn connect_signals(&mut self) {
+        // Connect player enters aggro area
+        let mut aggro = self.base().get_node_as::<Area2D>("AggroArea");
+        let mut this = self.to_gd();
+        aggro
+            .signals()
+            .area_entered()
+            .connect(move |area| this.bind_mut().on_aggro_area_entered(area));
+
+        // Connect player exits aggro area
+        let mut this = self.to_gd();
+        aggro
+            .signals()
+            .area_exited()
+            .connect(move |area| this.bind_mut().on_aggro_area_exited(area));
+
+        // Connect hitbox
+        let mut this = self.to_gd();
+        let mut hitbox = self.base().get_node_as::<Area2D>("Hitbox");
+        hitbox
+            .signals()
+            .area_entered()
+            .connect(move |area| this.bind_mut().on_area_entered_hitbox(area));
     }
 }
 
