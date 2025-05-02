@@ -128,9 +128,6 @@ impl ICharacterBody2D for MainCharacter {
         let event = InputHandler::to_platformer_event(&Input::singleton());
         self.velocity = InputHandler::get_velocity(&input);
 
-        // dbg!(&self.stats.health);
-        // dbg!(&self.state.state());
-
         match self.state.state() {
             character_state_machine::State::Idle {} => self.idle(),
             character_state_machine::State::Dodging {} => self.dodge(),
@@ -173,9 +170,6 @@ impl MainCharacter {
             let target = self.to_gd().upcast::<Node2D>();
             let _guard = self.base_mut();
             let damageable = DynGd::<Node2D, dyn Damageable>::from_godot(target);
-            dbg!(&damaging);
-            let amount = damaging.dyn_bind().damage_amount();
-            println!("amoutn: {amount}");
             damaging.dyn_bind().do_damage(damageable);
         }
     }
@@ -326,7 +320,7 @@ impl MainCharacter {
         let delta = self.base().get_physics_process_delta_time();
         self.velocity.y = Vector2::UP.y;
         let target_velocity = Vector2::new(
-            self.velocity.x * self.stats.running_speed * 0.9,
+            self.velocity.x * self.stats.running_speed,
             self.velocity.y * self.stats.jumping_speed,
         );
         self.active_velocity = self.active_velocity.lerp(target_velocity, 0.9);
@@ -352,7 +346,6 @@ impl MainCharacter {
         self.velocity = Vector2::ZERO;
         let velocity = self.velocity;
 
-        // self.update_direction();
         self.update_animation();
         self.base_mut().set_velocity(velocity);
         self.timers.healing_animation_timer.value -= delta;

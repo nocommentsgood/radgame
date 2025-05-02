@@ -26,11 +26,6 @@ impl INode for LevelManager {
 
 impl LevelManager {
     fn connect_to_signals(&mut self) {
-        // let mut enemy = self
-        //     .base()
-        //     .get_node_as::<crate::classes::enemies::test_enemy::TestEnemy>(
-        //         "/root/Node2D/WorldEnvironment/TestEnemy",
-        //     );
         let mut enemy = self
             .base()
             .get_node_as::<crate::classes::enemies::test_enemy::TestEnemy>(

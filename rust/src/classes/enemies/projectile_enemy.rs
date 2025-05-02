@@ -146,7 +146,6 @@ impl ProjectileEnemy {
     }
 
     fn chain_attack(&mut self, player: Gd<MainCharacter>) {
-        let target = player.get_position();
         let time = self.timers.chain_attack.value;
         let delta = self.base().get_process_delta_time();
         self.timers.chain_attack.value -= delta;
