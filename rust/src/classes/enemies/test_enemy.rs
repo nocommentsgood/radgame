@@ -14,6 +14,7 @@ use crate::{
     },
     traits::components::character_components::{
         character_resources::CharacterResources, damageable::Damageable, damaging::Damaging,
+        has_hitbox::HasEnemyHitbox,
     },
     utils::*,
 };
@@ -105,14 +106,6 @@ impl TestEnemy {
         }
     }
 
-    fn on_area_entered_hitbox(&mut self, area: Gd<Area2D>) {
-        let damaging = DynGd::<Area2D, dyn Damaging>::from_godot(area);
-        let target = self.to_gd().upcast::<Node2D>();
-        let _guard = self.base_mut();
-        let damageable = DynGd::<Node2D, dyn Damageable>::from_godot(target);
-        damaging.dyn_bind().do_damage(damageable);
-    }
-
     fn on_aggro_area_entered(&mut self, area: Gd<Area2D>) {
         if area.is_in_group("player") {
             if let Some(player) = area.get_parent() {
@@ -134,14 +127,8 @@ impl TestEnemy {
     fn connect_signals(&mut self) {
         let player_sensors = self.base().get_node_as::<Node2D>(constants::ENEMY_SENSORS);
         let mut aggro_area = player_sensors.get_node_as::<Area2D>("AggroArea");
-        let mut hitbox = player_sensors.get_node_as::<Area2D>("Hitbox");
 
-        // connect hitbox to entering areas
-        let mut this = self.to_gd();
-        hitbox
-            .signals()
-            .area_entered()
-            .connect(move |area| this.bind_mut().on_area_entered_hitbox(area));
+        self.connect_hitbox_signal();
 
         // connect to player enters aggro range
         let mut this = self.to_gd();
@@ -353,6 +340,8 @@ impl CharacterResources for TestEnemy {
         self.mana = amount;
     }
 }
+
+impl crate::traits::components::character_components::has_hitbox::HasEnemyHitbox for TestEnemy {}
 
 #[godot_dyn]
 impl Damageable for TestEnemy {

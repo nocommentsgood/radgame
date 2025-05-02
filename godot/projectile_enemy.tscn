@@ -1,18 +1,16 @@
 [gd_scene load_steps=6 format=3 uid="uid://bcae4wnfye0do"]
 
+[ext_resource type="PackedScene" uid="uid://ktv3myqxd2dt" path="res://enemy_sensors.tscn" id="2_wkbwq"]
 [ext_resource type="Texture2D" uid="uid://bluq4jmeunkg7" path="res://assets/entities/samurai/IDLE.png" id="2_ws556"]
 
-[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_wloix"]
+[sub_resource type="CircleShape2D" id="CircleShape2D_ws556"]
+radius = 263.0
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_nthab"]
+radius = 334.0
+
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_sk66u"]
 height = 44.0
-
-[sub_resource type="CircleShape2D" id="CircleShape2D_wloix"]
-radius = 334.181
-
-[sub_resource type="CircleShape2D" id="CircleShape2D_wkbwq"]
-radius = 263.549
-
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_wloix"]
-size = Vector2(950, 700)
 
 [node name="ProjectileEnemy" type="ProjectileEnemy"]
 
@@ -21,33 +19,6 @@ position = Vector2(4, -11)
 texture = ExtResource("2_ws556")
 hframes = 9
 
-[node name="Hitbox" type="Area2D" parent="."]
-collision_layer = 8
-collision_mask = 16
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Hitbox"]
-shape = SubResource("CapsuleShape2D_wloix")
-
-[node name="AggroArea" type="Area2D" parent="."]
-collision_layer = 0
-collision_mask = 4
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="AggroArea"]
-shape = SubResource("CircleShape2D_wloix")
-debug_color = Color(0.824637, 0.388991, 0.23875, 0.42)
-
-[node name="AttackArea" type="Area2D" parent="."]
-collision_layer = 0
-collision_mask = 4
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="AttackArea"]
-shape = SubResource("CircleShape2D_wkbwq")
-
-[node name="MovementLimit" type="Area2D" parent="."]
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="MovementLimit"]
-shape = SubResource("RectangleShape2D_wloix")
-
 [node name="EastMarker" type="Marker2D" parent="."]
 top_level = true
 position = Vector2(138, -3)
@@ -55,3 +26,23 @@ position = Vector2(138, -3)
 [node name="WestMarker" type="Marker2D" parent="."]
 top_level = true
 position = Vector2(-161, -3)
+
+[node name="EnemySensors" parent="." instance=ExtResource("2_wkbwq")]
+
+[node name="Hurtboxes" parent="EnemySensors" index="0"]
+visible = false
+
+[node name="AttackShapeEast" parent="EnemySensors/AttackArea" index="0"]
+position = Vector2(0, 0)
+shape = SubResource("CircleShape2D_ws556")
+
+[node name="AttackShapeWest" parent="EnemySensors/AttackArea" index="1"]
+disabled = true
+
+[node name="AggroShape" parent="EnemySensors/AggroArea" index="0"]
+shape = SubResource("CircleShape2D_nthab")
+
+[node name="CollisionShape2D" parent="EnemySensors/Hitbox" index="0"]
+shape = SubResource("CapsuleShape2D_sk66u")
+
+[editable path="EnemySensors"]
