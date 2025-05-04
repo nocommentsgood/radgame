@@ -6,13 +6,16 @@ use crate::{
     },
     components::state_machines::enemy_state_machine::{self, *},
     traits::components::character_components::{
-        character_resources::CharacterResources, damageable::Damageable, damaging::Damaging,
+        self, character_resources::CharacterResources, damageable::Damageable, damaging::Damaging,
+        *,
     },
 };
 use godot::{
     classes::{Area2D, Marker2D},
     prelude::*,
 };
+use has_aggro::HasAggroArea;
+use has_hitbox::HasEnemyHitbox;
 
 use crate::classes::components::timer_component::Timer;
 
@@ -40,17 +43,15 @@ pub struct ProjectileEnemy {
 
     #[init(load = "res://projectile.tscn")]
     projectile_scene: OnReady<Gd<PackedScene>>,
-
-    #[init(node = "MovementLimit")]
-    movement_limit_area: OnReady<Gd<Area2D>>,
 }
 
 #[godot_api]
 impl INode2D for ProjectileEnemy {
     fn ready(&mut self) {
+        self.connect_aggro_area_signal();
+        self.connect_hitbox_signal();
         self.timers = EnemyTimers::new(1.8, 2.0, 1.0, 2.0, 2.0);
         self.stats.health = 20;
-        self.connect_signals();
         self.shoot_cooldown = Timer::new(2.0);
     }
 
@@ -73,14 +74,6 @@ impl INode2D for ProjectileEnemy {
 
 #[godot_api]
 impl ProjectileEnemy {
-    fn on_area_entered_hitbox(&mut self, area: Gd<Area2D>) {
-        let damaging = DynGd::<Area2D, dyn Damaging>::from_godot(area);
-        let self_gd = self.to_gd().upcast::<Node2D>();
-        let _guard = self.base_mut();
-        let damageable = DynGd::<Node2D, dyn Damageable>::from_godot(self_gd);
-        damaging.dyn_bind().do_damage(damageable);
-    }
-
     fn shoot_projectile(&mut self, target: Vector2) {
         let position = self.base().get_global_position();
         let mut bullet = self
@@ -90,26 +83,6 @@ impl ProjectileEnemy {
         bullet.bind_mut().velocity = target * BULLET_SPEED;
         self.base_mut()
             .call_deferred("add_child", &[bullet.to_variant()]);
-    }
-
-    fn on_aggro_area_entered(&mut self, area: Gd<Area2D>) {
-        if area.is_in_group("player") {
-            if let Some(player) = area.get_parent() {
-                if let Ok(player) = player.try_cast::<MainCharacter>() {
-                    self.state
-                        .handle(&enemy_state_machine::EnemyEvent::FoundPlayer {
-                            player: player.clone(),
-                        })
-                }
-            }
-        }
-    }
-
-    fn on_aggro_area_exited(&mut self, area: Gd<Area2D>) {
-        if area.is_in_group("player") {
-            self.state
-                .handle(&enemy_state_machine::EnemyEvent::LostPlayer);
-        }
     }
 
     fn idle(&mut self) {
@@ -158,7 +131,7 @@ impl ProjectileEnemy {
     }
 
     fn chase_player(&mut self, player: Gd<MainCharacter>) {
-        let attack_range = self.base().get_node_as::<Area2D>("AttackArea");
+        let attack_range = self.base().get_node_as::<Area2D>("EnemySensors/AttackArea");
         let delta = self.base().get_process_delta_time();
         let player_position = player.get_global_position();
         let position = self.base().get_global_position();
@@ -227,31 +200,6 @@ impl ProjectileEnemy {
                 .handle(&enemy_state_machine::EnemyEvent::TimerElapsed);
         }
     }
-
-    fn connect_signals(&mut self) {
-        // Connect player enters aggro area
-        let mut aggro = self.base().get_node_as::<Area2D>("AggroArea");
-        let mut this = self.to_gd();
-        aggro
-            .signals()
-            .area_entered()
-            .connect(move |area| this.bind_mut().on_aggro_area_entered(area));
-
-        // Connect player exits aggro area
-        let mut this = self.to_gd();
-        aggro
-            .signals()
-            .area_exited()
-            .connect(move |area| this.bind_mut().on_aggro_area_exited(area));
-
-        // Connect hitbox
-        let mut this = self.to_gd();
-        let mut hitbox = self.base().get_node_as::<Area2D>("Hitbox");
-        hitbox
-            .signals()
-            .area_entered()
-            .connect(move |area| this.bind_mut().on_area_entered_hitbox(area));
-    }
 }
 
 #[godot_dyn]
@@ -287,3 +235,17 @@ impl Damageable for ProjectileEnemy {
         self.base_mut().queue_free();
     }
 }
+
+impl character_components::has_state::HasState for ProjectileEnemy {
+    fn get_mut_sm(&mut self) -> &mut statig::prelude::StateMachine<EnemyStateMachine> {
+        &mut self.state
+    }
+
+    fn get_sm(&self) -> &statig::prelude::StateMachine<EnemyStateMachine> {
+        &self.state
+    }
+}
+
+impl character_components::has_aggro::HasAggroArea for ProjectileEnemy {}
+
+impl character_components::has_hitbox::HasEnemyHitbox for ProjectileEnemy {}
