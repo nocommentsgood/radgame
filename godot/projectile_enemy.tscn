@@ -19,14 +19,6 @@ position = Vector2(4, -11)
 texture = ExtResource("2_ws556")
 hframes = 9
 
-[node name="EastMarker" type="Marker2D" parent="."]
-top_level = true
-position = Vector2(138, -3)
-
-[node name="WestMarker" type="Marker2D" parent="."]
-top_level = true
-position = Vector2(-161, -3)
-
 [node name="EnemySensors" parent="." instance=ExtResource("2_wkbwq")]
 
 [node name="Hurtboxes" parent="EnemySensors" index="0"]
