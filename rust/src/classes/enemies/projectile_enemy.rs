@@ -6,18 +6,16 @@ use crate::{
     },
     components::state_machines::enemy_state_machine::{self, *},
     traits::components::character_components::{
-        self, character_resources::CharacterResources, damageable::Damageable, damaging::Damaging,
-        *,
+        self, character_resources::CharacterResources, damageable::Damageable, *,
     },
 };
-use godot::{
-    classes::{Area2D, Marker2D},
-    prelude::*,
-};
+use godot::{classes::Area2D, prelude::*};
 use has_aggro::HasAggroArea;
 use has_hitbox::HasEnemyHitbox;
 
 use crate::classes::components::timer_component::Timer;
+
+use super::patrol_component::PatrolComponent;
 
 const BULLET_SPEED: real = 500.0;
 
@@ -26,21 +24,15 @@ const BULLET_SPEED: real = 500.0;
 pub struct ProjectileEnemy {
     velocity: Vector2,
     shoot_cooldown: Timer,
+    patrol_comp: PatrolComponent,
     stats: CharacterStats,
+    state: statig::blocking::StateMachine<EnemyStateMachine>,
+    timers: EnemyTimers,
+    base: Base<Node2D>,
     #[init(val = 80.0)]
     aggro_speed: real,
     #[init(val = 40.0)]
     patrol_speed: real,
-    state: statig::blocking::StateMachine<EnemyStateMachine>,
-    timers: EnemyTimers,
-    base: Base<Node2D>,
-
-    #[init(node = "EastMarker")]
-    east_marker: OnReady<Gd<Marker2D>>,
-
-    #[init(node = "WestMarker")]
-    west_marker: OnReady<Gd<Marker2D>>,
-
     #[init(load = "res://projectile.tscn")]
     projectile_scene: OnReady<Gd<PackedScene>>,
 }
@@ -48,6 +40,7 @@ pub struct ProjectileEnemy {
 #[godot_api]
 impl INode2D for ProjectileEnemy {
     fn ready(&mut self) {
+        self.patrol_comp = PatrolComponent::new(138.0, 0.0, -138.0, 0.0);
         self.connect_aggro_area_signal();
         self.connect_hitbox_signal();
         self.timers = EnemyTimers::new(1.8, 2.0, 1.0, 2.0, 2.0);
@@ -93,7 +86,9 @@ impl ProjectileEnemy {
 
         if time <= 0.0 {
             self.timers.idle.reset();
-            self.velocity = self.furthest_patrol_marker_distance();
+            self.velocity = self
+                .patrol_comp
+                .get_furthest_distance(self.base().get_global_position());
             self.state
                 .handle(&enemy_state_machine::EnemyEvent::TimerElapsed)
         }
@@ -118,7 +113,7 @@ impl ProjectileEnemy {
         }
     }
 
-    fn chain_attack(&mut self, player: Gd<MainCharacter>) {
+    fn chain_attack(&mut self, _player: Gd<MainCharacter>) {
         let time = self.timers.chain_attack.value;
         let delta = self.base().get_process_delta_time();
         self.timers.chain_attack.value -= delta;
@@ -160,30 +155,6 @@ impl ProjectileEnemy {
         } else if attack_cooldown.value <= 0.0 {
             self.timers.attack_cooldown.reset();
         }
-    }
-
-    fn furthest_patrol_marker_distance(&self) -> Vector2 {
-        let left = &*self.west_marker;
-        let right = &*self.east_marker;
-        let left_distance = self
-            .base()
-            .get_global_position()
-            .distance_to(left.get_global_position());
-        let right_distance = self
-            .base()
-            .get_global_position()
-            .distance_to(right.get_global_position());
-
-        let target = if left_distance >= right_distance {
-            left
-        } else {
-            right
-        };
-        let velocity = self
-            .base()
-            .get_global_position()
-            .direction_to(target.get_global_position());
-        velocity
     }
 
     fn patrol(&mut self) {

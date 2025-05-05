@@ -18,16 +18,10 @@ impl PatrolComponent {
         let left_distance = current_pos.distance_to(self.west_target);
         let right_distance = current_pos.distance_to(self.east_target);
 
-        let target = if left_distance <= right_distance {
-            println!("west target");
-            self.west_target
+        if left_distance >= right_distance {
+            Vector2::LEFT
         } else {
-            println!("east target");
-            self.east_target
-        };
-
-        let velocity = current_pos.direction_to(target);
-        println!("vel from dist fn: {}", velocity);
-        velocity
+            Vector2::RIGHT
+        }
     }
 }
