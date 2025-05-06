@@ -18,7 +18,7 @@ where
         if area.is_in_group("player") {
             if let Some(player) = area.get_parent() {
                 if let Ok(player) = player.try_cast::<MainCharacter>() {
-                    self.get_mut_sm()
+                    self.sm_mut()
                         .handle(&enemy_state_machine::EnemyEvent::FoundPlayer {
                             player: player.clone(),
                         })
@@ -29,7 +29,7 @@ where
 
     fn on_aggro_area_exited(&mut self, area: Gd<Area2D>) {
         if area.is_in_group("player") {
-            self.get_mut_sm()
+            self.sm_mut()
                 .handle(&enemy_state_machine::EnemyEvent::LostPlayer);
         }
     }

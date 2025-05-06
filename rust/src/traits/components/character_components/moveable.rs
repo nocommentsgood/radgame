@@ -17,16 +17,17 @@ where
     }
 }
 
-pub trait MoveableEntity
+pub trait MoveableEntity: Animatable
 where
     Self: Inherits<Node2D> + WithBaseField<Base: Inherits<Node2D>>,
 {
-    fn move_to(&mut self, target: Vector2) {
+    fn move_to(&mut self, target: &Vector2) {
+        self.update_animation();
         let delta = self.base().upcast_ref().get_process_delta_time();
         let pos = self.base().upcast_ref().get_global_position();
 
         self.base_mut()
             .upcast_mut()
-            .set_global_position(pos + target * delta as f32);
+            .set_global_position(pos + *target * delta as f32);
     }
 }

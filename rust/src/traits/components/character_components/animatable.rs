@@ -10,10 +10,11 @@ pub trait Animatable: HasState {
     // TODO: Although this fn is relevant when dealing with animations, maybe it would be better
     // implemented in a different trait, which could be used as a supertrait.
     fn get_direction(&self) -> PlatformerDirection;
+    fn update_direction(&mut self);
 
     fn current_animation(&self) -> String {
         let direction = self.get_direction();
-        let mut state = self.get_sm().state().to_string();
+        let mut state = self.sm().state().to_string();
         state.push('_');
         format!("{}{}", state, direction)
     }
