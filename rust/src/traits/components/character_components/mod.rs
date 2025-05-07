@@ -1,5 +1,10 @@
+pub mod animatable;
 pub mod character_resources;
 pub mod damageable;
 pub mod damaging;
+pub mod enemy_state_ext;
+pub mod has_aggro;
+pub mod has_hitbox;
+pub mod has_state;
 pub mod moveable;
 pub mod player;

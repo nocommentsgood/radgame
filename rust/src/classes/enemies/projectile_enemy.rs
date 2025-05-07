@@ -1,20 +1,25 @@
 use crate::{
     classes::{
         characters::{character_stats::CharacterStats, main_character::MainCharacter},
-        components::timer_component::EnemyTimers,
+        components::{speed_component::SpeedComponent, timer_component::EnemyTimers},
         enemies,
     },
-    components::state_machines::enemy_state_machine::{self, *},
+    components::state_machines::{
+        enemy_state_machine::{self, *},
+        movements::PlatformerDirection,
+    },
     traits::components::character_components::{
-        character_resources::CharacterResources, damageable::Damageable, damaging::Damaging,
+        self, animatable::Animatable, character_resources::CharacterResources,
+        damageable::Damageable, enemy_state_ext::EnemyEntityStateMachineExt, *,
     },
 };
-use godot::{
-    classes::{Area2D, Marker2D},
-    prelude::*,
-};
+use godot::{classes::AnimationPlayer, prelude::*};
+use has_aggro::HasAggroArea;
+use has_hitbox::HasEnemyHitbox;
 
 use crate::classes::components::timer_component::Timer;
+
+use super::patrol_component::PatrolComponent;
 
 const BULLET_SPEED: real = 500.0;
 
@@ -23,34 +28,28 @@ const BULLET_SPEED: real = 500.0;
 pub struct ProjectileEnemy {
     velocity: Vector2,
     shoot_cooldown: Timer,
+    patrol_comp: PatrolComponent,
+    speeds: SpeedComponent,
+    direction: PlatformerDirection,
     stats: CharacterStats,
-    #[init(val = 80.0)]
-    aggro_speed: real,
-    #[init(val = 40.0)]
-    patrol_speed: real,
     state: statig::blocking::StateMachine<EnemyStateMachine>,
     timers: EnemyTimers,
     base: Base<Node2D>,
-
-    #[init(node = "EastMarker")]
-    east_marker: OnReady<Gd<Marker2D>>,
-
-    #[init(node = "WestMarker")]
-    west_marker: OnReady<Gd<Marker2D>>,
-
     #[init(load = "res://projectile.tscn")]
     projectile_scene: OnReady<Gd<PackedScene>>,
-
-    #[init(node = "MovementLimit")]
-    movement_limit_area: OnReady<Gd<Area2D>>,
+    #[init(node = "AnimationPlayer")]
+    animation_player: OnReady<Gd<AnimationPlayer>>,
 }
 
 #[godot_api]
 impl INode2D for ProjectileEnemy {
     fn ready(&mut self) {
+        self.speeds = SpeedComponent::new(40.0, 40.0, 80.0);
+        self.patrol_comp = PatrolComponent::new(138.0, 0.0, -138.0, 0.0);
+        self.connect_aggro_area_signal();
+        self.connect_hitbox_signal();
         self.timers = EnemyTimers::new(1.8, 2.0, 1.0, 2.0, 2.0);
         self.stats.health = 20;
-        self.connect_signals();
         self.shoot_cooldown = Timer::new(2.0);
     }
 
@@ -73,14 +72,6 @@ impl INode2D for ProjectileEnemy {
 
 #[godot_api]
 impl ProjectileEnemy {
-    fn on_area_entered_hitbox(&mut self, area: Gd<Area2D>) {
-        let damaging = DynGd::<Area2D, dyn Damaging>::from_godot(area);
-        let self_gd = self.to_gd().upcast::<Node2D>();
-        let _guard = self.base_mut();
-        let damageable = DynGd::<Node2D, dyn Damageable>::from_godot(self_gd);
-        damaging.dyn_bind().do_damage(damageable);
-    }
-
     fn shoot_projectile(&mut self, target: Vector2) {
         let position = self.base().get_global_position();
         let mut bullet = self
@@ -90,40 +81,6 @@ impl ProjectileEnemy {
         bullet.bind_mut().velocity = target * BULLET_SPEED;
         self.base_mut()
             .call_deferred("add_child", &[bullet.to_variant()]);
-    }
-
-    fn on_aggro_area_entered(&mut self, area: Gd<Area2D>) {
-        if area.is_in_group("player") {
-            if let Some(player) = area.get_parent() {
-                if let Ok(player) = player.try_cast::<MainCharacter>() {
-                    self.state
-                        .handle(&enemy_state_machine::EnemyEvent::FoundPlayer {
-                            player: player.clone(),
-                        })
-                }
-            }
-        }
-    }
-
-    fn on_aggro_area_exited(&mut self, area: Gd<Area2D>) {
-        if area.is_in_group("player") {
-            self.state
-                .handle(&enemy_state_machine::EnemyEvent::LostPlayer);
-        }
-    }
-
-    fn idle(&mut self) {
-        let time = self.timers.idle.value;
-        let delta = self.base().get_process_delta_time();
-        self.velocity = Vector2::ZERO;
-        self.timers.idle.value -= delta;
-
-        if time <= 0.0 {
-            self.timers.idle.reset();
-            self.velocity = self.furthest_patrol_marker_distance();
-            self.state
-                .handle(&enemy_state_machine::EnemyEvent::TimerElapsed)
-        }
     }
 
     fn attack(&mut self, player: Gd<MainCharacter>) {
@@ -145,7 +102,7 @@ impl ProjectileEnemy {
         }
     }
 
-    fn chain_attack(&mut self, player: Gd<MainCharacter>) {
+    fn chain_attack(&mut self, _player: Gd<MainCharacter>) {
         let time = self.timers.chain_attack.value;
         let delta = self.base().get_process_delta_time();
         self.timers.chain_attack.value -= delta;
@@ -154,26 +111,6 @@ impl ProjectileEnemy {
             self.timers.chain_attack.reset();
             self.state
                 .handle(&enemy_state_machine::EnemyEvent::TimerElapsed);
-        }
-    }
-
-    fn chase_player(&mut self, player: Gd<MainCharacter>) {
-        let attack_range = self.base().get_node_as::<Area2D>("AttackArea");
-        let delta = self.base().get_process_delta_time();
-        let player_position = player.get_global_position();
-        let position = self.base().get_global_position();
-        let velocity =
-            Vector2::new(position.direction_to(player_position).x, 0.0) * self.aggro_speed;
-        self.velocity = velocity;
-
-        self.base_mut()
-            .set_position(position + velocity * delta as f32);
-
-        if attack_range.has_overlapping_bodies()
-            && self.timers.attack_cooldown.value == self.timers.attack_cooldown.initial_value()
-        {
-            self.state
-                .handle(&enemy_state_machine::EnemyEvent::InAttackRange);
         }
     }
 
@@ -187,70 +124,6 @@ impl ProjectileEnemy {
         } else if attack_cooldown.value <= 0.0 {
             self.timers.attack_cooldown.reset();
         }
-    }
-
-    fn furthest_patrol_marker_distance(&self) -> Vector2 {
-        let left = &*self.west_marker;
-        let right = &*self.east_marker;
-        let left_distance = self
-            .base()
-            .get_global_position()
-            .distance_to(left.get_global_position());
-        let right_distance = self
-            .base()
-            .get_global_position()
-            .distance_to(right.get_global_position());
-
-        let target = if left_distance >= right_distance {
-            left
-        } else {
-            right
-        };
-        let velocity = self
-            .base()
-            .get_global_position()
-            .direction_to(target.get_global_position());
-        velocity
-    }
-
-    fn patrol(&mut self) {
-        let time = self.timers.patrol.value;
-        let delta = self.base().get_process_delta_time();
-        let position = self.base().get_global_position();
-        let velocity = self.velocity * self.patrol_speed * delta as f32;
-
-        self.base_mut().set_global_position(position + velocity);
-        self.timers.patrol.value -= delta;
-        if time <= 0.0 {
-            self.timers.patrol.reset();
-            self.state
-                .handle(&enemy_state_machine::EnemyEvent::TimerElapsed);
-        }
-    }
-
-    fn connect_signals(&mut self) {
-        // Connect player enters aggro area
-        let mut aggro = self.base().get_node_as::<Area2D>("AggroArea");
-        let mut this = self.to_gd();
-        aggro
-            .signals()
-            .area_entered()
-            .connect(move |area| this.bind_mut().on_aggro_area_entered(area));
-
-        // Connect player exits aggro area
-        let mut this = self.to_gd();
-        aggro
-            .signals()
-            .area_exited()
-            .connect(move |area| this.bind_mut().on_aggro_area_exited(area));
-
-        // Connect hitbox
-        let mut this = self.to_gd();
-        let mut hitbox = self.base().get_node_as::<Area2D>("Hitbox");
-        hitbox
-            .signals()
-            .area_entered()
-            .connect(move |area| this.bind_mut().on_area_entered_hitbox(area));
     }
 }
 
@@ -285,5 +158,90 @@ impl CharacterResources for ProjectileEnemy {
 impl Damageable for ProjectileEnemy {
     fn destroy(&mut self) {
         self.base_mut().queue_free();
+    }
+}
+
+impl character_components::has_state::HasState for ProjectileEnemy {
+    fn sm_mut(&mut self) -> &mut statig::prelude::StateMachine<EnemyStateMachine> {
+        &mut self.state
+    }
+
+    fn sm(&self) -> &statig::prelude::StateMachine<EnemyStateMachine> {
+        &self.state
+    }
+}
+
+impl character_components::has_aggro::HasAggroArea for ProjectileEnemy {}
+
+impl character_components::has_hitbox::HasEnemyHitbox for ProjectileEnemy {}
+
+impl character_components::moveable::MoveableEntity for ProjectileEnemy {}
+
+impl character_components::animatable::Animatable for ProjectileEnemy {
+    fn get_anim_player(&self) -> Gd<godot::classes::AnimationPlayer> {
+        self.animation_player.clone()
+    }
+
+    fn get_direction(&self) -> crate::components::state_machines::movements::PlatformerDirection {
+        self.direction.clone()
+    }
+
+    fn update_direction(&mut self) {
+        if !self.velocity.x.is_zero_approx() {
+            self.direction = PlatformerDirection::from_platformer_velocity(&self.velocity);
+        }
+    }
+}
+
+impl character_components::enemy_state_ext::EnemyEntityStateMachineExt for ProjectileEnemy {
+    fn timers(&mut self) -> &mut crate::classes::components::timer_component::EnemyTimers {
+        &mut self.timers
+    }
+    fn attack(&mut self, player: Gd<MainCharacter>) {
+        let target = player.get_global_position();
+        let time = self.timers.attack_animation.value;
+        let delta = self.base().get_process_delta_time();
+        let attack_cooldown = self.timers.attack_cooldown.clone();
+        self.update_animation();
+        if attack_cooldown.value == attack_cooldown.initial_value() {
+            self.shoot_projectile(target);
+            self.timers.attack_cooldown.value -= delta;
+        }
+        self.timers.attack_cooldown.value -= delta;
+        self.timers.attack_animation.value -= delta;
+
+        if time <= 0.0 {
+            self.timers.attack_animation.reset();
+            self.state
+                .handle(&enemy_state_machine::EnemyEvent::TimerElapsed);
+        }
+    }
+
+    fn chain_attack(&mut self, _player: Gd<MainCharacter>) {
+        let time = self.timers.chain_attack.value;
+        let delta = self.base().get_process_delta_time();
+        self.timers.chain_attack.value -= delta;
+
+        if time <= 0.0 {
+            self.timers.chain_attack.reset();
+            self.state
+                .handle(&enemy_state_machine::EnemyEvent::TimerElapsed);
+        }
+    }
+
+    fn get_velocity(&self) -> Vector2 {
+        self.velocity
+    }
+
+    fn set_velocity(&mut self, velocity: Vector2) {
+        self.velocity = velocity;
+    }
+
+    fn speeds(&self) -> crate::classes::components::speed_component::SpeedComponent {
+        self.speeds.clone()
+    }
+
+    fn patrol_comp(&self) -> PatrolComponent {
+        self.patrol_comp.clone()
     }
 }
