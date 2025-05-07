@@ -9,7 +9,6 @@ pub trait Damaging {
     fn do_damage(&self, mut target: DynGd<Node2D, dyn Damageable>) {
         let amount = self.damage_amount();
         let mut dyn_target = target.dyn_bind_mut();
-        println!("dealing damage amount {amount} from do_damage in damaging");
         dyn_target.take_damage(amount);
     }
 }

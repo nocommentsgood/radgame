@@ -6,7 +6,8 @@ use crate::{
     },
     components::state_machines::enemy_state_machine::{self, *},
     traits::components::character_components::{
-        self, character_resources::CharacterResources, damageable::Damageable, *,
+        self, character_resources::CharacterResources, damageable::Damageable,
+        moveable::MoveableEntity, *,
     },
 };
 use godot::{classes::Area2D, prelude::*};
@@ -127,15 +128,12 @@ impl ProjectileEnemy {
 
     fn chase_player(&mut self, player: Gd<MainCharacter>) {
         let attack_range = self.base().get_node_as::<Area2D>("EnemySensors/AttackArea");
-        let delta = self.base().get_process_delta_time();
         let player_position = player.get_global_position();
         let position = self.base().get_global_position();
         let velocity =
             Vector2::new(position.direction_to(player_position).x, 0.0) * self.aggro_speed;
         self.velocity = velocity;
-
-        self.base_mut()
-            .set_position(position + velocity * delta as f32);
+        self.move_to(velocity);
 
         if attack_range.has_overlapping_bodies()
             && self.timers.attack_cooldown.value == self.timers.attack_cooldown.initial_value()
@@ -160,10 +158,9 @@ impl ProjectileEnemy {
     fn patrol(&mut self) {
         let time = self.timers.patrol.value;
         let delta = self.base().get_process_delta_time();
-        let position = self.base().get_global_position();
-        let velocity = self.velocity * self.patrol_speed * delta as f32;
+        let velocity = self.velocity * self.patrol_speed;
 
-        self.base_mut().set_global_position(position + velocity);
+        self.move_to(velocity);
         self.timers.patrol.value -= delta;
         if time <= 0.0 {
             self.timers.patrol.reset();
@@ -220,3 +217,5 @@ impl character_components::has_state::HasState for ProjectileEnemy {
 impl character_components::has_aggro::HasAggroArea for ProjectileEnemy {}
 
 impl character_components::has_hitbox::HasEnemyHitbox for ProjectileEnemy {}
+
+impl character_components::moveable::MoveableEntity for ProjectileEnemy {}

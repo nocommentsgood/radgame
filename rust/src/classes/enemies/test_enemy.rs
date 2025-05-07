@@ -1,5 +1,5 @@
 use godot::{
-    classes::{AnimationPlayer, Area2D, CharacterBody2D, ICharacterBody2D, Marker2D},
+    classes::{AnimationPlayer, Area2D, CharacterBody2D, ICharacterBody2D},
     obj::WithBaseField,
     prelude::*,
 };
@@ -170,11 +170,7 @@ impl TestEnemy {
         let speed = self.aggro_speed;
         let player_position = player.get_position();
         let velocity = Vector2::new(
-            self.base()
-                .get_position()
-                .direction_to(player_position)
-                .normalized_or_zero()
-                .x,
+            self.base().get_position().direction_to(player_position).x,
             0.0,
         );
         self.velocity = velocity;

@@ -19,8 +19,7 @@ where
     fn connect_hitbox_signal(&mut self) {
         let mut hitbox = self
             .base()
-            .clone()
-            .upcast::<godot::classes::Node>()
+            .upcast_ref()
             .get_node_as::<Area2D>("EnemySensors/Hitbox");
         let mut this = self.to_gd();
 
