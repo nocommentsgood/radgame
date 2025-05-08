@@ -28,7 +28,7 @@ position = Vector2(465, 219)
 position = Vector2(125, 60)
 
 [node name="Platform2" parent="TileMapLayer" instance=ExtResource("4_8mm7a")]
-position = Vector2(445, 181)
+position = Vector2(428, 215)
 
 [node name="Platform3" parent="TileMapLayer" instance=ExtResource("4_8mm7a")]
 position = Vector2(316, 168)

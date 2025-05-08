@@ -53,7 +53,7 @@ impl Projectile {
     }
 
     fn tick(&mut self) {
-        let delta = self.base().get_process_delta_time();
+        let delta = self.base().get_process_delta_time() as f32;
         self.timeout.value -= delta;
 
         if self.timeout.value <= 0.0 {

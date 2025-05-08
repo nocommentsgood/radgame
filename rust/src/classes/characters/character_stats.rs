@@ -9,11 +9,10 @@ pub struct CharacterStats {
     pub attack_damage: u32,
     pub running_speed: real,
     pub jumping_speed: real,
-    pub falling_speed: real,
     pub dodging_speed: real,
     pub attacking_speed: real,
-    pub parry_length: f64,
-    pub perfect_parry_length: f64,
+    pub parry_length: f32,
+    pub perfect_parry_length: f32,
 }
 
 impl Default for CharacterStats {
@@ -26,8 +25,7 @@ impl Default for CharacterStats {
             mana: Default::default(),
             attack_damage: 10,
             running_speed: 150.0,
-            jumping_speed: 200.0,
-            falling_speed: 250.0,
+            jumping_speed: 300.0,
             dodging_speed: 250.0,
             attacking_speed: 10.0,
             parry_length: 0.3,

@@ -81,7 +81,7 @@ impl TestEnemy {
 
     // Leaving this somewhat open ended in case more timers are added later
     fn update_timers(&mut self) {
-        let delta = self.base().get_physics_process_delta_time();
+        let delta = self.base().get_physics_process_delta_time() as f32;
 
         // Update attack cooldown timer
         let attack_cooldown = self.timers.attack_cooldown.clone();

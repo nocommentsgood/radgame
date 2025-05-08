@@ -26,6 +26,7 @@ use super::character_stats::CharacterStats;
 use crate::classes::components::timer_component::PlayerTimers;
 
 type Event = crate::components::state_machines::character_state_machine::Event;
+const GRAVITY: f32 = 1100.0;
 
 #[derive(GodotClass)]
 #[class(init, base=CharacterBody2D)]
@@ -75,7 +76,7 @@ impl ICharacterBody2D for MainCharacter {
             .unwrap()
             .get_length();
 
-        let jumping_animation_length = 0.5;
+        let jumping_animation_length = 0.1;
 
         let healing_animation_length = self
             .get_animation_player()
@@ -91,12 +92,12 @@ impl ICharacterBody2D for MainCharacter {
 
         self.timers = PlayerTimers::new(
             0.6,
-            dodge_animation_length.into(),
+            dodge_animation_length,
             jumping_animation_length,
-            attack_animation_length.into(),
-            attack_animation_length.into(),
-            healing_animation_length.into(),
-            parry_animation_length.into(),
+            attack_animation_length,
+            attack_animation_length,
+            healing_animation_length,
+            parry_animation_length,
             self.stats.parry_length,
             self.stats.perfect_parry_length,
         );
@@ -126,7 +127,12 @@ impl ICharacterBody2D for MainCharacter {
     fn physics_process(&mut self, _delta: f64) {
         let input = Input::singleton();
         let event = InputHandler::to_platformer_event(&Input::singleton());
-        self.velocity = InputHandler::get_velocity(&input);
+        self.velocity.x = InputHandler::get_velocity(&input).x;
+        println!("pp vel: {}", self.velocity);
+
+        if !self.base().is_on_floor() {
+            self.state.handle(&Event::FailedFloorCheck);
+        }
 
         match self.state.state() {
             character_state_machine::State::Idle {} => self.idle(),
@@ -203,7 +209,7 @@ impl MainCharacter {
     }
 
     fn dodge(&mut self) {
-        let delta = self.base().get_physics_process_delta_time();
+        let delta = self.base().get_physics_process_delta_time() as f32;
         let mut cooldown_timer = self.get_dodging_cooldown_timer();
         let time = self.timers.dodging_animation_timer.value;
 
@@ -212,10 +218,6 @@ impl MainCharacter {
         } else if time < self.timers.dodging_animation_timer.initial_value() && time > 0.0 {
             self.base_mut().move_and_slide();
             self.timers.dodging_animation_timer.value -= delta;
-
-            if !self.base().is_on_floor() {
-                self.state.handle(&Event::FailedFloorCheck);
-            }
         } else {
             let speed = self.stats.dodging_speed;
             let velocity = self.velocity;
@@ -225,9 +227,6 @@ impl MainCharacter {
             self.update_animation();
             self.timers.dodging_animation_timer.value -= delta;
 
-            if !self.base().is_on_floor() {
-                self.state.handle(&Event::FailedFloorCheck);
-            }
             if time <= 0.0 {
                 self.timers.dodging_animation_timer.reset();
                 self.state.handle(&Event::TimerElapsed);
@@ -241,7 +240,7 @@ impl MainCharacter {
         let speed = self.stats.attacking_speed;
         let time = self.timers.attack_animation_timer.value;
         let velocity = self.velocity;
-        let delta = self.base().get_physics_process_delta_time();
+        let delta = self.base().get_physics_process_delta_time() as f32;
 
         if time < self.timers.attack_animation_timer.initial_value() && time > 0.0 {
             if Input::singleton().is_action_just_pressed("attack") {
@@ -254,9 +253,6 @@ impl MainCharacter {
             self.base_mut().move_and_slide();
             self.update_animation();
             self.timers.attack_animation_timer.value -= delta;
-            if !self.base().is_on_floor() {
-                self.state.handle(&Event::FailedFloorCheck);
-            }
         }
 
         if time <= 0.0 {
@@ -273,17 +269,13 @@ impl MainCharacter {
 
     fn attack_2(&mut self) {
         let time = self.timers.attack_animation_timer_2.value;
-        let delta = self.base().get_physics_process_delta_time();
+        let delta = self.base().get_physics_process_delta_time() as f32;
 
         if time < self.timers.attack_animation_timer_2.initial_value() && time > 0.0 {
             self.timers.attack_animation_timer_2.value -= delta;
         } else {
             self.update_animation();
             self.timers.attack_animation_timer_2.value -= delta;
-
-            if !self.base().is_on_floor() {
-                self.state.handle(&Event::FailedFloorCheck);
-            }
 
             if time <= 0.0 {
                 self.timers.attack_animation_timer_2.reset();
@@ -295,43 +287,41 @@ impl MainCharacter {
     fn idle(&mut self) {
         self.active_velocity = Vector2::ZERO;
         self.update_animation();
-        if !self.base().is_on_floor() {
-            self.state.handle(&Event::FailedFloorCheck);
-        }
     }
 
     fn move_character(&mut self) {
         let target_velocity = self.velocity * self.stats.running_speed;
-        self.active_velocity = self.active_velocity.lerp(target_velocity, 0.5);
+        self.active_velocity = self.active_velocity.lerp(target_velocity, 0.2);
         let velocity = self.active_velocity;
 
         self.update_direction();
         self.update_animation();
         self.base_mut().set_velocity(velocity);
         self.base_mut().move_and_slide();
-
-        if !self.base().is_on_floor() {
-            self.state.handle(&Event::FailedFloorCheck);
-        }
     }
 
     fn jump(&mut self) {
         let time = self.timers.jumping_animation_timer.value;
-        let delta = self.base().get_physics_process_delta_time();
-        self.velocity.y = Vector2::UP.y;
-        let target_velocity = Vector2::new(
-            self.velocity.x * self.stats.running_speed,
-            self.velocity.y * self.stats.jumping_speed,
-        );
-        self.active_velocity = self.active_velocity.lerp(target_velocity, 0.9);
-        let velocity = self.active_velocity;
+        let delta = self.base().get_physics_process_delta_time() as f32;
 
-        self.update_direction();
-        self.update_animation();
-        self.detect_ledges();
-        self.base_mut().set_velocity(velocity);
-        self.base_mut().move_and_slide();
-        self.timers.jumping_animation_timer.value -= delta;
+        if self.base().is_on_floor() {
+            self.velocity.y = Vector2::UP.y * self.stats.jumping_speed;
+            self.velocity.x *= self.stats.running_speed;
+            let velocity = self.velocity;
+            self.base_mut().set_velocity(velocity);
+            self.base_mut().move_and_slide();
+        } else {
+            self.velocity.y += GRAVITY * delta;
+            self.velocity.x *= self.stats.running_speed;
+            let velocity = self.velocity;
+            println!("vel: {velocity}");
+            self.update_direction();
+            self.update_animation();
+            self.detect_ledges();
+            self.base_mut().set_velocity(velocity);
+            self.base_mut().move_and_slide();
+            self.timers.jumping_animation_timer.value -= delta;
+        }
 
         if time <= 0.0 {
             self.timers.jumping_animation_timer.reset();
@@ -342,7 +332,7 @@ impl MainCharacter {
     fn heal(&mut self) {
         let time = self.timers.healing_animation_timer.value;
         let current_health = self.stats.health;
-        let delta = self.base().get_physics_process_delta_time();
+        let delta = self.base().get_physics_process_delta_time() as f32;
         self.velocity = Vector2::ZERO;
         let velocity = self.velocity;
 
@@ -364,21 +354,19 @@ impl MainCharacter {
 
     fn fall(&mut self) {
         if !self.base().is_on_floor() {
-            self.velocity.y = Vector2::DOWN.y;
-            let target_velocity = Vector2::new(
-                self.velocity.x * self.stats.running_speed,
-                self.velocity.y * self.stats.falling_speed,
-            );
+            let delta = self.base().get_physics_process_delta_time() as f32;
+            self.velocity.y += GRAVITY * delta;
+            self.velocity.x *= self.stats.running_speed;
 
-            self.active_velocity = self.active_velocity.lerp(target_velocity, 0.4);
-            let velocity = self.active_velocity;
-
+            let velocity = self.velocity;
+            println!("fall vel: {velocity}");
             self.update_direction();
             self.update_animation();
             self.detect_ledges();
             self.base_mut().set_velocity(velocity);
             self.base_mut().move_and_slide();
         } else if self.base().is_on_floor() {
+            self.velocity.y = 0.0;
             self.state.handle(&Event::OnFloor);
             if self.timers.jumping_animation_timer.value
                 < self.timers.jumping_animation_timer.initial_value()
@@ -390,7 +378,7 @@ impl MainCharacter {
 
     fn parry(&mut self) {
         let time = self.timers.parry_animation_timer.value;
-        let delta = self.base().get_physics_process_delta_time();
+        let delta = self.base().get_physics_process_delta_time() as f32;
         self.update_animation();
         self.timers.parry_animation_timer.value -= delta;
         self.timers.parry_timer.value -= delta;

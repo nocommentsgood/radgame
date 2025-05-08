@@ -1,11 +1,11 @@
 #[derive(Default, Clone)]
 pub struct Timer {
-    pub value: f64,
-    init_value: f64,
+    pub value: f32,
+    init_value: f32,
 }
 
 impl Timer {
-    pub fn new(value: f64) -> Self {
+    pub fn new(value: f32) -> Self {
         Timer {
             value,
             init_value: value,
@@ -16,7 +16,7 @@ impl Timer {
         self.value = self.init_value;
     }
 
-    pub fn initial_value(&self) -> f64 {
+    pub fn initial_value(&self) -> f32 {
         self.init_value
     }
 }
@@ -37,15 +37,15 @@ pub struct PlayerTimers {
 impl PlayerTimers {
     // stinky
     pub fn new(
-        attack_chain_timer: f64,
-        dodging_animation_timer: f64,
-        jumping_animation_timer: f64,
-        attack_animation_timer: f64,
-        attack_animation_timer_2: f64,
-        healing_animation_timer: f64,
-        parry_animation_timer: f64,
-        parry_timer: f64,
-        perfect_parry_timer: f64,
+        attack_chain_timer: f32,
+        dodging_animation_timer: f32,
+        jumping_animation_timer: f32,
+        attack_animation_timer: f32,
+        attack_animation_timer_2: f32,
+        healing_animation_timer: f32,
+        parry_animation_timer: f32,
+        parry_timer: f32,
+        perfect_parry_timer: f32,
     ) -> Self {
         PlayerTimers {
             attack_chain_timer: Timer::new(attack_chain_timer),
@@ -72,11 +72,11 @@ pub struct EnemyTimers {
 
 impl EnemyTimers {
     pub fn new(
-        attack_animation: f64,
-        attack_cooldown: f64,
-        chain_attack: f64,
-        idle: f64,
-        patrol: f64,
+        attack_animation: f32,
+        attack_cooldown: f32,
+        chain_attack: f32,
+        idle: f32,
+        patrol: f32,
     ) -> Self {
         EnemyTimers {
             attack_animation: Timer::new(attack_animation),
