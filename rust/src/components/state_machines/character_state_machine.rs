@@ -60,6 +60,7 @@ impl CharacterStateMachine {
             Event::Wasd => Response::Transition(State::moving()),
             Event::DodgeButton => Response::Transition(State::dodging()),
             Event::AttackButton => Response::Transition(State::attacking()),
+            Event::ParryButton => Response::Transition(State::parry()),
             Event::JumpButton => Response::Transition(State::jumping()),
             Event::HealingButton => Response::Transition(State::healing()),
             Event::FailedFloorCheck => Response::Transition(State::falling()),

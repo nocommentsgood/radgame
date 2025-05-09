@@ -246,12 +246,14 @@ impl MainCharacter {
             if Input::singleton().is_action_just_pressed("attack") {
                 self.can_attack_chain = true;
             }
+            self.update_direction();
             self.base_mut().move_and_slide();
             self.timers.attack_animation_timer.value -= delta;
         } else {
+            self.update_direction();
+            self.update_animation();
             self.base_mut().set_velocity(velocity * speed);
             self.base_mut().move_and_slide();
-            self.update_animation();
             self.timers.attack_animation_timer.value -= delta;
         }
 
@@ -312,9 +314,9 @@ impl MainCharacter {
             self.base_mut().move_and_slide();
         } else {
             self.velocity.y += GRAVITY * delta;
-            self.velocity.x *= self.stats.running_speed;
-            let velocity = self.velocity;
-            println!("vel: {velocity}");
+            let target_x = self.velocity.x * self.stats.running_speed;
+            self.active_velocity.x = self.active_velocity.x.lerp(target_x, 0.2);
+            let velocity = Vector2::new(self.active_velocity.x, self.velocity.y);
             self.update_direction();
             self.update_animation();
             self.detect_ledges();
