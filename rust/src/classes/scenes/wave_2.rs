@@ -33,8 +33,6 @@ impl Wave2 {
 
     fn on_enemy_killed(&mut self) {
         self.kill_count += 1;
-        println!("enemy killed in wave");
-
         if self.kill_count == 2 {
             self.signals().last_enemy_killed().emit();
         }

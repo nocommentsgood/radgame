@@ -61,7 +61,7 @@ impl INode2D for ProjectileEnemy {
             }
             enemy_state_machine::State::ChasePlayer { player } => self.chase_player(player.clone()),
             enemy_state_machine::State::Patrol {} => self.patrol(),
-            enemy_state_machine::State::Falling {} => println!("FALLING"),
+            enemy_state_machine::State::Falling {} => (),
             enemy_state_machine::State::Attack { player } => {
                 self.attack(player.clone());
             }

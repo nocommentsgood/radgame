@@ -10,7 +10,7 @@ use godot::{
 use crate::{
     classes::enemies::projectile::Projectile,
     components::{
-        managers::input_hanlder::InputHandler,
+        managers::{input_hanlder::InputHandler, item_component::ItemComponent},
         state_machines::{
             character_state_machine::{self, *},
             movements::PlatformerDirection,
@@ -39,6 +39,9 @@ pub struct MainCharacter {
     timers: PlayerTimers,
     state: statig::blocking::StateMachine<CharacterStateMachine>,
     base: Base<CharacterBody2D>,
+
+    #[init(node = "ItemComponent")]
+    pub item_comp: OnReady<Gd<ItemComponent>>,
 
     #[var]
     #[init(node = "DodgingCooldownTimer")]
@@ -128,7 +131,6 @@ impl ICharacterBody2D for MainCharacter {
         let input = Input::singleton();
         let event = InputHandler::to_platformer_event(&Input::singleton());
         self.velocity.x = InputHandler::get_velocity(&input).x;
-        println!("pp vel: {}", self.velocity);
 
         if !self.base().is_on_floor() {
             self.state.handle(&Event::FailedFloorCheck);
@@ -361,7 +363,6 @@ impl MainCharacter {
             self.velocity.x *= self.stats.running_speed;
 
             let velocity = self.velocity;
-            println!("fall vel: {velocity}");
             self.update_direction();
             self.update_animation();
             self.detect_ledges();
