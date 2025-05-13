@@ -61,7 +61,7 @@ impl INode2D for ProjectileEnemy {
             }
             enemy_state_machine::State::ChasePlayer { player } => self.chase_player(player.clone()),
             enemy_state_machine::State::Patrol {} => self.patrol(),
-            enemy_state_machine::State::Falling {} => println!("FALLING"),
+            enemy_state_machine::State::Falling {} => (),
             enemy_state_machine::State::Attack { player } => {
                 self.attack(player.clone());
             }
@@ -86,7 +86,7 @@ impl ProjectileEnemy {
     fn attack(&mut self, player: Gd<MainCharacter>) {
         let target = player.get_global_position();
         let time = self.timers.attack_animation.value;
-        let delta = self.base().get_process_delta_time();
+        let delta = self.base().get_process_delta_time() as f32;
         let attack_cooldown = self.timers.attack_cooldown.clone();
         if attack_cooldown.value == attack_cooldown.initial_value() {
             self.shoot_projectile(target);
@@ -104,7 +104,7 @@ impl ProjectileEnemy {
 
     fn chain_attack(&mut self, _player: Gd<MainCharacter>) {
         let time = self.timers.chain_attack.value;
-        let delta = self.base().get_process_delta_time();
+        let delta = self.base().get_process_delta_time() as f32;
         self.timers.chain_attack.value -= delta;
 
         if time <= 0.0 {
@@ -115,7 +115,7 @@ impl ProjectileEnemy {
     }
 
     fn update_timers(&mut self) {
-        let delta = self.base().get_process_delta_time();
+        let delta = self.base().get_process_delta_time() as f32;
 
         // Update attack cooldown timer
         let attack_cooldown = self.timers.attack_cooldown.clone();
@@ -200,7 +200,7 @@ impl character_components::enemy_state_ext::EnemyEntityStateMachineExt for Proje
     fn attack(&mut self, player: Gd<MainCharacter>) {
         let target = player.get_global_position();
         let time = self.timers.attack_animation.value;
-        let delta = self.base().get_process_delta_time();
+        let delta = self.base().get_process_delta_time() as f32;
         let attack_cooldown = self.timers.attack_cooldown.clone();
         self.update_animation();
         if attack_cooldown.value == attack_cooldown.initial_value() {
@@ -219,7 +219,7 @@ impl character_components::enemy_state_ext::EnemyEntityStateMachineExt for Proje
 
     fn chain_attack(&mut self, _player: Gd<MainCharacter>) {
         let time = self.timers.chain_attack.value;
-        let delta = self.base().get_process_delta_time();
+        let delta = self.base().get_process_delta_time() as f32;
         self.timers.chain_attack.value -= delta;
 
         if time <= 0.0 {

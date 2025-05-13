@@ -7,6 +7,7 @@ pub enum CollisionLayers {
     EnemyHurtbox,
     PlatformLedges,
     PlayerPhysics,
+    Items,
 }
 
 impl From<CollisionLayers> for i32 {
@@ -20,6 +21,7 @@ impl From<CollisionLayers> for i32 {
             CollisionLayers::EnemyHurtbox => 6,
             CollisionLayers::PlatformLedges => 7,
             CollisionLayers::PlayerPhysics => 8,
+            CollisionLayers::Items => 9,
         }
     }
 }

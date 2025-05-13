@@ -30,7 +30,7 @@ where
         let delta = self
             .base()
             .upcast_ref::<godot::classes::Node2D>()
-            .get_physics_process_delta_time();
+            .get_physics_process_delta_time() as f32;
         let speed = self.speeds().attack;
         let velocity = self.get_velocity();
         self.timers().attack_animation.value -= delta;
@@ -57,7 +57,7 @@ where
 
     fn chain_attack(&mut self, _player: Gd<MainCharacter>) {
         let time = self.timers().chain_attack.value;
-        let delta = self.base().get_physics_process_delta_time();
+        let delta = self.base().get_physics_process_delta_time() as f32;
         let velocity = self.get_velocity();
         let speed = self.speeds().attack;
         self.timers().chain_attack.value -= delta;
@@ -74,7 +74,7 @@ where
         let time = self.timers().patrol.value;
         let speed = self.speeds().patrol;
         let velocity = self.get_velocity();
-        let delta = self.base().get_physics_process_delta_time();
+        let delta = self.base().get_physics_process_delta_time() as f32;
 
         self.update_direction();
         self.slide(&velocity, &speed);
@@ -89,7 +89,7 @@ where
 
     fn idle(&mut self) {
         let time = self.timers().idle.value;
-        let delta = self.base().get_physics_process_delta_time();
+        let delta = self.base().get_physics_process_delta_time() as f32;
         let velocity = Vector2::ZERO;
         self.slide(&velocity, &0.0);
         self.timers().idle.value -= delta;
@@ -109,7 +109,7 @@ where
         let attack_range = self
             .base()
             .get_node_as::<godot::classes::Area2D>("EnemySensors/AttackArea");
-        let delta = self.base().get_physics_process_delta_time();
+        let delta = self.base().get_physics_process_delta_time() as f32;
         let speed = self.speeds().aggro;
         let player_position = player.get_position();
         let velocity = Vector2::new(
@@ -145,7 +145,7 @@ where
         let delta = self
             .base()
             .upcast_ref::<godot::classes::Node2D>()
-            .get_process_delta_time();
+            .get_process_delta_time() as f32;
         let speed = self.speeds().attack;
         let velocity = self.get_velocity() * speed;
         self.timers().attack_animation.value -= delta;
@@ -161,7 +161,7 @@ where
 
     fn chain_attack(&mut self, _player: Gd<MainCharacter>) {
         let time = self.timers().chain_attack.value;
-        let delta = self.base().upcast_ref().get_process_delta_time();
+        let delta = self.base().upcast_ref().get_process_delta_time() as f32;
         let speed = self.speeds().attack;
         let velocity = self.get_velocity() * speed;
         self.timers().chain_attack.value -= delta;
@@ -178,7 +178,7 @@ where
         let time = self.timers().patrol.value;
         let speed = self.speeds().patrol;
         let velocity = self.get_velocity() * speed;
-        let delta = self.base().upcast_ref().get_process_delta_time();
+        let delta = self.base().upcast_ref().get_process_delta_time() as f32;
 
         self.update_direction();
         self.move_to(&velocity);
@@ -193,7 +193,7 @@ where
 
     fn idle(&mut self) {
         let time = self.timers().idle.value;
-        let delta = self.base().upcast_ref().get_process_delta_time();
+        let delta = self.base().upcast_ref().get_process_delta_time() as f32;
         let velocity = Vector2::ZERO;
 
         self.move_to(&velocity);
@@ -215,7 +215,7 @@ where
             .base()
             .upcast_ref()
             .get_node_as::<godot::classes::Area2D>("EnemySensors/AttackArea");
-        let delta = self.base().upcast_ref().get_process_delta_time();
+        let delta = self.base().upcast_ref().get_process_delta_time() as f32;
         let speed = self.speeds().aggro;
         let player_position = player.get_position();
         let velocity = Vector2::new(
