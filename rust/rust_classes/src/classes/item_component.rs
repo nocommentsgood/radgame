@@ -1,5 +1,6 @@
-use super::item::GameItem;
+use crate::classes::world::GameItem;
 use godot::{classes::InputEvent, prelude::*};
+extern crate godot;
 
 #[derive(GodotClass)]
 #[class(init, base=Node)]

@@ -4,8 +4,6 @@ use godot::{
     prelude::{godot_dyn, GodotClass},
 };
 
-use crate::traits::components::character_components::damaging::Damaging;
-
 #[derive(GodotClass)]
 #[class(init, base=Area2D)]
 pub struct Hurtbox {

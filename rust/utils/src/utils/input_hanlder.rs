@@ -1,7 +1,5 @@
 use godot::{builtin::Vector2, classes::Input, obj::Gd};
 
-use crate::components::state_machines::character_state_machine::Event;
-
 #[derive(Default, Clone)]
 pub struct InputHandler;
 
