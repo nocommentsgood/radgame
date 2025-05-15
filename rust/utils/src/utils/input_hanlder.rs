@@ -1,0 +1,91 @@
+use crate::utils::state_machine_events::Event;
+use godot::{builtin::Vector2, classes::Input, obj::Gd};
+
+#[derive(Default, Debug, Clone, PartialEq)]
+pub enum PlatformerDirection {
+    #[default]
+    East,
+    West,
+}
+impl std::fmt::Display for PlatformerDirection {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            PlatformerDirection::East => write!(f, "east"),
+            PlatformerDirection::West => write!(f, "west"),
+        }
+    }
+}
+impl PlatformerDirection {
+    pub fn from_platformer_velocity(velocity: &Vector2) -> PlatformerDirection {
+        if velocity.x < 0.0 {
+            PlatformerDirection::West
+        } else {
+            PlatformerDirection::East
+        }
+    }
+}
+
+#[derive(Default, Clone)]
+pub struct InputHandler;
+
+impl InputHandler {
+    pub fn get_velocity(input: &Gd<Input>) -> Vector2 {
+        let mut vel = Vector2::ZERO;
+        if input.is_action_pressed("east") {
+            vel += Vector2::RIGHT;
+        } else if input.is_action_pressed("west") {
+            vel += Vector2::LEFT;
+        } else {
+            vel = Vector2::ZERO;
+        }
+
+        vel
+    }
+
+    pub fn to_platformer_event(input: &Gd<Input>) -> Event {
+        let mut velocity = Vector2::ZERO;
+        if input.is_action_pressed("east") {
+            velocity += Vector2::RIGHT;
+        }
+        if input.is_action_pressed("west") {
+            velocity += Vector2::LEFT;
+        }
+        if velocity.length() > 0.0 {
+            Event::Wasd
+        } else {
+            Event::None
+        }
+    }
+
+    pub fn to_event(input: &Gd<Input>) -> Event {
+        let mut vel = Vector2::ZERO;
+        if input.is_action_pressed("east") {
+            vel += Vector2::RIGHT;
+        }
+        if input.is_action_pressed("west") {
+            vel += Vector2::LEFT;
+        }
+        if input.is_action_pressed("north") {
+            vel += Vector2::UP;
+        }
+        if input.is_action_pressed("south") {
+            vel += Vector2::DOWN;
+        }
+        if input.is_action_just_pressed("dodge") && vel.length() > 0.0 {
+            return Event::DodgeButton;
+        }
+        if input.is_action_just_pressed("attack") {
+            return Event::AttackButton;
+        }
+
+        if input.is_action_just_pressed("heal") {
+            return Event::HealingButton;
+        }
+
+        if vel.length() > 0.0 {
+            Event::Wasd
+        } else {
+            Event::None
+        }
+    }
+}

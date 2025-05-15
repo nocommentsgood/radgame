@@ -1,19 +1,12 @@
 use godot::prelude::*;
 
+pub mod godot_traits;
+pub mod rust_classes;
 pub mod utils;
-mod classes {
-    pub mod characters;
-    pub mod components;
-    pub mod enemies;
-    pub mod scenes;
-}
+pub use godot_traits::*;
+pub use rust_classes::*;
+pub use utils::*;
 
-mod components {
-    pub mod managers;
-    pub mod state_machines;
-}
-
-mod traits;
 struct MyExtension;
 
 #[gdextension]
