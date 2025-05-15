@@ -1,12 +1,3 @@
-[package]
-name = "rust"
-version = "0.1.0"
-edition = "2021"
-
-[lib]
-crate-type = ["cdylib"]
-
-[dependencies]
-# godot = "0.2.1"
-godot = { git = "https://github.com/godot-rust/gdext", branch = "master" }
-statig = "0.3.0"
+[workspace]
+resolver = "2"
+members = [ "godot_traits","rust_classes", "utils"]
