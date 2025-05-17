@@ -3,21 +3,18 @@ use godot::{
     obj::WithBaseField,
     prelude::*,
 };
-
-use crate::{
-    classes::components::{speed_component::SpeedComponent, timer_component::EnemyTimers},
-    components::state_machines::{
-        enemy_state_machine::{self, *},
-        movements::PlatformerDirection,
-    },
-    traits::components::character_components::{
-        self, animatable::Animatable, character_resources::CharacterResources,
+use godot_traits::{
+    enemy_state_machine,
+    input_hanlder::PlatformerDirection,
+    patrol_component::PatrolComponent,
+    speed_component::SpeedComponent,
+    timer_component::EnemyTimers,
+    traits::{
+        self, character_resources::CharacterResources,
         enemy_state_ext::EnemyCharacterStateMachineExt, has_aggro::HasAggroArea,
-        has_hitbox::HasEnemyHitbox, has_state::HasState, moveable::MoveableCharacter,
+        has_hitbox::HasEnemyHitbox,
     },
 };
-
-use super::patrol_component::PatrolComponent;
 
 #[derive(GodotClass)]
 #[class(init, base=CharacterBody2D)]
@@ -27,7 +24,8 @@ pub struct TestEnemy {
     timers: EnemyTimers,
     patrol_comp: PatrolComponent,
     speeds: SpeedComponent,
-    state: statig::blocking::StateMachine<EnemyStateMachine>,
+    player_pos: Vector2,
+    state: statig::blocking::StateMachine<enemy_state_machine::EnemyStateMachine>,
     base: Base<CharacterBody2D>,
     energy: u32,
     mana: u32,
@@ -53,10 +51,10 @@ impl ICharacterBody2D for TestEnemy {
 
         match self.state.state() {
             enemy_state_machine::State::Idle {} => self.idle(),
-            enemy_state_machine::State::ChasePlayer { player } => self.chase_player(player.clone()),
+            enemy_state_machine::State::ChasePlayer {} => self.chase_player(),
             enemy_state_machine::State::Patrol {} => self.patrol(),
-            enemy_state_machine::State::Attack { player } => self.attack(player.clone()),
-            enemy_state_machine::State::Attack2 { player } => self.chain_attack(player.clone()),
+            enemy_state_machine::State::Attack {} => self.attack(),
+            enemy_state_machine::State::Attack2 {} => self.chain_attack(),
             enemy_state_machine::State::Falling {} => self.fall(),
         }
 
@@ -94,7 +92,7 @@ impl TestEnemy {
 }
 
 #[godot_dyn]
-impl CharacterResources for TestEnemy {
+impl godot_traits::traits::character_resources::CharacterResources for TestEnemy {
     fn get_health(&self) -> u32 {
         self.health
     }
@@ -120,22 +118,32 @@ impl CharacterResources for TestEnemy {
     }
 }
 
-impl HasEnemyHitbox for TestEnemy {}
+impl traits::has_hitbox::HasEnemyHitbox for TestEnemy {}
 
-impl HasState for TestEnemy {
-    fn sm_mut(&mut self) -> &mut statig::prelude::StateMachine<EnemyStateMachine> {
+impl traits::has_state::HasState for TestEnemy {
+    fn sm_mut(
+        &mut self,
+    ) -> &mut statig::prelude::StateMachine<enemy_state_machine::EnemyStateMachine> {
         &mut self.state
     }
 
-    fn sm(&self) -> &statig::prelude::StateMachine<EnemyStateMachine> {
+    fn sm(&self) -> &statig::prelude::StateMachine<enemy_state_machine::EnemyStateMachine> {
         &self.state
     }
 }
 
-impl HasAggroArea for TestEnemy {}
+impl traits::has_aggro::HasAggroArea for TestEnemy {
+    fn set_player_pos(&mut self, player_pos: Vector2) {
+        self.player_pos = player_pos;
+    }
+
+    fn get_player_pos(&self) -> Vector2 {
+        self.player_pos
+    }
+}
 
 #[godot_dyn]
-impl character_components::damageable::Damageable for TestEnemy {
+impl traits::damageable::Damageable for TestEnemy {
     fn take_damage(&mut self, amount: u32) {
         let mut current_health = self.get_health();
 
@@ -153,7 +161,7 @@ impl character_components::damageable::Damageable for TestEnemy {
     }
 }
 
-impl Animatable for TestEnemy {
+impl traits::animatable::Animatable for TestEnemy {
     fn get_anim_player(&self) -> Gd<AnimationPlayer> {
         self.animation_player.clone()
     }
@@ -169,10 +177,10 @@ impl Animatable for TestEnemy {
     }
 }
 
-impl MoveableCharacter for TestEnemy {}
+impl traits::moveable::MoveableCharacter for TestEnemy {}
 
-impl EnemyCharacterStateMachineExt for TestEnemy {
-    fn timers(&mut self) -> &mut crate::classes::components::timer_component::EnemyTimers {
+impl traits::enemy_state_ext::EnemyCharacterStateMachineExt for TestEnemy {
+    fn timers(&mut self) -> &mut EnemyTimers {
         &mut self.timers
     }
 

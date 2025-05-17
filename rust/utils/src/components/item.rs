@@ -3,10 +3,9 @@ use godot::{
     prelude::*,
 };
 
-use crate::{
-    classes::characters::character_hitbox::CharacterHitbox,
-    utils::collision_layers::CollisionLayers,
-};
+use crate::utils::collision_layers::CollisionLayers;
+
+use super::character_hitbox::CharacterHitbox;
 
 pub enum Tier {
     One,
@@ -122,7 +121,7 @@ impl GameItem {
     fn on_area_entered(&mut self, area: Gd<Area2D>) {
         if let Ok(_area) = area.try_cast::<CharacterHitbox>() {
             let this = self.to_gd();
-            self.signals().player_entered_item_area().emit(this);
+            self.signals().player_entered_item_area().emit(&this);
         }
     }
 

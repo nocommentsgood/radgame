@@ -4,7 +4,8 @@ version = "0.1.0"
 edition = "2024"
 
 [lib]
-crate-type = ["cdylib"]
+crate-type = ["cdylib", "rlib"]
 
 [dependencies]
+statig = "0.3.0"
 godot = { git = "https://github.com/godot-rust/gdext", branch = "master" }

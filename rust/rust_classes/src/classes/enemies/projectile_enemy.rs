@@ -1,25 +1,18 @@
-use crate::{
-    classes::{
-        characters::{character_stats::CharacterStats, main_character::MainCharacter},
-        components::{speed_component::SpeedComponent, timer_component::EnemyTimers},
-        enemies,
-    },
-    components::state_machines::{
-        enemy_state_machine::{self, *},
-        movements::PlatformerDirection,
-    },
-    traits::components::character_components::{
-        self, animatable::Animatable, character_resources::CharacterResources,
-        damageable::Damageable, enemy_state_ext::EnemyEntityStateMachineExt, *,
+use godot::{classes::AnimationPlayer, prelude::*};
+use godot_traits::{
+    enemy_state_machine,
+    input_hanlder::PlatformerDirection,
+    patrol_component::PatrolComponent,
+    speed_component::SpeedComponent,
+    stats::CharacterStats,
+    timer_component::{EnemyTimers, Timer},
+    traits::{
+        self, animatable::Animatable, enemy_state_ext::EnemyEntityStateMachineExt,
+        has_aggro::HasAggroArea, has_hitbox::HasEnemyHitbox,
     },
 };
-use godot::{classes::AnimationPlayer, prelude::*};
-use has_aggro::HasAggroArea;
-use has_hitbox::HasEnemyHitbox;
 
-use crate::classes::components::timer_component::Timer;
-
-use super::patrol_component::PatrolComponent;
+type State = enemy_state_machine::State;
 
 const BULLET_SPEED: real = 500.0;
 
@@ -27,12 +20,13 @@ const BULLET_SPEED: real = 500.0;
 #[class(init, base=Node2D)]
 pub struct ProjectileEnemy {
     velocity: Vector2,
+    player_pos: Vector2,
     shoot_cooldown: Timer,
     patrol_comp: PatrolComponent,
     speeds: SpeedComponent,
     direction: PlatformerDirection,
     stats: CharacterStats,
-    state: statig::blocking::StateMachine<EnemyStateMachine>,
+    state: statig::blocking::StateMachine<enemy_state_machine::EnemyStateMachine>,
     timers: EnemyTimers,
     base: Base<Node2D>,
     #[init(load = "res://projectile.tscn")]
@@ -55,15 +49,15 @@ impl INode2D for ProjectileEnemy {
 
     fn process(&mut self, _delta: f64) {
         match self.state.state() {
-            enemy_state_machine::State::Idle {} => self.idle(),
-            enemy_state_machine::State::Attack2 { player } => {
-                self.chain_attack(player.clone());
+            State::Idle {} => self.idle(),
+            State::Attack2 {} => {
+                self.chain_attack();
             }
-            enemy_state_machine::State::ChasePlayer { player } => self.chase_player(player.clone()),
-            enemy_state_machine::State::Patrol {} => self.patrol(),
-            enemy_state_machine::State::Falling {} => (),
-            enemy_state_machine::State::Attack { player } => {
-                self.attack(player.clone());
+            State::ChasePlayer {} => self.chase_player(),
+            State::Patrol {} => self.patrol(),
+            State::Falling {} => (),
+            State::Attack {} => {
+                self.attack();
             }
         }
         self.update_timers();
@@ -76,15 +70,15 @@ impl ProjectileEnemy {
         let position = self.base().get_global_position();
         let mut bullet = self
             .projectile_scene
-            .instantiate_as::<enemies::projectile::Projectile>();
+            .instantiate_as::<super::projectile::Projectile>();
         let target = position.direction_to(target).normalized_or_zero();
         bullet.bind_mut().velocity = target * BULLET_SPEED;
         self.base_mut()
             .call_deferred("add_child", &[bullet.to_variant()]);
     }
 
-    fn attack(&mut self, player: Gd<MainCharacter>) {
-        let target = player.get_global_position();
+    fn attack(&mut self) {
+        let target = self.get_player_pos();
         let time = self.timers.attack_animation.value;
         let delta = self.base().get_process_delta_time() as f32;
         let attack_cooldown = self.timers.attack_cooldown.clone();
@@ -102,7 +96,7 @@ impl ProjectileEnemy {
         }
     }
 
-    fn chain_attack(&mut self, _player: Gd<MainCharacter>) {
+    fn chain_attack(&mut self) {
         let time = self.timers.chain_attack.value;
         let delta = self.base().get_process_delta_time() as f32;
         self.timers.chain_attack.value -= delta;
@@ -128,7 +122,7 @@ impl ProjectileEnemy {
 }
 
 #[godot_dyn]
-impl CharacterResources for ProjectileEnemy {
+impl traits::character_resources::CharacterResources for ProjectileEnemy {
     fn get_health(&self) -> u32 {
         self.stats.health
     }
@@ -155,34 +149,43 @@ impl CharacterResources for ProjectileEnemy {
 }
 
 #[godot_dyn]
-impl Damageable for ProjectileEnemy {
+impl traits::damageable::Damageable for ProjectileEnemy {
     fn destroy(&mut self) {
         self.base_mut().queue_free();
     }
 }
 
-impl character_components::has_state::HasState for ProjectileEnemy {
-    fn sm_mut(&mut self) -> &mut statig::prelude::StateMachine<EnemyStateMachine> {
+impl traits::has_state::HasState for ProjectileEnemy {
+    fn sm_mut(
+        &mut self,
+    ) -> &mut statig::prelude::StateMachine<enemy_state_machine::EnemyStateMachine> {
         &mut self.state
     }
 
-    fn sm(&self) -> &statig::prelude::StateMachine<EnemyStateMachine> {
+    fn sm(&self) -> &statig::prelude::StateMachine<enemy_state_machine::EnemyStateMachine> {
         &self.state
     }
 }
 
-impl character_components::has_aggro::HasAggroArea for ProjectileEnemy {}
+impl traits::has_aggro::HasAggroArea for ProjectileEnemy {
+    fn set_player_pos(&mut self, player_pos: Vector2) {
+        self.player_pos = player_pos;
+    }
+    fn get_player_pos(&self) -> Vector2 {
+        self.player_pos
+    }
+}
 
-impl character_components::has_hitbox::HasEnemyHitbox for ProjectileEnemy {}
+impl traits::has_hitbox::HasEnemyHitbox for ProjectileEnemy {}
 
-impl character_components::moveable::MoveableEntity for ProjectileEnemy {}
+impl traits::moveable::MoveableEntity for ProjectileEnemy {}
 
-impl character_components::animatable::Animatable for ProjectileEnemy {
+impl traits::animatable::Animatable for ProjectileEnemy {
     fn get_anim_player(&self) -> Gd<godot::classes::AnimationPlayer> {
         self.animation_player.clone()
     }
 
-    fn get_direction(&self) -> crate::components::state_machines::movements::PlatformerDirection {
+    fn get_direction(&self) -> PlatformerDirection {
         self.direction.clone()
     }
 
@@ -193,12 +196,12 @@ impl character_components::animatable::Animatable for ProjectileEnemy {
     }
 }
 
-impl character_components::enemy_state_ext::EnemyEntityStateMachineExt for ProjectileEnemy {
-    fn timers(&mut self) -> &mut crate::classes::components::timer_component::EnemyTimers {
+impl traits::enemy_state_ext::EnemyEntityStateMachineExt for ProjectileEnemy {
+    fn timers(&mut self) -> &mut EnemyTimers {
         &mut self.timers
     }
-    fn attack(&mut self, player: Gd<MainCharacter>) {
-        let target = player.get_global_position();
+    fn attack(&mut self) {
+        let target = self.player_pos;
         let time = self.timers.attack_animation.value;
         let delta = self.base().get_process_delta_time() as f32;
         let attack_cooldown = self.timers.attack_cooldown.clone();
@@ -217,7 +220,7 @@ impl character_components::enemy_state_ext::EnemyEntityStateMachineExt for Proje
         }
     }
 
-    fn chain_attack(&mut self, _player: Gd<MainCharacter>) {
+    fn chain_attack(&mut self) {
         let time = self.timers.chain_attack.value;
         let delta = self.base().get_process_delta_time() as f32;
         self.timers.chain_attack.value -= delta;
@@ -237,7 +240,7 @@ impl character_components::enemy_state_ext::EnemyEntityStateMachineExt for Proje
         self.velocity = velocity;
     }
 
-    fn speeds(&self) -> crate::classes::components::speed_component::SpeedComponent {
+    fn speeds(&self) -> godot_traits::speed_component::SpeedComponent {
         self.speeds.clone()
     }
 

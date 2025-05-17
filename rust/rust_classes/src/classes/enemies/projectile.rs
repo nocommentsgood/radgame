@@ -1,8 +1,6 @@
 use godot::prelude::*;
 
-use crate::classes::components::hurtbox::Hurtbox;
-use crate::classes::components::timer_component::Timer;
-use crate::utils::collision_layers;
+use godot_traits::{collision_layers, timer_component::Timer, traits::hurtbox::Hurtbox};
 
 #[derive(GodotClass)]
 #[class(init, base=Node2D)]

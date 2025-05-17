@@ -6,6 +6,7 @@ pub mod enemy_state_ext;
 pub mod has_aggro;
 pub mod has_hitbox;
 pub mod has_state;
+pub mod hurtbox;
 pub mod moveable;
 pub mod player;
 pub mod player_moveable;

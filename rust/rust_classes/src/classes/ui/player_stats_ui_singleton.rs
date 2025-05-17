@@ -1,6 +1,6 @@
 use godot::prelude::*;
 
-use crate::classes::characters::{health_bar::HealthBar, main_character::MainCharacter};
+use crate::classes::main_character::{health_bar::HealthBar, main_character::MainCharacter};
 
 /// A singleton responsible for handling signals to and from the player character stats and their
 /// relative UI.

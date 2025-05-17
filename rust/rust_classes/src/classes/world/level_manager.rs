@@ -1,13 +1,9 @@
 use godot::prelude::*;
+use godot_traits::{item::*, item_component::ItemComponent};
 
-use crate::{
-    classes::characters::main_character::MainCharacter, components::managers::item::GameItem,
-};
+use crate::classes::main_character::main_character;
 
-use super::{
-    item::{Item, ItemType, SpEffect, Tier},
-    item_component::ItemComponent,
-};
+use super::wave_2::Wave2;
 
 #[derive(GodotClass)]
 #[class(init, base=Node)]
@@ -19,7 +15,7 @@ struct LevelManager {
     #[init(val = OnReady::from_loaded("res://wave_2.tscn"))]
     wave_2: OnReady<Gd<PackedScene>>,
     #[init(node = "MainCharacter")]
-    player: OnReady<Gd<MainCharacter>>,
+    player: OnReady<Gd<main_character::MainCharacter>>,
     base: Base<Node>,
 }
 
@@ -73,9 +69,7 @@ impl LevelManager {
         self.kill_count += 1;
 
         if self.kill_count < 3 {
-            let wave_2 = self
-                .wave_2
-                .instantiate_as::<crate::classes::scenes::wave_2::Wave2>();
+            let wave_2 = self.wave_2.instantiate_as::<Wave2>();
             self.base_mut().add_child(&wave_2);
         }
     }

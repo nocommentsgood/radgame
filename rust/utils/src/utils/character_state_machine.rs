@@ -1,3 +1,4 @@
+use super::state_machine_events::Event;
 use statig::blocking::*;
 
 #[derive(Default, Debug, Clone)]
@@ -20,24 +21,24 @@ impl std::fmt::Display for State {
     }
 }
 
-#[derive(Debug, Default, PartialEq, Clone)]
-pub enum Event {
-    Wasd,
-    WasdJustPressed,
-    DodgeButton,
-    AttackButton,
-    JumpButton,
-    ParryButton,
-    GrabbedLedge,
-    HealingButton,
-    FailedFloorCheck,
-    ActionReleasedEarly,
-    TimerElapsed,
-    TimerInProgress,
-    OnFloor,
-    #[default]
-    None,
-}
+// #[derive(Debug, Default, PartialEq, Clone)]
+// pub enum Event {
+//     Wasd,
+//     WasdJustPressed,
+//     DodgeButton,
+//     AttackButton,
+//     JumpButton,
+//     ParryButton,
+//     GrabbedLedge,
+//     HealingButton,
+//     FailedFloorCheck,
+//     ActionReleasedEarly,
+//     TimerElapsed,
+//     TimerInProgress,
+//     OnFloor,
+//     #[default]
+//     None,
+// }
 
 #[state_machine(initial = "State::idle()", state(derive(Debug, Clone)))]
 impl CharacterStateMachine {

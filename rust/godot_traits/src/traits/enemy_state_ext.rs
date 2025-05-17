@@ -1,31 +1,30 @@
 use godot::builtin::Vector2;
-use godot::obj::{Gd, Inherits, WithBaseField};
-
-use crate::classes::characters::main_character::MainCharacter;
-use crate::classes::components::speed_component::SpeedComponent;
-use crate::classes::components::timer_component as timers;
-use crate::classes::enemies::patrol_component::PatrolComponent;
-use crate::components::state_machines::enemy_state_machine;
-
-use super::moveable::{MoveableCharacter, MoveableEntity};
+use godot::classes::Node2D;
+use godot::obj::{Inherits, WithBaseField};
+use utils::components::{
+    patrol_component::PatrolComponent, speed_component::SpeedComponent,
+    timer_component::EnemyTimers,
+};
+use utils::utils::state_machine_events;
 
 // TODO: Find a way to conditionally implement traits? Possibly making it generic. Mostly for
 // MoveableCharacter versus MoveableEntity
 
 /// Implement on types that use an EnemyStateMachine
 /// For types without a base field of CharacterBody2D, see 'EnemyEntityStateMachineExt'.
-pub trait EnemyCharacterStateMachineExt: super::has_state::HasState + MoveableCharacter
+pub trait EnemyCharacterStateMachineExt:
+    super::has_state::HasState + super::moveable::MoveableCharacter + super::has_aggro::HasAggroArea
 where
     Self: Inherits<godot::classes::Node2D>
         + WithBaseField<Base: Inherits<godot::classes::CharacterBody2D>>,
 {
-    fn timers(&mut self) -> &mut timers::EnemyTimers;
+    fn timers(&mut self) -> &mut EnemyTimers;
     fn get_velocity(&self) -> Vector2;
     fn set_velocity(&mut self, velocity: Vector2);
     fn speeds(&self) -> SpeedComponent;
     fn patrol_comp(&self) -> PatrolComponent;
 
-    fn attack(&mut self, _player: Gd<MainCharacter>) {
+    fn attack(&mut self) {
         let time = self.timers().attack_animation.value;
         let delta = self
             .base()
@@ -38,9 +37,8 @@ where
 
         if time <= 0.0 {
             self.timers().attack_animation.reset();
-            self.sm_mut().handle(
-                &crate::components::state_machines::enemy_state_machine::EnemyEvent::TimerElapsed,
-            );
+            self.sm_mut()
+                .handle(&state_machine_events::EnemyEvent::TimerElapsed);
         }
     }
 
@@ -51,11 +49,11 @@ where
 
         if self.base().is_on_floor() {
             self.sm_mut()
-                .handle(&enemy_state_machine::EnemyEvent::OnFloor);
+                .handle(&state_machine_events::EnemyEvent::OnFloor);
         }
     }
 
-    fn chain_attack(&mut self, _player: Gd<MainCharacter>) {
+    fn chain_attack(&mut self) {
         let time = self.timers().chain_attack.value;
         let delta = self.base().get_physics_process_delta_time() as f32;
         let velocity = self.get_velocity();
@@ -66,7 +64,7 @@ where
         if time <= 0.0 {
             self.timers().chain_attack.reset();
             self.sm_mut()
-                .handle(&enemy_state_machine::EnemyEvent::TimerElapsed);
+                .handle(&state_machine_events::EnemyEvent::TimerElapsed);
         }
     }
 
@@ -83,7 +81,7 @@ where
         if time <= 0.0 {
             self.timers().patrol.reset();
             self.sm_mut()
-                .handle(&enemy_state_machine::EnemyEvent::TimerElapsed);
+                .handle(&state_machine_events::EnemyEvent::TimerElapsed);
         }
     }
 
@@ -101,19 +99,21 @@ where
                     .get_furthest_distance(self.base().get_global_position()),
             );
             self.sm_mut()
-                .handle(&enemy_state_machine::EnemyEvent::TimerElapsed);
+                .handle(&state_machine_events::EnemyEvent::TimerElapsed);
         }
     }
 
-    fn chase_player(&mut self, player: Gd<MainCharacter>) {
+    fn chase_player(&mut self) {
         let attack_range = self
             .base()
             .get_node_as::<godot::classes::Area2D>("EnemySensors/AttackArea");
         let delta = self.base().get_physics_process_delta_time() as f32;
         let speed = self.speeds().aggro;
-        let player_position = player.get_position();
         let velocity = Vector2::new(
-            self.base().get_position().direction_to(player_position).x,
+            self.base()
+                .get_position()
+                .direction_to(self.get_player_pos())
+                .x,
             0.0,
         );
         self.set_velocity(velocity);
@@ -125,22 +125,23 @@ where
         {
             self.timers().attack_cooldown.value -= delta;
             self.sm_mut()
-                .handle(&enemy_state_machine::EnemyEvent::InAttackRange);
+                .handle(&state_machine_events::EnemyEvent::InAttackRange);
         }
     }
 }
 
-pub trait EnemyEntityStateMachineExt: super::has_state::HasState + MoveableEntity
+pub trait EnemyEntityStateMachineExt:
+    super::has_state::HasState + super::has_aggro::HasAggroArea + super::moveable::MoveableEntity
 where
     Self: Inherits<godot::classes::Node2D> + WithBaseField<Base: Inherits<godot::classes::Node2D>>,
 {
-    fn timers(&mut self) -> &mut timers::EnemyTimers;
+    fn timers(&mut self) -> &mut EnemyTimers;
     fn get_velocity(&self) -> Vector2;
     fn set_velocity(&mut self, velocity: Vector2);
     fn speeds(&self) -> SpeedComponent;
     fn patrol_comp(&self) -> PatrolComponent;
 
-    fn attack(&mut self, _player: Gd<MainCharacter>) {
+    fn attack(&mut self) {
         let time = self.timers().attack_animation.value;
         let delta = self
             .base()
@@ -153,15 +154,14 @@ where
 
         if time <= 0.0 {
             self.timers().attack_animation.reset();
-            self.sm_mut().handle(
-                &crate::components::state_machines::enemy_state_machine::EnemyEvent::TimerElapsed,
-            );
+            self.sm_mut()
+                .handle(&state_machine_events::EnemyEvent::TimerElapsed);
         }
     }
 
-    fn chain_attack(&mut self, _player: Gd<MainCharacter>) {
+    fn chain_attack(&mut self) {
         let time = self.timers().chain_attack.value;
-        let delta = self.base().upcast_ref().get_process_delta_time() as f32;
+        let delta = self.base().upcast_ref::<Node2D>().get_process_delta_time() as f32;
         let speed = self.speeds().attack;
         let velocity = self.get_velocity() * speed;
         self.timers().chain_attack.value -= delta;
@@ -170,7 +170,7 @@ where
         if time <= 0.0 {
             self.timers().chain_attack.reset();
             self.sm_mut()
-                .handle(&enemy_state_machine::EnemyEvent::TimerElapsed);
+                .handle(&state_machine_events::EnemyEvent::TimerElapsed);
         }
     }
 
@@ -178,7 +178,7 @@ where
         let time = self.timers().patrol.value;
         let speed = self.speeds().patrol;
         let velocity = self.get_velocity() * speed;
-        let delta = self.base().upcast_ref().get_process_delta_time() as f32;
+        let delta = self.base().upcast_ref::<Node2D>().get_process_delta_time() as f32;
 
         self.update_direction();
         self.move_to(&velocity);
@@ -187,13 +187,13 @@ where
         if time <= 0.0 {
             self.timers().patrol.reset();
             self.sm_mut()
-                .handle(&enemy_state_machine::EnemyEvent::TimerElapsed);
+                .handle(&state_machine_events::EnemyEvent::TimerElapsed);
         }
     }
 
     fn idle(&mut self) {
         let time = self.timers().idle.value;
-        let delta = self.base().upcast_ref().get_process_delta_time() as f32;
+        let delta = self.base().upcast_ref::<Node2D>().get_process_delta_time() as f32;
         let velocity = Vector2::ZERO;
 
         self.move_to(&velocity);
@@ -202,27 +202,27 @@ where
         if time <= 0.0 {
             self.timers().idle.reset();
             self.set_velocity(
-                self.patrol_comp()
-                    .get_furthest_distance(self.base().upcast_ref().get_global_position()),
+                self.patrol_comp().get_furthest_distance(
+                    self.base().upcast_ref::<Node2D>().get_global_position(),
+                ),
             );
             self.sm_mut()
-                .handle(&enemy_state_machine::EnemyEvent::TimerElapsed);
+                .handle(&state_machine_events::EnemyEvent::TimerElapsed);
         }
     }
 
-    fn chase_player(&mut self, player: Gd<MainCharacter>) {
+    fn chase_player(&mut self) {
         let attack_range = self
             .base()
-            .upcast_ref()
+            .upcast_ref::<Node2D>()
             .get_node_as::<godot::classes::Area2D>("EnemySensors/AttackArea");
-        let delta = self.base().upcast_ref().get_process_delta_time() as f32;
+        let delta = self.base().upcast_ref::<Node2D>().get_process_delta_time() as f32;
         let speed = self.speeds().aggro;
-        let player_position = player.get_position();
         let velocity = Vector2::new(
             self.base()
-                .upcast_ref()
+                .upcast_ref::<Node2D>()
                 .get_position()
-                .direction_to(player_position)
+                .direction_to(self.get_player_pos())
                 .x,
             0.0,
         ) * speed;
@@ -235,7 +235,7 @@ where
         {
             self.timers().attack_cooldown.value -= delta;
             self.sm_mut()
-                .handle(&enemy_state_machine::EnemyEvent::InAttackRange);
+                .handle(&state_machine_events::EnemyEvent::InAttackRange);
         }
     }
 }

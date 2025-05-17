@@ -1,7 +1,7 @@
 use godot::{
     classes::Area2D,
     obj::Base,
-    prelude::{godot_dyn, GodotClass},
+    prelude::{GodotClass, godot_dyn},
 };
 
 #[derive(GodotClass)]
@@ -12,8 +12,10 @@ pub struct Hurtbox {
     base: Base<Area2D>,
 }
 
+// TODO: Remove 'godot_dyn' and experiement with Rust's dyn traits. For example using Box<dyn
+// Damaging>.
 #[godot_dyn]
-impl Damaging for Hurtbox {
+impl super::damaging::Damaging for Hurtbox {
     fn damage_amount(&self) -> u32 {
         self.attack_damage
     }

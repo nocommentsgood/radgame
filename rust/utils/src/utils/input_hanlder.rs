@@ -1,4 +1,29 @@
+use crate::utils::state_machine_events::Event;
 use godot::{builtin::Vector2, classes::Input, obj::Gd};
+
+#[derive(Default, Debug, Clone, PartialEq)]
+pub enum PlatformerDirection {
+    #[default]
+    East,
+    West,
+}
+impl std::fmt::Display for PlatformerDirection {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            PlatformerDirection::East => write!(f, "east"),
+            PlatformerDirection::West => write!(f, "west"),
+        }
+    }
+}
+impl PlatformerDirection {
+    pub fn from_platformer_velocity(velocity: &Vector2) -> PlatformerDirection {
+        if velocity.x < 0.0 {
+            PlatformerDirection::West
+        } else {
+            PlatformerDirection::East
+        }
+    }
+}
 
 #[derive(Default, Clone)]
 pub struct InputHandler;

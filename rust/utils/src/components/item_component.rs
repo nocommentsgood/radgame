@@ -1,6 +1,5 @@
-use crate::classes::world::GameItem;
+use super::item::GameItem;
 use godot::{classes::InputEvent, prelude::*};
-extern crate godot;
 
 #[derive(GodotClass)]
 #[class(init, base=Node)]
@@ -43,7 +42,7 @@ impl ItemComponent {
             let item = self.item.clone();
             if let Some(mut item) = item {
                 self.items.push(item.clone());
-                self.signals().picked_up_item().emit(item.clone());
+                self.signals().picked_up_item().emit(&item.clone());
                 item.bind_mut().picked_up();
                 self.in_item_area = false;
             }

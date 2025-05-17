@@ -6,7 +6,7 @@ pub trait Animatable: HasState {
 
     // TODO: Although this fn is relevant when dealing with animations, maybe it would be better
     // implemented in a different trait, which could be used as a supertrait.
-    fn get_direction(&self) -> PlatformerDirection;
+    fn get_direction(&self) -> utils::utils::input_hanlder::PlatformerDirection;
     fn update_direction(&mut self);
 
     fn current_animation(&self) -> String {

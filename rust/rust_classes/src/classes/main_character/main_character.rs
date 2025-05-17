@@ -6,26 +6,21 @@ use godot::{
     obj::WithBaseField,
     prelude::*,
 };
-
-use crate::{
-    classes::enemies::projectile::Projectile,
-    components::{
-        managers::{input_hanlder::InputHandler, item_component::ItemComponent},
-        state_machines::{
-            character_state_machine::{self, *},
-            movements::PlatformerDirection,
-        },
-    },
-    traits::components::character_components::{
-        character_resources::CharacterResources, damageable::Damageable, damaging::Damaging,
-        player::Player,
-    },
+use godot_traits::{
+    character_state_machine::{self, CharacterStateMachine},
+    input_hanlder::{InputHandler, PlatformerDirection},
+    item_component::ItemComponent,
+    state_machine_events,
+    stats::CharacterStats,
+    timer_component::PlayerTimers,
+    traits::{character_resources::CharacterResources, damageable::Damageable, damaging::Damaging},
 };
 
-use super::character_stats::CharacterStats;
-use crate::classes::components::timer_component::PlayerTimers;
+use crate::classes::enemies::projectile::Projectile;
 
-type Event = crate::components::state_machines::character_state_machine::Event;
+type Event = state_machine_events::Event;
+type State = character_state_machine::State;
+
 const GRAVITY: f32 = 1100.0;
 
 #[derive(GodotClass)]
@@ -397,35 +392,33 @@ impl MainCharacter {
 
     fn parried_attack(&mut self, area: Gd<Area2D>) -> bool {
         match self.state.state() {
-            State::Parry {} => {
-                if self.timers.perfect_parry_timer.value > 0.0 {
-                    println!("\nPERFECT PARRY\n");
-                    if area.is_in_group("enemy_projectile") {
-                        if let Some(parent) = area.get_parent() {
-                            if let Ok(mut projectile) = parent.try_cast::<Projectile>() {
-                                projectile.bind_mut().on_parried();
-                            }
+            State::Parry {} if self.timers.perfect_parry_timer.value > 0.0 => {
+                println!("\nPERFECT PARRY\n");
+                if area.is_in_group("enemy_projectile") {
+                    if let Some(parent) = area.get_parent() {
+                        if let Ok(mut projectile) = parent.try_cast::<Projectile>() {
+                            projectile.bind_mut().on_parried();
                         }
                     }
-                    self.signals().parried_attack().emit();
-                    self.timers.perfect_parry_timer.reset();
-                    true
-                } else if self.timers.parry_timer.value > 0.0 {
-                    println!("\nNORMAL PARRY\n");
-                    if area.is_in_group("enemy_projectile") {
-                        if let Some(parent) = area.get_parent() {
-                            if let Ok(mut projectile) = parent.try_cast::<Projectile>() {
-                                projectile.bind_mut().on_parried();
-                            }
-                        }
-                    }
-                    self.signals().parried_attack().emit();
-                    self.timers.parry_timer.reset();
-                    true
-                } else {
-                    false
                 }
+                self.signals().parried_attack().emit();
+                self.timers.perfect_parry_timer.reset();
+                true
             }
+            State::Parry {} if self.timers.parry_timer.value > 0.0 => {
+                println!("\nNORMAL PARRY\n");
+                if area.is_in_group("enemy_projectile") {
+                    if let Some(parent) = area.get_parent() {
+                        if let Ok(mut projectile) = parent.try_cast::<Projectile>() {
+                            projectile.bind_mut().on_parried();
+                        }
+                    }
+                }
+                self.signals().parried_attack().emit();
+                self.timers.parry_timer.reset();
+                true
+            }
+            State::Parry {} => false,
             _ => false,
         }
     }
@@ -452,7 +445,7 @@ impl MainCharacter {
 }
 
 #[godot_dyn]
-impl CharacterResources for MainCharacter {
+impl godot_traits::traits::character_resources::CharacterResources for MainCharacter {
     fn get_health(&self) -> u32 {
         self.stats.health
     }
@@ -510,4 +503,4 @@ impl Damaging for MainCharacter {
 }
 
 #[godot_dyn]
-impl Player for MainCharacter {}
+impl godot_traits::traits::player::Player for MainCharacter {}

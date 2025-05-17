@@ -218,6 +218,7 @@ version = "0.1.0"
 dependencies = [
  "godot",
  "godot_traits",
+ "statig",
 ]
 
 [[package]]
@@ -263,6 +264,7 @@ name = "utils"
 version = "0.1.0"
 dependencies = [
  "godot",
+ "statig",
 ]
 
 [[package]]
