@@ -1,5 +1,5 @@
 [workspace]
-members = ["godot_traits", "rust_classes", "utils"]
+members = ["godot_traits", "rust_classes", "utils", "."]
 
 [package]
 name = "rust"
@@ -11,3 +11,6 @@ crate-type = ["cdylib"]
 
 [dependencies]
 godot = { git = "https://github.com/godot-rust/gdext", branch = "master" }
+godot_traits = { path = "./godot_traits" }
+utils = { path = "./utils" }
+rust_classes = { path = "./rust_classes" }

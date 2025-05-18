@@ -210,6 +210,9 @@ name = "rust"
 version = "0.1.0"
 dependencies = [
  "godot",
+ "godot_traits",
+ "rust_classes",
+ "utils",
 ]
 
 [[package]]
