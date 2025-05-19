@@ -18,10 +18,12 @@ where
     fn create_timer(&mut self) {
         let mut timer = self
             .base()
-            .upcast_ref()
+            .upcast_ref::<godot::classes::Node>()
             .get_tree()
             .unwrap()
-            .create_timer(0.2)
+            .create_timer_ex(0.2)
+            .process_in_physics(true)
+            .done()
             .unwrap();
 
         let this = self.to_gd();
@@ -41,11 +43,14 @@ where
             let areas = aggro_area.get_overlapping_areas();
             for area in areas.iter_shared() {
                 self.set_player_pos(area.get_global_position());
+                println!("got aggro area pos: {}", area.get_global_position());
             }
         }
     }
 
-    fn on_aggro_area_entered(&mut self, _area: Gd<Area2D>) {
+    fn on_aggro_area_entered(&mut self, area: Gd<Area2D>) {
+        let position = area.get_global_position();
+        self.set_player_pos(position);
         self.sm_mut()
             .handle(&state_machine_events::EnemyEvent::FoundPlayer);
     }

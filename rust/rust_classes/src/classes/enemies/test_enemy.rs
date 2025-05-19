@@ -43,11 +43,12 @@ impl ICharacterBody2D for TestEnemy {
         self.connect_aggro_area_signal();
         self.connect_hitbox_signal();
         self.timers = EnemyTimers::new(1.8, 2.0, 2.7, 2.0, 4.0);
+        self.create_timer();
     }
 
     fn physics_process(&mut self, _delta: f64) {
         self.check_floor();
-        // dbg!(&self.state.state());
+        dbg!(&self.state.state());
 
         match self.state.state() {
             enemy_state_machine::State::Idle {} => self.idle(),
