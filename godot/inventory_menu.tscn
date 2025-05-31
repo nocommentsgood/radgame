@@ -4,11 +4,15 @@
 bg_color = Color(0.677412, 0.486476, 0.937374, 1)
 
 [node name="panelcon" type="PanelContainer"]
-offset_right = 226.0
-offset_bottom = 535.0
+offset_right = 640.0
+offset_bottom = 360.0
+size_flags_horizontal = 0
+size_flags_vertical = 0
 
 [node name="TabContainer" type="TabContainer" parent="."]
 layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
 tab_alignment = 1
 current_tab = 1
 all_tabs_in_front = true

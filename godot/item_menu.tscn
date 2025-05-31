@@ -1,0 +1,76 @@
+[gd_scene format=3 uid="uid://1i4j8dd082bp"]
+
+[node name="PanelContainer" type="PanelContainer"]
+offset_right = 640.0
+offset_bottom = 360.0
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+layout_mode = 2
+theme_override_constants/margin_left = 25
+theme_override_constants/margin_top = 25
+theme_override_constants/margin_right = 25
+theme_override_constants/margin_bottom = 25
+
+[node name="TabContainer" type="TabContainer" parent="MarginContainer"]
+layout_mode = 2
+tab_alignment = 1
+current_tab = 0
+clip_tabs = false
+
+[node name="MarginContainer" type="MarginContainer" parent="MarginContainer/TabContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 20
+metadata/_tab_index = 0
+
+[node name="GridContainer" type="GridContainer" parent="MarginContainer/TabContainer/MarginContainer"]
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+theme_override_constants/h_separation = 20
+theme_override_constants/v_separation = 15
+columns = 3
+
+[node name="Label" type="Label" parent="MarginContainer/TabContainer/MarginContainer/GridContainer"]
+layout_mode = 2
+size_flags_horizontal = 4
+text = "lable 1"
+
+[node name="Label2" type="Label" parent="MarginContainer/TabContainer/MarginContainer/GridContainer"]
+layout_mode = 2
+text = "label 2"
+
+[node name="Label3" type="Label" parent="MarginContainer/TabContainer/MarginContainer/GridContainer"]
+layout_mode = 2
+text = "label 3"
+
+[node name="Label4" type="Label" parent="MarginContainer/TabContainer/MarginContainer/GridContainer"]
+layout_mode = 2
+text = "label4"
+
+[node name="Label5" type="Label" parent="MarginContainer/TabContainer/MarginContainer/GridContainer"]
+layout_mode = 2
+text = "label5"
+
+[node name="Label6" type="Label" parent="MarginContainer/TabContainer/MarginContainer/GridContainer"]
+layout_mode = 2
+text = "label6"
+
+[node name="Label7" type="Label" parent="MarginContainer/TabContainer/MarginContainer/GridContainer"]
+layout_mode = 2
+text = "label7"
+
+[node name="Label8" type="Label" parent="MarginContainer/TabContainer/MarginContainer/GridContainer"]
+layout_mode = 2
+text = "label8"
+
+[node name="Label9" type="Label" parent="MarginContainer/TabContainer/MarginContainer/GridContainer"]
+layout_mode = 2
+text = "label9"
+
+[node name="GridContainer2" type="GridContainer" parent="MarginContainer/TabContainer"]
+visible = false
+layout_mode = 2
+metadata/_tab_index = 1
