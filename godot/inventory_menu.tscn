@@ -1,0 +1,91 @@
+[gd_scene load_steps=2 format=3 uid="uid://dtq8nx83hxygq"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_nxc48"]
+bg_color = Color(0.677412, 0.486476, 0.937374, 1)
+
+[node name="panelcon" type="PanelContainer"]
+offset_right = 226.0
+offset_bottom = 535.0
+
+[node name="TabContainer" type="TabContainer" parent="."]
+layout_mode = 2
+tab_alignment = 1
+current_tab = 1
+all_tabs_in_front = true
+
+[node name="Button2" type="Button" parent="TabContainer"]
+visible = false
+layout_mode = 2
+text = "button2"
+metadata/_tab_index = 0
+
+[node name="PanelContainer" type="PanelContainer" parent="TabContainer"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_nxc48")
+metadata/_tab_index = 1
+
+[node name="VBoxContainer" type="VBoxContainer" parent="TabContainer/PanelContainer"]
+layout_mode = 2
+alignment = 1
+
+[node name="VScrollBar" type="ScrollContainer" parent="TabContainer/PanelContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="CenterContainer" type="CenterContainer" parent="TabContainer/PanelContainer/VBoxContainer/VScrollBar"]
+custom_minimum_size = Vector2(500, 50)
+layout_mode = 2
+size_flags_vertical = 4
+
+[node name="TextEdit" type="TextEdit" parent="TabContainer/PanelContainer/VBoxContainer/VScrollBar/CenterContainer"]
+custom_minimum_size = Vector2(500, 100)
+layout_mode = 2
+text = "hello
+this is a test that i am writing phsyu aphfuepuh apuhfd aphufdpua hupadufhhupa 
+auhdfa"
+placeholder_text = "placeholder text"
+editable = false
+context_menu_enabled = false
+emoji_menu_enabled = false
+wrap_mode = 1
+
+[node name="grid" type="GridContainer" parent="TabContainer/PanelContainer/VBoxContainer"]
+custom_minimum_size = Vector2(0, 500)
+layout_mode = 2
+columns = 3
+
+[node name="Button0" type="Button" parent="TabContainer/PanelContainer/VBoxContainer/grid"]
+layout_mode = 2
+text = "button0"
+
+[node name="Button1" type="Button" parent="TabContainer/PanelContainer/VBoxContainer/grid"]
+layout_mode = 2
+text = "button1"
+
+[node name="Button2" type="Button" parent="TabContainer/PanelContainer/VBoxContainer/grid"]
+layout_mode = 2
+text = "button 2"
+
+[node name="Button3" type="Button" parent="TabContainer/PanelContainer/VBoxContainer/grid"]
+layout_mode = 2
+text = "button 3"
+
+[node name="Button4" type="Button" parent="TabContainer/PanelContainer/VBoxContainer/grid"]
+layout_mode = 2
+text = "button4"
+
+[node name="Button5" type="Button" parent="TabContainer/PanelContainer/VBoxContainer/grid"]
+layout_mode = 2
+text = "button5"
+
+[node name="Button6" type="Button" parent="TabContainer/PanelContainer/VBoxContainer/grid"]
+layout_mode = 2
+text = "button6"
+
+[node name="Button7" type="Button" parent="TabContainer/PanelContainer/VBoxContainer/grid"]
+layout_mode = 2
+text = "button7"
+
+[node name="Button8" type="Button" parent="TabContainer/PanelContainer/VBoxContainer/grid"]
+layout_mode = 2
+text = "button8"

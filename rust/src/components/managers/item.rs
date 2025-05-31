@@ -8,18 +8,20 @@ use crate::{
     utils::collision_layers::CollisionLayers,
 };
 
+#[derive(Clone, Debug, PartialEq)]
 pub enum Tier {
     One,
     Two,
     Three,
 }
 
+#[derive(Clone, Debug, PartialEq)]
 pub enum SpEffect {
     IncreaseDashInvul(Tier),
     DecreaseAttackCooldown(Tier),
 }
 
-#[derive(Default)]
+#[derive(Default, Clone, Debug, PartialEq)]
 pub enum ItemType {
     #[default]
     Misc,
@@ -35,7 +37,7 @@ pub enum ItemType {
     },
 }
 
-#[derive(Default)]
+#[derive(Default, Clone, Debug, PartialEq)]
 pub struct Item {
     pub ty: ItemType,
     pub name: String,
@@ -51,7 +53,7 @@ impl Item {
 #[derive(GodotClass)]
 #[class(init, base=Node2D)]
 pub struct GameItem {
-    item: Item,
+    pub item: Item,
     location: Vector2i,
     base: Base<Node2D>,
 }

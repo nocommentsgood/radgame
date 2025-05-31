@@ -30,7 +30,7 @@ impl INode for LevelManager {
             Item::new(
                 ItemType::RosaryBead {
                     effect: SpEffect::IncreaseDashInvul(Tier::One),
-                    equipped: true,
+                    equipped: false,
                 },
                 "in_dash".to_string(),
                 None,
