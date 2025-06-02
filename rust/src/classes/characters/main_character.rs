@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use godot::{
     classes::{
         AnimationPlayer, Area2D, CharacterBody2D, CollisionObject2D, ICharacterBody2D, Input,
@@ -10,7 +12,9 @@ use godot::{
 use crate::{
     classes::enemies::projectile::Projectile,
     components::{
-        managers::{input_hanlder::InputHandler, item_component::ItemComponent},
+        managers::{
+            input_hanlder::InputHandler, item::StatModifier, item_component::ItemComponent,
+        },
         state_machines::{
             character_state_machine::{self, *},
             movements::PlatformerDirection,
@@ -22,7 +26,7 @@ use crate::{
     },
 };
 
-use super::character_stats::CharacterStats;
+use super::character_stats::{CharacterStats, StatVal, Stats, Stats::*};
 use crate::classes::components::timer_component::PlayerTimers;
 
 type Event = crate::components::state_machines::character_state_machine::Event;
@@ -38,6 +42,7 @@ pub struct MainCharacter {
     stats: CharacterStats,
     timers: PlayerTimers,
     state: statig::blocking::StateMachine<CharacterStateMachine>,
+    test_stats: HashMap<Stats, StatVal>,
     base: Base<CharacterBody2D>,
 
     #[init(node = "ItemComponent")]
@@ -59,6 +64,12 @@ pub struct MainCharacter {
 impl ICharacterBody2D for MainCharacter {
     fn ready(&mut self) {
         self.connect_hitbox();
+
+        let this = self.to_gd();
+        self.item_comp
+            .signals()
+            .new_modifier()
+            .connect_other(&this, Self::on_new_modifier);
 
         // TODO: Find how to get tracks for specific animations.
         // That way we can dynamically divide by scaling speed.
@@ -104,6 +115,18 @@ impl ICharacterBody2D for MainCharacter {
             self.stats.parry_length,
             self.stats.perfect_parry_length,
         );
+
+        self.test_stats.insert(Stats::Health, StatVal(50.0));
+        self.test_stats.insert(Stats::MaxHealth, StatVal(50.0));
+        self.test_stats.insert(Stats::HealAmount, StatVal(10.0));
+        self.test_stats.insert(Stats::AttackDamage, StatVal(30.0));
+        self.test_stats.insert(Stats::RunningSpeed, StatVal(150.0));
+        self.test_stats.insert(Stats::JumpingSpeed, StatVal(300.0));
+        self.test_stats.insert(Stats::DodgingSpeed, StatVal(250.0));
+        self.test_stats.insert(Stats::AttackingSpeed, StatVal(10.0));
+        self.test_stats.insert(Stats::ParryLength, StatVal(0.3));
+        self.test_stats
+            .insert(Stats::PerfectParryLength, StatVal(0.15));
     }
 
     fn unhandled_input(&mut self, input: Gd<godot::classes::InputEvent>) {
@@ -165,7 +188,7 @@ impl MainCharacter {
 
     fn connect_hitbox(&self) {
         let mut this = self.to_gd();
-        let mut hitbox = self.base().get_node_as::<Area2D>("Hitbox");
+        let hitbox = self.base().get_node_as::<Area2D>("Hitbox");
         hitbox
             .signals()
             .area_entered()
@@ -221,7 +244,7 @@ impl MainCharacter {
             self.base_mut().move_and_slide();
             self.timers.dodging_animation_timer.value -= delta;
         } else {
-            let speed = self.stats.dodging_speed;
+            let speed = self.test_stats.get(&DodgingSpeed).unwrap().0;
             let velocity = self.velocity;
 
             self.base_mut().set_velocity(velocity * speed);
@@ -294,7 +317,7 @@ impl MainCharacter {
     }
 
     fn move_character(&mut self) {
-        let target_velocity = self.velocity * self.stats.running_speed;
+        let target_velocity = self.velocity * self.test_stats.get(&RunningSpeed).unwrap().0;
         self.active_velocity = self.active_velocity.lerp(target_velocity, 0.2);
         let velocity = self.active_velocity;
 
@@ -309,14 +332,14 @@ impl MainCharacter {
         let delta = self.base().get_physics_process_delta_time() as f32;
 
         if self.base().is_on_floor() {
-            self.velocity.y = Vector2::UP.y * self.stats.jumping_speed;
-            self.velocity.x *= self.stats.running_speed;
+            self.velocity.y = Vector2::UP.y * self.test_stats.get(&JumpingSpeed).unwrap().0;
+            self.velocity.x *= self.test_stats.get(&RunningSpeed).unwrap().0;
             let velocity = self.velocity;
             self.base_mut().set_velocity(velocity);
             self.base_mut().move_and_slide();
         } else {
             self.velocity.y += GRAVITY * delta;
-            let target_x = self.velocity.x * self.stats.running_speed;
+            let target_x = self.velocity.x * self.test_stats.get(&RunningSpeed).unwrap().0;
             self.active_velocity.x = self.active_velocity.x.lerp(target_x, 0.2);
             let velocity = Vector2::new(self.active_velocity.x, self.velocity.y);
             self.update_direction();
@@ -360,7 +383,7 @@ impl MainCharacter {
         if !self.base().is_on_floor() {
             let delta = self.base().get_physics_process_delta_time() as f32;
             self.velocity.y += GRAVITY * delta;
-            self.velocity.x *= self.stats.running_speed;
+            self.velocity.x *= self.test_stats.get(&RunningSpeed).unwrap().0;
 
             let velocity = self.velocity;
             self.update_direction();
@@ -449,6 +472,13 @@ impl MainCharacter {
             self.direction = PlatformerDirection::from_platformer_velocity(&self.velocity);
         }
     }
+
+    fn on_new_modifier(&mut self, modifier: Gd<StatModifier>) {
+        if let Some(val) = self.test_stats.get_mut(&modifier.bind().stat) {
+            let x = modifier.bind().clone();
+            val.apply_modifier(x);
+        }
+    }
 }
 
 #[godot_dyn]
@@ -505,7 +535,7 @@ impl Damageable for MainCharacter {
 #[godot_dyn]
 impl Damaging for MainCharacter {
     fn damage_amount(&self) -> u32 {
-        self.stats.attack_damage
+        self.test_stats.get(&AttackDamage).unwrap().0 as u32
     }
 }
 

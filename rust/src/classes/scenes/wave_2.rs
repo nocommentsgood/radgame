@@ -15,7 +15,7 @@ impl INode for Wave2 {
         let enemies = self.base().get_children();
 
         for enemy in enemies.iter_shared() {
-            if let Ok(mut e) = enemy.try_cast::<TestEnemy>() {
+            if let Ok(e) = enemy.try_cast::<TestEnemy>() {
                 let mut this = self.to_gd();
 
                 e.signals()

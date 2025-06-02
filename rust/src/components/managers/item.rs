@@ -4,49 +4,91 @@ use godot::{
 };
 
 use crate::{
-    classes::characters::character_hitbox::CharacterHitbox,
+    classes::characters::{character_hitbox::CharacterHitbox, character_stats::Stats},
     utils::collision_layers::CollisionLayers,
 };
 
-#[derive(Clone, Debug, PartialEq)]
-pub enum Tier {
-    One,
-    Two,
-    Three,
+#[derive(GodotClass, Clone, Debug, PartialEq)]
+#[class(no_init)]
+pub struct StatModifier {
+    pub stat: Stats,
+    pub modifier: ModifierKind,
+}
+
+impl StatModifier {
+    pub fn new(stat: Stats, modifier: ModifierKind) -> Self {
+        Self { stat, modifier }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub enum SpEffect {
-    IncreaseDashInvul(Tier),
-    DecreaseAttackCooldown(Tier),
+pub enum ModifierKind {
+    Flat(f32),
+    Percent(f32),
 }
 
 #[derive(Default, Clone, Debug, PartialEq)]
-pub enum ItemType {
+pub enum ItemKind {
     #[default]
     Misc,
     RosaryKnot,
     Quest,
     Relic {
-        effect: SpEffect,
+        effect: StatModifier,
         equipped: bool,
     },
     RosaryBead {
-        effect: SpEffect,
+        effect: StatModifier,
         equipped: bool,
     },
 }
 
 #[derive(Default, Clone, Debug, PartialEq)]
 pub struct Item {
-    pub ty: ItemType,
+    pub kind: ItemKind,
     pub name: String,
     pub desc: Option<String>,
+    pub icon_path: String,
 }
 
 impl Item {
-    pub fn new(ty: ItemType, name: String, desc: Option<String>) -> Self {
-        Self { ty, name, desc }
+    pub fn new(ty: ItemKind, name: String, desc: Option<String>, icon_path: String) -> Self {
+        Self {
+            kind: ty,
+            name,
+            desc,
+            icon_path,
+        }
+    }
+
+    pub fn set_equipped(self) -> Result<Self, String> {
+        match self.kind {
+            ItemKind::Relic {
+                effect: e,
+                equipped: false,
+            } => Ok(Self {
+                kind: ItemKind::Relic {
+                    effect: e,
+                    equipped: true,
+                },
+                name: self.name,
+                desc: self.desc,
+                icon_path: self.icon_path,
+            }),
+            ItemKind::RosaryBead {
+                effect: e,
+                equipped: false,
+            } => Ok(Self {
+                kind: ItemKind::Relic {
+                    effect: e,
+                    equipped: true,
+                },
+                name: self.name,
+                desc: self.desc,
+                icon_path: self.icon_path,
+            }),
+            _ => Err("Error equipping ItemKind".to_string()),
+        }
     }
 }
 
@@ -124,7 +166,7 @@ impl GameItem {
     fn on_area_entered(&mut self, area: Gd<Area2D>) {
         if let Ok(_area) = area.try_cast::<CharacterHitbox>() {
             let this = self.to_gd();
-            self.signals().player_entered_item_area().emit(this);
+            self.signals().player_entered_item_area().emit(&this);
         }
     }
 

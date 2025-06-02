@@ -1,5 +1,7 @@
 use godot::builtin::real;
 
+use crate::components::managers::item::StatModifier;
+
 pub struct CharacterStats {
     pub health: u32,
     pub max_health: u32,
@@ -13,6 +15,36 @@ pub struct CharacterStats {
     pub attacking_speed: real,
     pub parry_length: f32,
     pub perfect_parry_length: f32,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Copy)]
+pub enum Stats {
+    Health,
+    MaxHealth,
+    HealAmount,
+    AttackDamage,
+    RunningSpeed,
+    JumpingSpeed,
+    DodgingSpeed,
+    AttackingSpeed,
+    ParryLength,
+    PerfectParryLength,
+}
+
+pub struct StatVal(pub f32);
+
+impl StatVal {
+    pub fn apply_modifier(&mut self, modifier: StatModifier) {
+        let modif = match modifier.modifier {
+            crate::components::managers::item::ModifierKind::Flat(val) => val,
+            crate::components::managers::item::ModifierKind::Percent(val) => val,
+        };
+
+        println!("prev stat val: {}", self.0);
+        let sum = self.0 * modif;
+        self.0 += sum;
+        println!("new stat val: {}", self.0);
+    }
 }
 
 impl Default for CharacterStats {
@@ -33,13 +65,14 @@ impl Default for CharacterStats {
         }
     }
 }
+
 impl CharacterStats {
-    fn healable(&self) -> bool {
+    fn can_heal(&self) -> bool {
         self.health < self.max_health
     }
 
     pub fn heal(&mut self) {
-        if self.healable() {
+        if self.can_heal() {
             self.health += self.healing_amount;
         }
     }

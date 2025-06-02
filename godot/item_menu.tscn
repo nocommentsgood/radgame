@@ -1,23 +1,34 @@
-[gd_scene format=3 uid="uid://1i4j8dd082bp"]
+[gd_scene load_steps=2 format=3 uid="uid://1i4j8dd082bp"]
 
-[node name="PanelContainer" type="PanelContainer"]
+[ext_resource type="Texture2D" uid="uid://c350iit4lopo8" path="res://assets/icon.svg" id="1_n2rwk"]
+
+[node name="CanvasLayer" type="CanvasLayer"]
+
+[node name="ItemMenu" type="InventoryMenu" parent="."]
+offset_right = 640.0
+offset_bottom = 360.0
+focus_mode = 2
+
+[node name="PanelContainer" type="PanelContainer" parent="ItemMenu"]
+layout_mode = 1
 offset_right = 640.0
 offset_bottom = 360.0
 
-[node name="MarginContainer" type="MarginContainer" parent="."]
+[node name="MarginContainer" type="MarginContainer" parent="ItemMenu/PanelContainer"]
 layout_mode = 2
 theme_override_constants/margin_left = 25
 theme_override_constants/margin_top = 25
 theme_override_constants/margin_right = 25
 theme_override_constants/margin_bottom = 25
 
-[node name="TabContainer" type="TabContainer" parent="MarginContainer"]
+[node name="TabContainer" type="TabContainer" parent="ItemMenu/PanelContainer/MarginContainer"]
 layout_mode = 2
+theme_override_constants/outline_size = 7
 tab_alignment = 1
 current_tab = 0
 clip_tabs = false
 
-[node name="MarginContainer" type="MarginContainer" parent="MarginContainer/TabContainer"]
+[node name="MarginContainer" type="MarginContainer" parent="ItemMenu/PanelContainer/MarginContainer/TabContainer"]
 layout_mode = 2
 theme_override_constants/margin_left = 20
 theme_override_constants/margin_top = 20
@@ -25,52 +36,39 @@ theme_override_constants/margin_right = 20
 theme_override_constants/margin_bottom = 20
 metadata/_tab_index = 0
 
-[node name="GridContainer" type="GridContainer" parent="MarginContainer/TabContainer/MarginContainer"]
+[node name="VBoxContainer" type="VBoxContainer" parent="ItemMenu/PanelContainer/MarginContainer/TabContainer/MarginContainer"]
 layout_mode = 2
-size_flags_horizontal = 4
-size_flags_vertical = 4
-theme_override_constants/h_separation = 20
+theme_override_constants/separation = 42
+
+[node name="ItemList" type="ItemList" parent="ItemMenu/PanelContainer/MarginContainer/TabContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
 theme_override_constants/v_separation = 15
-columns = 3
+theme_override_constants/h_separation = 20
+allow_search = false
+auto_width = true
+auto_height = true
+wraparound_items = false
+item_count = 9
+max_columns = 3
+same_column_width = true
+icon_mode = 0
+fixed_icon_size = Vector2i(32, 32)
+item_0/icon = ExtResource("1_n2rwk")
+item_1/icon = ExtResource("1_n2rwk")
+item_2/icon = ExtResource("1_n2rwk")
+item_3/icon = ExtResource("1_n2rwk")
+item_4/icon = ExtResource("1_n2rwk")
+item_5/icon = ExtResource("1_n2rwk")
+item_6/icon = ExtResource("1_n2rwk")
+item_7/icon = ExtResource("1_n2rwk")
+item_8/icon = ExtResource("1_n2rwk")
 
-[node name="Label" type="Label" parent="MarginContainer/TabContainer/MarginContainer/GridContainer"]
+[node name="ItemDescriptionLabel" type="Label" parent="ItemMenu/PanelContainer/MarginContainer/TabContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2
 size_flags_horizontal = 4
-text = "lable 1"
+text = "Item description here"
 
-[node name="Label2" type="Label" parent="MarginContainer/TabContainer/MarginContainer/GridContainer"]
-layout_mode = 2
-text = "label 2"
-
-[node name="Label3" type="Label" parent="MarginContainer/TabContainer/MarginContainer/GridContainer"]
-layout_mode = 2
-text = "label 3"
-
-[node name="Label4" type="Label" parent="MarginContainer/TabContainer/MarginContainer/GridContainer"]
-layout_mode = 2
-text = "label4"
-
-[node name="Label5" type="Label" parent="MarginContainer/TabContainer/MarginContainer/GridContainer"]
-layout_mode = 2
-text = "label5"
-
-[node name="Label6" type="Label" parent="MarginContainer/TabContainer/MarginContainer/GridContainer"]
-layout_mode = 2
-text = "label6"
-
-[node name="Label7" type="Label" parent="MarginContainer/TabContainer/MarginContainer/GridContainer"]
-layout_mode = 2
-text = "label7"
-
-[node name="Label8" type="Label" parent="MarginContainer/TabContainer/MarginContainer/GridContainer"]
-layout_mode = 2
-text = "label8"
-
-[node name="Label9" type="Label" parent="MarginContainer/TabContainer/MarginContainer/GridContainer"]
-layout_mode = 2
-text = "label9"
-
-[node name="GridContainer2" type="GridContainer" parent="MarginContainer/TabContainer"]
+[node name="GridContainer2" type="GridContainer" parent="ItemMenu/PanelContainer/MarginContainer/TabContainer"]
 visible = false
 layout_mode = 2
 metadata/_tab_index = 1

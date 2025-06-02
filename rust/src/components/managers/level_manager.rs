@@ -1,11 +1,12 @@
 use godot::prelude::*;
 
 use crate::{
-    classes::characters::main_character::MainCharacter, components::managers::item::GameItem,
+    classes::characters::{character_stats::Stats, main_character::MainCharacter},
+    components::managers::item::GameItem,
 };
 
 use super::{
-    item::{Item, ItemType, SpEffect, Tier},
+    item::{Item, ItemKind, ModifierKind, StatModifier},
     item_component::ItemComponent,
 };
 
@@ -28,12 +29,13 @@ impl INode for LevelManager {
     fn ready(&mut self) {
         let item = GameItem::new_from_fn(
             Item::new(
-                ItemType::RosaryBead {
-                    effect: SpEffect::IncreaseDashInvul(Tier::One),
+                ItemKind::RosaryBead {
+                    effect: StatModifier::new(Stats::AttackDamage, ModifierKind::Flat(2.0)),
                     equipped: false,
                 },
-                "in_dash".to_string(),
+                "inc_damage".to_string(),
                 None,
+                "res://assets/icon.svg".to_string(),
             ),
             Vector2i::new(-400, 250),
         );
@@ -45,7 +47,7 @@ impl INode for LevelManager {
 
 impl LevelManager {
     fn connect_to_signals(&mut self) {
-        let mut enemy = self
+        let enemy = self
             .base()
             .get_node_as::<crate::classes::enemies::test_enemy::TestEnemy>("TestEnemy");
         let mut this = self.to_gd();
@@ -56,13 +58,13 @@ impl LevelManager {
 
         let items = self.base().get_tree().unwrap().get_nodes_in_group("items");
         for item in items.iter_shared() {
-            let mut item = item.cast::<GameItem>();
-            item.signals().player_entered_item_area().connect_obj(
+            let item = item.cast::<GameItem>();
+            item.signals().player_entered_item_area().connect_other(
                 &*self.player.bind().item_comp,
                 ItemComponent::set_in_item_area,
             );
 
-            item.signals().player_exited_item_area().connect_obj(
+            item.signals().player_exited_item_area().connect_other(
                 &*self.player.bind().item_comp,
                 ItemComponent::set_exited_item_area,
             );
