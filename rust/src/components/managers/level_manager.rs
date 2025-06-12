@@ -30,12 +30,11 @@ impl INode for LevelManager {
         let item = GameItem::new_from_fn(
             Item::new(
                 ItemKind::RosaryBead {
-                    effect: StatModifier::new(Stats::AttackDamage, ModifierKind::Flat(2.0)),
-                    equipped: false,
+                    effect: StatModifier::new(Stats::AttackDamage, ModifierKind::Flat(2)),
                 },
                 "inc_damage".to_string(),
                 None,
-                "res://assets/icon.svg".to_string(),
+                "res://assets/bullet.webp".to_string(),
             ),
             Vector2i::new(-400, 250),
         );

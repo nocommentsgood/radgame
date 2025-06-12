@@ -3,7 +3,7 @@ use godot::{
     prelude::*,
 };
 
-use super::{item::Item, item_component::ItemComponent};
+use super::item_component::ItemComponent;
 
 #[derive(GodotClass)]
 #[class(base=Control, init)]
@@ -14,7 +14,7 @@ struct InventoryMenu {
     #[init(
         node = "PanelContainer/MarginContainer/TabContainer/MarginContainer/VBoxContainer/ItemList"
     )]
-    item_list: OnReady<Gd<ItemList>>,
+    bead_item_list: OnReady<Gd<ItemList>>,
 
     #[init(
         node = "PanelContainer/MarginContainer/TabContainer/MarginContainer/VBoxContainer/ItemDescriptionLabel"
@@ -31,10 +31,10 @@ impl IControl for InventoryMenu {
     fn ready(&mut self) {
         self.base_mut().set_visible(false);
         let this = self.to_gd();
-        self.item_list
+        self.bead_item_list
             .signals()
             .item_selected()
-            .connect_other(&this, Self::on_item_selected);
+            .connect_other(&this, Self::on_bead_selected);
     }
 
     fn unhandled_input(&mut self, event: Gd<InputEvent>) {
@@ -42,6 +42,7 @@ impl IControl for InventoryMenu {
             println!("setting vis true");
             self.base_mut().set_visible(true);
             self.base_mut().grab_focus();
+            self.populate_unlocked_beads();
         } else if event.is_action_pressed("inventory") && self.base().is_visible() {
             println!("setting vis false");
             self.base_mut().set_visible(false);
@@ -65,15 +66,21 @@ impl IControl for InventoryMenu {
 
 #[godot_api]
 impl InventoryMenu {
-    fn get_unlocked_beads(&self) -> Vec<Item> {
-        self.item_comp.bind().unlocked_beads.clone()
-    }
-
-    fn on_item_selected(&mut self, idx: i64) {
-        if let Some(item) = self.item_comp.bind().unlocked_beads.get(idx as usize) {
+    fn populate_unlocked_beads(&mut self) {
+        for (idx, item) in self.item_comp.bind().unlocked_beads.iter().enumerate() {
+            let icon = load::<godot::classes::Texture2D>(&item.icon_path.clone());
+            self.bead_item_list.set_item_icon(idx as i32, &icon);
             if let Some(desc) = &item.desc {
                 self.item_desc.set_text(desc);
+            } else {
+                self.item_desc.set_text("");
             }
+        }
+    }
+
+    fn on_bead_selected(&mut self, idx: i64) {
+        if let Err(e) = self.item_comp.bind_mut().try_equip_item(idx as usize) {
+            println!("InventoryMenu.rs - line 83 {e:?}");
         }
     }
 }

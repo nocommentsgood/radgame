@@ -23,7 +23,7 @@ impl StatModifier {
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum ModifierKind {
-    Flat(f32),
+    Flat(u32),
     Percent(f32),
 }
 
@@ -35,11 +35,9 @@ pub enum ItemKind {
     Quest,
     Relic {
         effect: StatModifier,
-        equipped: bool,
     },
     RosaryBead {
         effect: StatModifier,
-        equipped: bool,
     },
 }
 
@@ -52,42 +50,12 @@ pub struct Item {
 }
 
 impl Item {
-    pub fn new(ty: ItemKind, name: String, desc: Option<String>, icon_path: String) -> Self {
+    pub fn new(kind: ItemKind, name: String, desc: Option<String>, icon_path: String) -> Self {
         Self {
-            kind: ty,
+            kind,
             name,
             desc,
             icon_path,
-        }
-    }
-
-    pub fn set_equipped(self) -> Result<Self, String> {
-        match self.kind {
-            ItemKind::Relic {
-                effect: e,
-                equipped: false,
-            } => Ok(Self {
-                kind: ItemKind::Relic {
-                    effect: e,
-                    equipped: true,
-                },
-                name: self.name,
-                desc: self.desc,
-                icon_path: self.icon_path,
-            }),
-            ItemKind::RosaryBead {
-                effect: e,
-                equipped: false,
-            } => Ok(Self {
-                kind: ItemKind::Relic {
-                    effect: e,
-                    equipped: true,
-                },
-                name: self.name,
-                desc: self.desc,
-                icon_path: self.icon_path,
-            }),
-            _ => Err("Error equipping ItemKind".to_string()),
         }
     }
 }
