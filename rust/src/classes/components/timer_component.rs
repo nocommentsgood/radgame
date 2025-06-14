@@ -35,7 +35,6 @@ pub struct PlayerTimers {
 }
 
 impl PlayerTimers {
-    // stinky
     pub fn new(
         attack_chain_timer: f32,
         dodging_animation_timer: f32,

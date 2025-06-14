@@ -1,4 +1,4 @@
-[gd_scene load_steps=8 format=4 uid="uid://csphx4r51adby"]
+[gd_scene load_steps=9 format=4 uid="uid://csphx4r51adby"]
 
 [ext_resource type="PackedScene" uid="uid://cgmacri0vrmtw" path="res://health_bar.tscn" id="1_d5x1h"]
 [ext_resource type="PackedScene" uid="uid://cypfxvpiapsp3" path="res://ground.tscn" id="2_ainao"]
@@ -6,6 +6,7 @@
 [ext_resource type="PackedScene" uid="uid://5fcrp4sc1aqy" path="res://platformer_main_character.tscn" id="3_u6kov"]
 [ext_resource type="PackedScene" uid="uid://cd0op7qykfeac" path="res://platform.tscn" id="4_8mm7a"]
 [ext_resource type="PackedScene" uid="uid://bcae4wnfye0do" path="res://projectile_enemy.tscn" id="5_hq1ik"]
+[ext_resource type="PackedScene" uid="uid://1i4j8dd082bp" path="res://item_menu.tscn" id="7_nfk4m"]
 
 [sub_resource type="WorldBoundaryShape2D" id="WorldBoundaryShape2D_7qxfc"]
 
@@ -60,5 +61,7 @@ collision_mask = 0
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="TileMapLayer/LevelManager/WorldBoundBottom"]
 shape = SubResource("WorldBoundaryShape2D_7qxfc")
+
+[node name="ItemMenu" parent="TileMapLayer" instance=ExtResource("7_nfk4m")]
 
 [connection signal="player_health_changed" from="TileMapLayer/LevelManager/MainCharacter" to="HealthBar" method="on_player_health_changed"]

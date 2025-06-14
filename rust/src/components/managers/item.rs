@@ -4,54 +4,66 @@ use godot::{
 };
 
 use crate::{
-    classes::characters::character_hitbox::CharacterHitbox,
+    classes::characters::{character_hitbox::CharacterHitbox, character_stats::Stats},
     utils::collision_layers::CollisionLayers,
 };
 
-pub enum Tier {
-    One,
-    Two,
-    Three,
+#[derive(GodotClass, Clone, Debug, PartialEq)]
+#[class(no_init)]
+pub struct StatModifier {
+    pub stat: Stats,
+    pub modifier: ModifierKind,
 }
 
-pub enum SpEffect {
-    IncreaseDashInvul(Tier),
-    DecreaseAttackCooldown(Tier),
+impl StatModifier {
+    pub fn new(stat: Stats, modifier: ModifierKind) -> Self {
+        Self { stat, modifier }
+    }
 }
 
-#[derive(Default)]
-pub enum ItemType {
+#[derive(Clone, Debug, PartialEq)]
+pub enum ModifierKind {
+    Flat(u32),
+    Percent(f32),
+}
+
+#[derive(Default, Clone, Debug, PartialEq)]
+pub enum ItemKind {
     #[default]
     Misc,
     RosaryKnot,
     Quest,
     Relic {
-        effect: SpEffect,
-        equipped: bool,
+        effect: StatModifier,
     },
     RosaryBead {
-        effect: SpEffect,
-        equipped: bool,
+        effect: StatModifier,
     },
 }
 
-#[derive(Default)]
+#[derive(Default, Clone, Debug, PartialEq)]
 pub struct Item {
-    pub ty: ItemType,
+    pub kind: ItemKind,
     pub name: String,
     pub desc: Option<String>,
+    pub icon_path: String,
 }
 
 impl Item {
-    pub fn new(ty: ItemType, name: String, desc: Option<String>) -> Self {
-        Self { ty, name, desc }
+    pub fn new(kind: ItemKind, name: String, desc: Option<String>, icon_path: String) -> Self {
+        Self {
+            kind,
+            name,
+            desc,
+            icon_path,
+        }
     }
 }
 
 #[derive(GodotClass)]
 #[class(init, base=Node2D)]
 pub struct GameItem {
-    item: Item,
+    pub item: Item,
     location: Vector2i,
     base: Base<Node2D>,
 }
@@ -122,7 +134,7 @@ impl GameItem {
     fn on_area_entered(&mut self, area: Gd<Area2D>) {
         if let Ok(_area) = area.try_cast::<CharacterHitbox>() {
             let this = self.to_gd();
-            self.signals().player_entered_item_area().emit(this);
+            self.signals().player_entered_item_area().emit(&this);
         }
     }
 

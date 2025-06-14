@@ -1,6 +1,11 @@
+use std::collections::HashMap;
+
 use crate::{
     classes::{
-        characters::{character_stats::CharacterStats, main_character::MainCharacter},
+        characters::{
+            character_stats::{StatVal, Stats},
+            main_character::MainCharacter,
+        },
         components::{speed_component::SpeedComponent, timer_component::EnemyTimers},
         enemies,
     },
@@ -31,7 +36,7 @@ pub struct ProjectileEnemy {
     patrol_comp: PatrolComponent,
     speeds: SpeedComponent,
     direction: PlatformerDirection,
-    stats: CharacterStats,
+    stats: HashMap<Stats, StatVal>,
     state: statig::blocking::StateMachine<EnemyStateMachine>,
     timers: EnemyTimers,
     base: Base<Node2D>,
@@ -49,8 +54,14 @@ impl INode2D for ProjectileEnemy {
         self.connect_aggro_area_signal();
         self.connect_hitbox_signal();
         self.timers = EnemyTimers::new(1.8, 2.0, 1.0, 2.0, 2.0);
-        self.stats.health = 20;
         self.shoot_cooldown = Timer::new(2.0);
+        self.stats.insert(Stats::Health, StatVal(20));
+        self.stats.insert(Stats::MaxHealth, StatVal(20));
+        self.stats.insert(Stats::AttackDamage, StatVal(10));
+        self.stats.insert(Stats::RunningSpeed, StatVal(150));
+        self.stats.insert(Stats::JumpingSpeed, StatVal(300));
+        self.stats.insert(Stats::DodgingSpeed, StatVal(250));
+        self.stats.insert(Stats::AttackingSpeed, StatVal(10));
     }
 
     fn process(&mut self, _delta: f64) {
@@ -130,27 +141,27 @@ impl ProjectileEnemy {
 #[godot_dyn]
 impl CharacterResources for ProjectileEnemy {
     fn get_health(&self) -> u32 {
-        self.stats.health
+        self.stats.get(&Stats::Health).unwrap().0
     }
 
     fn set_health(&mut self, amount: u32) {
-        self.stats.health = amount;
+        self.stats.get_mut(&Stats::Health).unwrap().0 = amount;
     }
 
     fn get_energy(&self) -> u32 {
-        self.stats.energy
+        self.stats.get(&Stats::Energy).unwrap().0
     }
 
     fn set_energy(&mut self, amount: u32) {
-        self.stats.energy = amount;
+        self.stats.get_mut(&Stats::Energy).unwrap().0 = amount;
     }
 
     fn get_mana(&self) -> u32 {
-        self.stats.mana
+        self.stats.get(&Stats::Mana).unwrap().0
     }
 
     fn set_mana(&mut self, amount: u32) {
-        self.stats.mana = amount;
+        self.stats.get_mut(&Stats::Energy).unwrap().0 = amount;
     }
 }
 

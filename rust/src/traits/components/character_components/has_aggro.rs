@@ -35,7 +35,7 @@ where
     }
 
     fn connect_aggro_area_signal(&mut self) {
-        let mut aggro_area = self
+        let aggro_area = self
             .base()
             .upcast_ref()
             .get_node_as::<godot::classes::Area2D>("EnemySensors/AggroArea");

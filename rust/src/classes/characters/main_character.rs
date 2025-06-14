@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use godot::{
     classes::{
         AnimationPlayer, Area2D, CharacterBody2D, CollisionObject2D, ICharacterBody2D, Input,
@@ -10,7 +12,9 @@ use godot::{
 use crate::{
     classes::enemies::projectile::Projectile,
     components::{
-        managers::{input_hanlder::InputHandler, item_component::ItemComponent},
+        managers::{
+            input_hanlder::InputHandler, item::StatModifier, item_component::ItemComponent,
+        },
         state_machines::{
             character_state_machine::{self, *},
             movements::PlatformerDirection,
@@ -22,7 +26,7 @@ use crate::{
     },
 };
 
-use super::character_stats::CharacterStats;
+use super::character_stats::{StatVal, Stats, Stats::*};
 use crate::classes::components::timer_component::PlayerTimers;
 
 type Event = crate::components::state_machines::character_state_machine::Event;
@@ -35,9 +39,9 @@ pub struct MainCharacter {
     velocity: Vector2,
     active_velocity: Vector2,
     can_attack_chain: bool,
-    stats: CharacterStats,
     timers: PlayerTimers,
     state: statig::blocking::StateMachine<CharacterStateMachine>,
+    stats: HashMap<Stats, StatVal>,
     base: Base<CharacterBody2D>,
 
     #[init(node = "ItemComponent")]
@@ -59,6 +63,12 @@ pub struct MainCharacter {
 impl ICharacterBody2D for MainCharacter {
     fn ready(&mut self) {
         self.connect_hitbox();
+
+        let this = self.to_gd();
+        self.item_comp
+            .signals()
+            .new_modifier()
+            .connect_other(&this, Self::on_new_modifier);
 
         // TODO: Find how to get tracks for specific animations.
         // That way we can dynamically divide by scaling speed.
@@ -93,6 +103,15 @@ impl ICharacterBody2D for MainCharacter {
             .unwrap()
             .get_length();
 
+        self.stats.insert(Stats::Health, StatVal(50));
+        self.stats.insert(Stats::MaxHealth, StatVal(50));
+        self.stats.insert(Stats::HealAmount, StatVal(10));
+        self.stats.insert(Stats::AttackDamage, StatVal(30));
+        self.stats.insert(Stats::RunningSpeed, StatVal(150));
+        self.stats.insert(Stats::JumpingSpeed, StatVal(300));
+        self.stats.insert(Stats::DodgingSpeed, StatVal(250));
+        self.stats.insert(Stats::AttackingSpeed, StatVal(10));
+
         self.timers = PlayerTimers::new(
             0.6,
             dodge_animation_length,
@@ -101,8 +120,8 @@ impl ICharacterBody2D for MainCharacter {
             attack_animation_length,
             healing_animation_length,
             parry_animation_length,
-            self.stats.parry_length,
-            self.stats.perfect_parry_length,
+            0.3,
+            0.15,
         );
     }
 
@@ -165,7 +184,7 @@ impl MainCharacter {
 
     fn connect_hitbox(&self) {
         let mut this = self.to_gd();
-        let mut hitbox = self.base().get_node_as::<Area2D>("Hitbox");
+        let hitbox = self.base().get_node_as::<Area2D>("Hitbox");
         hitbox
             .signals()
             .area_entered()
@@ -221,7 +240,7 @@ impl MainCharacter {
             self.base_mut().move_and_slide();
             self.timers.dodging_animation_timer.value -= delta;
         } else {
-            let speed = self.stats.dodging_speed;
+            let speed = self.stats.get(&DodgingSpeed).unwrap().0 as f32;
             let velocity = self.velocity;
 
             self.base_mut().set_velocity(velocity * speed);
@@ -239,7 +258,7 @@ impl MainCharacter {
 
     fn attack(&mut self) {
         self.base_mut().set_process_unhandled_input(false);
-        let speed = self.stats.attacking_speed;
+        let speed = self.stats.get(&Stats::AttackingSpeed).unwrap().0 as f32;
         let time = self.timers.attack_animation_timer.value;
         let velocity = self.velocity;
         let delta = self.base().get_physics_process_delta_time() as f32;
@@ -294,7 +313,7 @@ impl MainCharacter {
     }
 
     fn move_character(&mut self) {
-        let target_velocity = self.velocity * self.stats.running_speed;
+        let target_velocity = self.velocity * self.stats.get(&RunningSpeed).unwrap().0 as f32;
         self.active_velocity = self.active_velocity.lerp(target_velocity, 0.2);
         let velocity = self.active_velocity;
 
@@ -309,14 +328,14 @@ impl MainCharacter {
         let delta = self.base().get_physics_process_delta_time() as f32;
 
         if self.base().is_on_floor() {
-            self.velocity.y = Vector2::UP.y * self.stats.jumping_speed;
-            self.velocity.x *= self.stats.running_speed;
+            self.velocity.y = Vector2::UP.y * self.stats.get(&JumpingSpeed).unwrap().0 as f32;
+            self.velocity.x *= self.stats.get(&RunningSpeed).unwrap().0 as f32;
             let velocity = self.velocity;
             self.base_mut().set_velocity(velocity);
             self.base_mut().move_and_slide();
         } else {
             self.velocity.y += GRAVITY * delta;
-            let target_x = self.velocity.x * self.stats.running_speed;
+            let target_x = self.velocity.x * self.stats.get(&RunningSpeed).unwrap().0 as f32;
             self.active_velocity.x = self.active_velocity.x.lerp(target_x, 0.2);
             let velocity = Vector2::new(self.active_velocity.x, self.velocity.y);
             self.update_direction();
@@ -335,7 +354,9 @@ impl MainCharacter {
 
     fn heal(&mut self) {
         let time = self.timers.healing_animation_timer.value;
-        let current_health = self.stats.health;
+        let current_health = self.stats.get(&Stats::Health).unwrap().0;
+        let amount = self.stats.get(&Stats::HealAmount).unwrap().0;
+        let max = self.stats.get(&Stats::MaxHealth).unwrap().0;
         let delta = self.base().get_physics_process_delta_time() as f32;
         self.velocity = Vector2::ZERO;
         let velocity = self.velocity;
@@ -345,12 +366,13 @@ impl MainCharacter {
         self.timers.healing_animation_timer.value -= delta;
 
         if time <= 0.0 {
-            self.stats.heal();
-            let new_health = self.stats.health;
-            let amount = self.stats.healing_amount;
-            self.signals()
-                .player_health_changed()
-                .emit(current_health, new_health, amount);
+            if current_health < max {
+                self.stats.get_mut(&Stats::Health).unwrap().0 += amount;
+                let new = self.stats.get(&Stats::Health).unwrap().0;
+                self.signals()
+                    .player_health_changed()
+                    .emit(current_health, new, amount);
+            }
             self.timers.healing_animation_timer.reset();
             self.state.handle(&Event::TimerElapsed);
         }
@@ -360,7 +382,7 @@ impl MainCharacter {
         if !self.base().is_on_floor() {
             let delta = self.base().get_physics_process_delta_time() as f32;
             self.velocity.y += GRAVITY * delta;
-            self.velocity.x *= self.stats.running_speed;
+            self.velocity.x *= self.stats.get(&RunningSpeed).unwrap().0 as f32;
 
             let velocity = self.velocity;
             self.update_direction();
@@ -449,32 +471,38 @@ impl MainCharacter {
             self.direction = PlatformerDirection::from_platformer_velocity(&self.velocity);
         }
     }
+
+    fn on_new_modifier(&mut self, modifier: Gd<StatModifier>) {
+        if let Some(val) = self.stats.get_mut(&modifier.bind().stat) {
+            val.apply_modifier(modifier.bind().clone());
+        }
+    }
 }
 
 #[godot_dyn]
 impl CharacterResources for MainCharacter {
     fn get_health(&self) -> u32 {
-        self.stats.health
+        self.stats.get(&Stats::Health).unwrap().0
     }
 
     fn set_health(&mut self, amount: u32) {
-        self.stats.health = amount;
+        self.stats.get_mut(&Stats::Health).unwrap().0 = amount;
     }
 
     fn get_energy(&self) -> u32 {
-        self.stats.energy
+        self.stats.get(&Stats::Energy).unwrap().0
     }
 
     fn set_energy(&mut self, amount: u32) {
-        self.stats.energy = amount;
+        self.stats.get_mut(&Stats::Energy).unwrap().0 = amount;
     }
 
     fn get_mana(&self) -> u32 {
-        self.stats.mana
+        self.stats.get(&Stats::Mana).unwrap().0
     }
 
     fn set_mana(&mut self, amount: u32) {
-        self.stats.mana = amount;
+        self.stats.get_mut(&Stats::Mana).unwrap().0 = amount;
     }
 }
 
@@ -505,7 +533,7 @@ impl Damageable for MainCharacter {
 #[godot_dyn]
 impl Damaging for MainCharacter {
     fn damage_amount(&self) -> u32 {
-        self.stats.attack_damage
+        self.stats.get(&AttackDamage).unwrap().0
     }
 }
 
