@@ -32,4 +32,20 @@ impl StatVal {
             println!("new stat val: {}", self.0);
         }
     }
+
+    pub fn remove_modifier(&mut self, modifier: StatModifier) {
+        if let ModifierKind::Flat(val) = modifier.modifier {
+            println!("Removing modifier");
+            println!("Previous stat val: {}", self.0);
+            let amount = self.0 / val;
+            self.0 -= amount;
+            println!("New stat val: {}", self.0);
+        }
+        if let ModifierKind::Percent(val) = modifier.modifier {
+            println!("prev stat val: {}", self.0);
+            let diff = (self.0 as f32 / val).round_ties_even() as u32;
+            self.0 -= diff;
+            println!("new stat val: {}", self.0);
+        }
+    }
 }

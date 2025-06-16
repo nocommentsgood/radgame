@@ -70,6 +70,11 @@ impl ICharacterBody2D for MainCharacter {
             .new_modifier()
             .connect_other(&this, Self::on_new_modifier);
 
+        self.item_comp
+            .signals()
+            .modifier_removed()
+            .connect_other(&this, Self::on_modifier_removed);
+
         // TODO: Find how to get tracks for specific animations.
         // That way we can dynamically divide by scaling speed.
 
@@ -475,6 +480,12 @@ impl MainCharacter {
     fn on_new_modifier(&mut self, modifier: Gd<StatModifier>) {
         if let Some(val) = self.stats.get_mut(&modifier.bind().stat) {
             val.apply_modifier(modifier.bind().clone());
+        }
+    }
+
+    fn on_modifier_removed(&mut self, modifier: Gd<StatModifier>) {
+        if let Some(val) = self.stats.get_mut(&modifier.bind().stat) {
+            val.remove_modifier(modifier.bind().clone());
         }
     }
 }
