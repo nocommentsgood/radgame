@@ -61,13 +61,13 @@ impl INode2D for ProjectileEnemy {
         self.timers.0.push(Time::new(2.0));
         self.timers.0.push(Time::new(2.0));
         self.shoot_cooldown = Time::new(2.0);
-        self.stats.insert(Stats::Health, StatVal(20));
-        self.stats.insert(Stats::MaxHealth, StatVal(20));
-        self.stats.insert(Stats::AttackDamage, StatVal(10));
-        self.stats.insert(Stats::RunningSpeed, StatVal(150));
-        self.stats.insert(Stats::JumpingSpeed, StatVal(300));
-        self.stats.insert(Stats::DodgingSpeed, StatVal(250));
-        self.stats.insert(Stats::AttackingSpeed, StatVal(10));
+        self.stats.insert(Stats::Health, StatVal::new(20));
+        self.stats.insert(Stats::MaxHealth, StatVal::new(20));
+        self.stats.insert(Stats::AttackDamage, StatVal::new(10));
+        self.stats.insert(Stats::RunningSpeed, StatVal::new(150));
+        self.stats.insert(Stats::JumpingSpeed, StatVal::new(300));
+        self.stats.insert(Stats::DodgingSpeed, StatVal::new(250));
+        self.stats.insert(Stats::AttackingSpeed, StatVal::new(10));
     }
 
     fn process(&mut self, _delta: f64) {

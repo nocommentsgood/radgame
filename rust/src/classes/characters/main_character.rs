@@ -109,14 +109,14 @@ impl ICharacterBody2D for MainCharacter {
             .unwrap()
             .get_length();
 
-        self.stats.insert(Stats::Health, StatVal(50));
-        self.stats.insert(Stats::MaxHealth, StatVal(50));
-        self.stats.insert(Stats::HealAmount, StatVal(10));
-        self.stats.insert(Stats::AttackDamage, StatVal(30));
-        self.stats.insert(Stats::RunningSpeed, StatVal(150));
-        self.stats.insert(Stats::JumpingSpeed, StatVal(300));
-        self.stats.insert(Stats::DodgingSpeed, StatVal(250));
-        self.stats.insert(Stats::AttackingSpeed, StatVal(10));
+        self.stats.insert(Stats::Health, StatVal::new(50));
+        self.stats.insert(Stats::MaxHealth, StatVal::new(50));
+        self.stats.insert(Stats::HealAmount, StatVal::new(10));
+        self.stats.insert(Stats::AttackDamage, StatVal::new(30));
+        self.stats.insert(Stats::RunningSpeed, StatVal::new(150));
+        self.stats.insert(Stats::JumpingSpeed, StatVal::new(300));
+        self.stats.insert(Stats::DodgingSpeed, StatVal::new(250));
+        self.stats.insert(Stats::AttackingSpeed, StatVal::new(10));
 
         self.timers.0.push(Time::new(0.6));
         self.timers.0.push(Time::new(dodge_animation_length));
