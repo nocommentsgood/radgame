@@ -12,12 +12,12 @@ struct InventoryMenu {
     tab_container: OnReady<Gd<TabContainer>>,
 
     #[init(
-        node = "PanelContainer/MarginContainer/TabContainer/MarginContainer/HBoxContainer/VBoxContainer/ItemList"
+        node = "PanelContainer/MarginContainer/TabContainer/MarginContainer/VBoxContainer/ItemList"
     )]
     bead_item_list: OnReady<Gd<ItemList>>,
 
     #[init(
-        node = "PanelContainer/MarginContainer/TabContainer/MarginContainer/HBoxContainer/VBoxContainer/ItemDescriptionLabel"
+        node = "PanelContainer/MarginContainer/TabContainer/MarginContainer/VBoxContainer/ItemDescriptionLabel"
     )]
     item_desc: OnReady<Gd<Label>>,
 
@@ -41,30 +41,13 @@ impl IControl for InventoryMenu {
 
     fn unhandled_input(&mut self, event: Gd<InputEvent>) {
         if event.is_action_pressed("inventory") && !self.base().is_visible() {
-            println!("setting vis true");
             self.base_mut().set_visible(true);
             self.base_mut().grab_focus();
             self.populate_unlocked_beads();
-            dbg!(&self.item_comp.bind().unlocked_beads);
         } else if event.is_action_pressed("inventory") && self.base().is_visible() {
-            println!("setting vis false");
             self.base_mut().set_visible(false);
         }
     }
-
-    // fn gui_input(&mut self, event: Gd<InputEvent>) {
-    //     if event.is_action_pressed("inventory") {
-    //         println!("got inv input from gui");
-    //         self.base_mut().grab_focus();
-    //     }
-    //     if event.is_action_pressed("inventory") && !self.base().is_visible() {
-    //         self.base_mut().set_visible(true);
-    //         self.base_mut().grab_focus();
-    //     }
-    //     if event.is_action_pressed("inventory") && self.base().is_visible() {
-    //         self.base_mut().set_visible(false);
-    //     }
-    // }
 }
 
 #[godot_api]
@@ -85,6 +68,9 @@ impl InventoryMenu {
         }
     }
 
+    // Just debug the error here as we just crossed the FFI boundary and Godot isn't aware of Rust
+    // Result type. Furthermore, any errors we receive should be considered bugs to fix in the
+    // context of a game. There isn't much to do in the realm of error handling.
     fn on_item_selected(&mut self, idx: i64) {
         if let Err(e) = self.item_comp.bind_mut().try_equip_item(idx as usize) {
             dbg!(&e);

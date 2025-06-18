@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use crate::classes::characters::character_stats::Stats;
 
 use super::item::{GameItem, Item, ItemKind, ModifierKind, StatModifier};
@@ -18,10 +16,8 @@ pub enum EquipErr {
 pub struct ItemComponent {
     pub unlocked_beads: Vec<Option<Item>>,
     equipped_beads: Vec<Option<Item>>,
-    test_unlocked: HashMap<u32, Item>,
-    test_equipped: HashMap<u32, Item>,
-    unlocked_misc: Vec<Item>,
-    equipped_misc: Vec<Item>,
+    unlocked_misc: Vec<Option<Item>>,
+    equipped_misc: Vec<Option<Item>>,
     unlocked_relics: Vec<Item>,
     equipped_relics: Vec<Item>,
     in_item_area: bool,
@@ -35,10 +31,8 @@ impl INode for ItemComponent {
         Self {
             unlocked_beads: vec![None; 9],
             equipped_beads: vec![None; 3],
-            test_unlocked: HashMap::new(),
-            test_equipped: HashMap::new(),
-            unlocked_misc: Vec::with_capacity(3),
-            equipped_misc: Vec::with_capacity(3),
+            unlocked_misc: vec![None; 20],
+            equipped_misc: vec![None; 8],
             unlocked_relics: Vec::with_capacity(3),
             equipped_relics: Vec::with_capacity(3),
             in_item_area: false,
@@ -53,25 +47,24 @@ impl INode for ItemComponent {
 
         // TODO: Used for testing. Remove.
         if input.is_action_pressed("equip") {
-            println!("equipping test bead");
             dbg!(self.try_equip_item(0));
         }
     }
 
     fn ready(&mut self) {
-        self.unlocked_misc.push(Item::new(
+        self.unlocked_misc.push(Some(Item::new(
             ItemKind::Misc,
             "test item 1".to_string(),
             Some("This is a test item".to_string()),
             "res://assets/icon.svg".to_string(),
-        ));
+        )));
 
-        self.unlocked_misc.push(Item::new(
+        self.unlocked_misc.push(Some(Item::new(
             ItemKind::Misc,
             "test item 2".to_string(),
             Some("This is another test item".to_string()),
             "res://assets/icon.svg".to_string(),
-        ));
+        )));
 
         let test_bead_1 = Item::new(
             ItemKind::RosaryBead {
@@ -115,15 +108,14 @@ impl ItemComponent {
             if let Some(mut item) = item {
                 let bind = item.bind().item.clone();
                 match bind.kind {
-                    super::item::ItemKind::Misc => self.unlocked_misc.push(bind),
+                    // Duplicates are OK on misc items.
+                    super::item::ItemKind::Misc => self.unlocked_misc.push(Some(bind)),
                     super::item::ItemKind::RosaryBead { effect: _ } => {
-                        // if let Some(item) = self.unlocked_beads.iter_mut().find(|i| i.is_none()) {
-                        //     *item = Some(bind);
-                        //     }
-                        //
-                        //
-                        if !self.test_unlocked.values().any(|v| v == &bind) {
-                            self.test_unlocked.insert()
+                        if self.unlocked_beads.iter().flatten().any(|i| i == &bind) {
+                        } else if let Some(item) =
+                            self.unlocked_beads.iter_mut().find(|i| i.is_none())
+                        {
+                            *item = Some(bind);
                         }
                     }
                     _ => (),
@@ -136,37 +128,37 @@ impl ItemComponent {
     }
 
     pub fn try_equip_item(&mut self, idx: usize) -> Result<(), EquipErr> {
-        // dbg!(&self.equipped_beads.get(idx).unwrap());
-        // dbg!(&self.unlocked_beads.get(idx).unwrap());
-        let item = self.unlocked_beads.get(idx);
-        if let Some(s_item) = item {
-            let i = s_item.as_ref();
-            if let Some(Some(res)) = self.equipped_beads.iter().find(|i| *i == **item) {
-                let r = res.clone();
-                self.try_unequip_item(&res.as_ref());
+        let s_item = match self.unlocked_beads.get(idx).and_then(|opt| opt.as_ref()) {
+            Some(item) => item.clone(),
+            None => return Err(EquipErr::ItemNotFound),
+        };
+
+        // Check for capacity
+        if self.equipped_beads.iter().all(|b| b.is_some()) {
+            return Err(EquipErr::CapactiyReached);
+        }
+
+        // Validate item kind
+        let modifier = match &s_item.kind {
+            ItemKind::RosaryBead { effect } | ItemKind::Relic { effect } => {
+                Gd::from_object(effect.clone())
             }
-            if self.equipped_beads.iter().all(|b| b.is_some()) {
-                dbg!("133");
-                Err(EquipErr::CapactiyReached)
-            } else {
-                let (ItemKind::RosaryBead { effect: modif } | ItemKind::Relic { effect: modif }) =
-                    &item.kind
-                else {
-                    dbg!("138");
-                    return Err(EquipErr::IncorrectItemKind);
-                };
-                let m = Gd::from_object(modif.clone());
-                dbg!(&self.equipped_beads);
-                if let Some(i) = self.equipped_beads.iter_mut().find(|i| i.is_none()) {
-                    *i = Some(item.to_owned());
-                    self.signals().new_modifier().emit(&m);
-                }
-                dbg!(&self.equipped_beads);
-                Ok(())
-            }
+            _ => return Err(EquipErr::IncorrectItemKind),
+        };
+        // Unequip if already equipped
+        if let Some(existing) = self
+            .equipped_beads
+            .iter()
+            .filter_map(|o| o.as_ref())
+            .find(|&i| *i == s_item)
+        {
+            self.try_unequip_item(&existing.clone())
+        } else if let Some(slot) = self.equipped_beads.iter_mut().find(|i| i.is_none()) {
+            *slot = Some(s_item.clone());
+            self.signals().new_modifier().emit(&modifier);
+            Ok(())
         } else {
-            dbg!("148");
-            Err(EquipErr::ItemNotFound)
+            Err(EquipErr::CapactiyReached)
         }
     }
 
@@ -181,7 +173,6 @@ impl ItemComponent {
                 let (ItemKind::RosaryBead { effect: modifier }
                 | ItemKind::Relic { effect: modifier }) = &removed.kind
                 else {
-                    dbg!("Line 163");
                     return Err(EquipErr::IncorrectItemKind);
                 };
                 let modifier = Gd::from_object(modifier.clone());
@@ -189,7 +180,6 @@ impl ItemComponent {
             }
             Ok(())
         } else {
-            dbg!("line 171");
             Err(EquipErr::ItemNotFound)
         }
     }
