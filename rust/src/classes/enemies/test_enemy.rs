@@ -5,7 +5,10 @@ use godot::{
 };
 
 use crate::{
-    classes::components::{speed_component::SpeedComponent, timer_component::EnemyTimers},
+    classes::components::{
+        speed_component::SpeedComponent,
+        timer_component::{EnemyTimer, Time, Timers},
+    },
     components::state_machines::{
         enemy_state_machine::{self, *},
         movements::PlatformerDirection,
@@ -18,13 +21,14 @@ use crate::{
 };
 
 use super::patrol_component::PatrolComponent;
+type ET = EnemyTimer;
 
 #[derive(GodotClass)]
 #[class(init, base=CharacterBody2D)]
 pub struct TestEnemy {
     direction: PlatformerDirection,
     velocity: Vector2,
-    timers: EnemyTimers,
+    timers: Timers,
     patrol_comp: PatrolComponent,
     speeds: SpeedComponent,
     state: statig::blocking::StateMachine<EnemyStateMachine>,
@@ -44,7 +48,11 @@ impl ICharacterBody2D for TestEnemy {
         self.patrol_comp = PatrolComponent::new(50.0, 0.0, -50.0, 0.0);
         self.connect_aggro_area_signal();
         self.connect_hitbox_signal();
-        self.timers = EnemyTimers::new(1.8, 2.0, 2.7, 2.0, 4.0);
+        self.timers.0.push(Time::new(1.8));
+        self.timers.0.push(Time::new(2.0));
+        self.timers.0.push(Time::new(2.7));
+        self.timers.0.push(Time::new(2.0));
+        self.timers.0.push(Time::new(4.0));
     }
 
     fn physics_process(&mut self, _delta: f64) {
@@ -82,13 +90,14 @@ impl TestEnemy {
     // Leaving this somewhat open ended in case more timers are added later
     fn update_timers(&mut self) {
         let delta = self.base().get_physics_process_delta_time() as f32;
+        let ac = &ET::AttackCooldown;
 
         // Update attack cooldown timer
-        let attack_cooldown = self.timers.attack_cooldown.clone();
-        if attack_cooldown.value < attack_cooldown.initial_value() && attack_cooldown.value > 0.0 {
-            self.timers.attack_cooldown.value -= delta;
-        } else if attack_cooldown.value <= 0.0 {
-            self.timers.attack_cooldown.reset();
+        let attack_cooldown = self.timers.get(ac);
+        if attack_cooldown < self.timers.get_init(ac) && attack_cooldown > 0.0 {
+            self.timers.set(ac, attack_cooldown - delta);
+        } else if attack_cooldown <= 0.0 {
+            self.timers.reset(ac);
         }
     }
 }
@@ -172,7 +181,7 @@ impl Animatable for TestEnemy {
 impl MoveableCharacter for TestEnemy {}
 
 impl EnemyCharacterStateMachineExt for TestEnemy {
-    fn timers(&mut self) -> &mut crate::classes::components::timer_component::EnemyTimers {
+    fn timers(&mut self) -> &mut crate::classes::components::timer_component::Timers {
         &mut self.timers
     }
 

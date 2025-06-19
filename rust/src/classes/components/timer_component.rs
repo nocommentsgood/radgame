@@ -1,88 +1,72 @@
-#[derive(Default, Clone)]
-pub struct Timer {
-    pub value: f32,
-    init_value: f32,
+#[derive(Clone, Copy)]
+pub enum PlayerTimer {
+    AttackChain,
+    DodgeAnimation,
+    JumpingAnimation,
+    AttackAnimation,
+    AttackAnimation2,
+    HealingAnimation,
+    ParryAnimation,
+    Parry,
+    PerfectParry,
 }
 
-impl Timer {
-    pub fn new(value: f32) -> Self {
-        Timer {
-            value,
-            init_value: value,
-        }
-    }
+#[derive(Clone, Copy)]
+pub enum EnemyTimer {
+    AttackAnimation,
+    AttackChain,
+    AttackCooldown,
+    Idle,
+    Patrol,
+}
 
-    pub fn reset(&mut self) {
-        self.value = self.init_value;
-    }
+pub trait TimerIndex {
+    fn index(&self) -> usize;
+}
 
-    pub fn initial_value(&self) -> f32 {
-        self.init_value
+impl TimerIndex for PlayerTimer {
+    fn index(&self) -> usize {
+        *self as usize
+    }
+}
+impl TimerIndex for EnemyTimer {
+    fn index(&self) -> usize {
+        *self as usize
     }
 }
 
 #[derive(Default)]
-pub struct PlayerTimers {
-    pub attack_chain_timer: Timer,
-    pub dodging_animation_timer: Timer,
-    pub jumping_animation_timer: Timer,
-    pub attack_animation_timer: Timer,
-    pub attack_animation_timer_2: Timer,
-    pub healing_animation_timer: Timer,
-    pub parry_animation_timer: Timer,
-    pub parry_timer: Timer,
-    pub perfect_parry_timer: Timer,
-}
+pub struct Time(pub f32, f32);
 
-impl PlayerTimers {
-    pub fn new(
-        attack_chain_timer: f32,
-        dodging_animation_timer: f32,
-        jumping_animation_timer: f32,
-        attack_animation_timer: f32,
-        attack_animation_timer_2: f32,
-        healing_animation_timer: f32,
-        parry_animation_timer: f32,
-        parry_timer: f32,
-        perfect_parry_timer: f32,
-    ) -> Self {
-        PlayerTimers {
-            attack_chain_timer: Timer::new(attack_chain_timer),
-            dodging_animation_timer: Timer::new(dodging_animation_timer),
-            jumping_animation_timer: Timer::new(jumping_animation_timer),
-            attack_animation_timer: Timer::new(attack_animation_timer),
-            attack_animation_timer_2: Timer::new(attack_animation_timer_2),
-            healing_animation_timer: Timer::new(healing_animation_timer),
-            parry_animation_timer: Timer::new(parry_animation_timer),
-            parry_timer: Timer::new(parry_timer),
-            perfect_parry_timer: Timer::new(perfect_parry_timer),
-        }
+impl Time {
+    pub fn new(value: f32) -> Self {
+        Time(value, value)
+    }
+
+    // TODO: This should not be public, but is being left as such for Projectile and
+    // ProjectileEnemy. After those are updated to use this new timer struct, this can be set back
+    // to private.
+    pub fn reset(&mut self) {
+        self.0 = self.1;
     }
 }
 
-#[derive(Default, Clone)]
-pub struct EnemyTimers {
-    pub attack_animation: Timer,
-    pub attack_cooldown: Timer,
-    pub chain_attack: Timer,
-    pub idle: Timer,
-    pub patrol: Timer,
-}
+#[derive(Default)]
+pub struct Timers(pub Vec<Time>);
 
-impl EnemyTimers {
-    pub fn new(
-        attack_animation: f32,
-        attack_cooldown: f32,
-        chain_attack: f32,
-        idle: f32,
-        patrol: f32,
-    ) -> Self {
-        EnemyTimers {
-            attack_animation: Timer::new(attack_animation),
-            attack_cooldown: Timer::new(attack_cooldown),
-            chain_attack: Timer::new(chain_attack),
-            idle: Timer::new(idle),
-            patrol: Timer::new(patrol),
-        }
+impl Timers {
+    pub fn get<T: TimerIndex>(&self, name: &T) -> f32 {
+        self.0.get(name.index()).unwrap().0
+    }
+
+    pub fn set<T: TimerIndex>(&mut self, name: &T, value: f32) {
+        self.0.get_mut(name.index()).unwrap().0 = value;
+    }
+    pub fn get_init<T: TimerIndex>(&self, name: &T) -> f32 {
+        self.0.get(name.index()).unwrap().1
+    }
+
+    pub fn reset<T: TimerIndex>(&mut self, name: &T) {
+        self.0.get_mut(name.index()).unwrap().reset();
     }
 }

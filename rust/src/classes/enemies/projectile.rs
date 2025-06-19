@@ -1,7 +1,7 @@
 use godot::prelude::*;
 
 use crate::classes::components::hurtbox::Hurtbox;
-use crate::classes::components::timer_component::Timer;
+use crate::classes::components::timer_component::Time;
 use crate::utils::collision_layers;
 
 #[derive(GodotClass)]
@@ -10,7 +10,7 @@ pub struct Projectile {
     pub velocity: Vector2,
     start_pos: Vector2,
     speed: real,
-    timeout: Timer,
+    timeout: Time,
     base: Base<Node2D>,
 }
 
@@ -19,7 +19,7 @@ impl INode2D for Projectile {
     fn ready(&mut self) {
         self.speed = 500.0;
         self.start_pos = self.base().get_position();
-        self.timeout = Timer::new(3.0);
+        self.timeout = Time::new(3.0);
     }
 
     fn process(&mut self, delta: f64) {
@@ -54,9 +54,9 @@ impl Projectile {
 
     fn tick(&mut self) {
         let delta = self.base().get_process_delta_time() as f32;
-        self.timeout.value -= delta;
+        self.timeout.0 -= delta;
 
-        if self.timeout.value <= 0.0 {
+        if self.timeout.0 <= 0.0 {
             self.base_mut().queue_free();
         }
     }
