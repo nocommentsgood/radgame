@@ -43,11 +43,11 @@ impl Projectile {
 
         let mut area = self.base().get_node_as::<Hurtbox>("Hurtbox");
         area.set_collision_layer_value(
-            collision_layers::CollisionLayers::EnemyHurtbox.into(),
+            collision_layers::CollisionLayers::EnemyHurtbox as i32,
             false,
         );
         area.set_collision_layer_value(
-            collision_layers::CollisionLayers::PlayerHurtbox.into(),
+            collision_layers::CollisionLayers::PlayerHurtbox as i32,
             true,
         );
     }

@@ -1,3 +1,4 @@
+#[derive(Debug)]
 pub enum CollisionLayers {
     LayerOne,
     FloorWall,
@@ -10,18 +11,20 @@ pub enum CollisionLayers {
     Items,
 }
 
-impl From<CollisionLayers> for i32 {
-    fn from(value: CollisionLayers) -> Self {
-        match value {
-            CollisionLayers::LayerOne => 1,
-            CollisionLayers::FloorWall => 2,
-            CollisionLayers::PlayerHitbox => 3,
-            CollisionLayers::EnemyHitbox => 4,
-            CollisionLayers::PlayerHurtbox => 5,
-            CollisionLayers::EnemyHurtbox => 6,
-            CollisionLayers::PlatformLedges => 7,
-            CollisionLayers::PlayerPhysics => 8,
-            CollisionLayers::Items => 9,
-        }
+#[cfg(test)]
+mod test {
+    use crate::utils::collision_layers::CollisionLayers;
+
+    #[test]
+    fn test_collision_layer_as_i32() {
+        assert_eq!(CollisionLayers::LayerOne as i32, 0);
+        assert_eq!(CollisionLayers::FloorWall as i32, 1);
+        assert_eq!(CollisionLayers::PlayerHitbox as i32, 2);
+        assert_eq!(CollisionLayers::EnemyHitbox as i32, 3);
+        assert_eq!(CollisionLayers::PlayerHurtbox as i32, 4);
+        assert_eq!(CollisionLayers::EnemyHurtbox as i32, 5);
+        assert_eq!(CollisionLayers::PlatformLedges as i32, 6);
+        assert_eq!(CollisionLayers::PlayerPhysics as i32, 7);
+        assert_eq!(CollisionLayers::Items as i32, 8);
     }
 }

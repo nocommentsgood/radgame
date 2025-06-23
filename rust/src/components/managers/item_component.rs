@@ -16,10 +16,10 @@ pub enum EquipErr {
 pub struct ItemComponent {
     pub unlocked_beads: Vec<Option<Item>>,
     equipped_beads: Vec<Option<Item>>,
-    unlocked_misc: Vec<Option<Item>>,
-    equipped_misc: Vec<Option<Item>>,
-    unlocked_relics: Vec<Item>,
-    equipped_relics: Vec<Item>,
+    collectables: Vec<Option<Item>>,
+    unlocked_relics: Vec<Option<Item>>,
+    equipped_relics: Vec<Option<Item>>,
+    quest_and_other: Vec<Option<Item>>,
     in_item_area: bool,
     item: Option<Gd<GameItem>>,
     base: Base<Node>,
@@ -31,10 +31,10 @@ impl INode for ItemComponent {
         Self {
             unlocked_beads: vec![None; 9],
             equipped_beads: vec![None; 3],
-            unlocked_misc: vec![None; 20],
-            equipped_misc: vec![None; 8],
-            unlocked_relics: Vec::with_capacity(3),
+            collectables: vec![None; 20],
+            unlocked_relics: Vec::with_capacity(7),
             equipped_relics: Vec::with_capacity(3),
+            quest_and_other: vec![None; 20],
             in_item_area: false,
             item: None,
             base,
@@ -52,15 +52,15 @@ impl INode for ItemComponent {
     }
 
     fn ready(&mut self) {
-        self.unlocked_misc.push(Some(Item::new(
-            ItemKind::Misc,
+        self.collectables.push(Some(Item::new(
+            ItemKind::Collectable,
             "test item 1".to_string(),
             Some("This is a test item".to_string()),
             "res://assets/icon.svg".to_string(),
         )));
 
-        self.unlocked_misc.push(Some(Item::new(
-            ItemKind::Misc,
+        self.collectables.push(Some(Item::new(
+            ItemKind::Collectable,
             "test item 2".to_string(),
             Some("This is another test item".to_string()),
             "res://assets/icon.svg".to_string(),
@@ -109,7 +109,7 @@ impl ItemComponent {
                 let bind = item.bind().item.clone();
                 match bind.kind {
                     // Duplicates are OK on misc items.
-                    super::item::ItemKind::Misc => self.unlocked_misc.push(Some(bind)),
+                    super::item::ItemKind::Collectable => self.collectables.push(Some(bind)),
                     super::item::ItemKind::RosaryBead { effect: _ } => {
                         if self.unlocked_beads.iter().flatten().any(|i| i == &bind) {
                         } else if let Some(item) =
@@ -118,7 +118,15 @@ impl ItemComponent {
                             *item = Some(bind);
                         }
                     }
-                    _ => (),
+                    super::item::ItemKind::Relic { effect: _ } => {
+                        if self.unlocked_relics.iter().flatten().any(|i| i == &bind) {
+                        } else if let Some(relic) =
+                            self.unlocked_relics.iter_mut().find(|i| i.is_none())
+                        {
+                            *relic = Some(bind);
+                        }
+                    }
+                    _ => self.quest_and_other.push(Some(bind)),
                 }
                 self.signals().picked_up_item().emit(&item.clone());
                 item.bind_mut().picked_up();
@@ -128,6 +136,17 @@ impl ItemComponent {
     }
 
     pub fn try_equip_item(&mut self, idx: usize) -> Result<(), EquipErr> {
+        let item = self
+            .unlocked_beads
+            .get(idx)
+            .or_else(|| self.unlocked_relics.get(idx));
+
+        if let Some(i) = item {
+            let kind = match i.as_ref() {
+                Some(ty) => Ok(ty.kind.clone()),
+                None => Err(EquipErr::IncorrectItemKind),
+            };
+        }
         let s_item = match self.unlocked_beads.get(idx).and_then(|opt| opt.as_ref()) {
             Some(item) => item.clone(),
             None => return Err(EquipErr::ItemNotFound),

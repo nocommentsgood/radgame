@@ -30,7 +30,7 @@ pub enum ModifierKind {
 #[derive(Default, Clone, Debug, PartialEq)]
 pub enum ItemKind {
     #[default]
-    Misc,
+    Collectable,
     RosaryKnot,
     Quest,
     Relic {
@@ -87,10 +87,10 @@ impl INode2D for GameItem {
         shape.set_shape(&rect);
         area.add_child(&shape);
 
-        area.set_collision_layer_value(CollisionLayers::LayerOne.into(), false);
-        area.set_collision_mask_value(CollisionLayers::LayerOne.into(), false);
-        area.set_collision_layer_value(CollisionLayers::Items.into(), true);
-        area.set_collision_mask_value(CollisionLayers::PlayerHitbox.into(), true);
+        area.set_collision_layer_value(CollisionLayers::LayerOne as i32, false);
+        area.set_collision_mask_value(CollisionLayers::LayerOne as i32, false);
+        area.set_collision_layer_value(CollisionLayers::Items as i32, true);
+        area.set_collision_mask_value(CollisionLayers::PlayerHitbox as i32, true);
 
         let mut base = self.base_mut();
         base.set_as_top_level(true);
