@@ -43,10 +43,7 @@ impl Time {
         Time(value, value)
     }
 
-    // TODO: This should not be public, but is being left as such for Projectile and
-    // ProjectileEnemy. After those are updated to use this new timer struct, this can be set back
-    // to private.
-    pub fn reset(&mut self) {
+    fn reset(&mut self) {
         self.0 = self.1;
     }
 }

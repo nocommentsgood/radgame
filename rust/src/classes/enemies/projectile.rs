@@ -2,6 +2,7 @@ use godot::prelude::*;
 
 use crate::classes::components::hurtbox::Hurtbox;
 use crate::classes::components::timer_component::Time;
+use crate::traits::components::character_components::damaging::Damaging;
 use crate::utils::collision_layers;
 
 #[derive(GodotClass)]

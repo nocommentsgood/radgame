@@ -68,9 +68,6 @@ impl InventoryMenu {
         }
     }
 
-    // Just debug the error here as we just crossed the FFI boundary and Godot isn't aware of Rust
-    // Result type. Furthermore, any errors we receive should be considered bugs to fix in the
-    // context of a game. There isn't much to do in the realm of error handling.
     fn on_bead_selected(&mut self, idx: i64) {
         if let Err(e) = self.item_comp.bind_mut().try_equip_item(idx as usize) {
             dbg!(&e);

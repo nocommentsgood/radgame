@@ -87,8 +87,6 @@ impl INode2D for GameItem {
         shape.set_shape(&rect);
         area.add_child(&shape);
 
-        area.set_collision_layer_value(CollisionLayers::LayerOne as i32, false);
-        area.set_collision_mask_value(CollisionLayers::LayerOne as i32, false);
         area.set_collision_layer_value(CollisionLayers::Items as i32, true);
         area.set_collision_mask_value(CollisionLayers::PlayerHitbox as i32, true);
 

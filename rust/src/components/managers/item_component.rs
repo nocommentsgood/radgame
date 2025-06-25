@@ -108,7 +108,6 @@ impl ItemComponent {
             if let Some(mut item) = item {
                 let bind = item.bind().item.clone();
                 match bind.kind {
-                    // Duplicates are OK on misc items.
                     super::item::ItemKind::Collectable => self.collectables.push(Some(bind)),
                     super::item::ItemKind::RosaryBead { effect: _ } => {
                         if self.unlocked_beads.iter().flatten().any(|i| i == &bind) {
@@ -152,19 +151,17 @@ impl ItemComponent {
             None => return Err(EquipErr::ItemNotFound),
         };
 
-        // Check for capacity
         if self.equipped_beads.iter().all(|b| b.is_some()) {
             return Err(EquipErr::CapactiyReached);
         }
 
-        // Validate item kind
         let modifier = match &s_item.kind {
             ItemKind::RosaryBead { effect } | ItemKind::Relic { effect } => {
                 Gd::from_object(effect.clone())
             }
             _ => return Err(EquipErr::IncorrectItemKind),
         };
-        // Unequip if already equipped
+
         if let Some(existing) = self
             .equipped_beads
             .iter()
