@@ -43,7 +43,8 @@ impl Time {
         Time(value, value)
     }
 
-    fn reset(&mut self) {
+    // TODO: This is public until `projectile.rs` gets updated.
+    pub fn reset(&mut self) {
         self.0 = self.1;
     }
 }

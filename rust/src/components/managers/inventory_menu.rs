@@ -21,7 +21,7 @@ struct InventoryMenu {
     )]
     item_desc: OnReady<Gd<Label>>,
 
-    #[init(node = "../../LevelManager/MainCharacter/ItemComponent")]
+    #[init(node = "../../TileMapLayer/LevelManager/MainCharacter/ItemComponent")]
     item_comp: OnReady<Gd<ItemComponent>>,
     base: Base<Control>,
 }
@@ -69,7 +69,7 @@ impl InventoryMenu {
     }
 
     fn on_bead_selected(&mut self, idx: i64) {
-        if let Err(e) = self.item_comp.bind_mut().try_equip_item(idx as usize) {
+        if let Err(e) = self.item_comp.bind_mut().try_equip_bead(idx as usize) {
             dbg!(&e);
         }
     }
