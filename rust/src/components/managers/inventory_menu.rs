@@ -46,6 +46,10 @@ impl IControl for InventoryMenu {
             self.populate_unlocked_beads();
         } else if event.is_action_pressed("inventory") && self.base().is_visible() {
             self.base_mut().set_visible(false);
+        } else if event.is_action_pressed("equip") && self.base().is_visible() {
+            // TODO: Used for testing. Remove later.
+            println!("Testing equipping relic. Remove me.");
+            self.on_relic_selected(0);
         }
     }
 }
@@ -69,8 +73,32 @@ impl InventoryMenu {
     }
 
     fn on_bead_selected(&mut self, idx: i64) {
-        if let Err(e) = self.item_comp.bind_mut().try_equip_bead(idx as usize) {
+        let all = self.item_comp.bind().unlocked_beads.clone();
+        let mut equipped = self.item_comp.bind().equipped_beads.clone();
+        if let Err(e) = self
+            .item_comp
+            .bind_mut()
+            .try_equip_item(&all, &mut equipped, idx as usize)
+        {
             dbg!(&e);
         }
+
+        self.item_comp.bind_mut().unlocked_beads = all;
+        self.item_comp.bind_mut().equipped_beads = equipped;
+    }
+
+    fn on_relic_selected(&mut self, idx: i64) {
+        let all = self.item_comp.bind().unlocked_relics.clone();
+        let mut equipped = self.item_comp.bind().equipped_relics.clone();
+
+        if let Err(e) = self
+            .item_comp
+            .bind_mut()
+            .try_equip_item(&all, &mut equipped, idx as usize)
+        {
+            dbg!(&e);
+        }
+        self.item_comp.bind_mut().unlocked_relics = all;
+        self.item_comp.bind_mut().equipped_relics = equipped;
     }
 }
