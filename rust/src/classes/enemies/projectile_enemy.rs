@@ -1,12 +1,13 @@
 use std::collections::HashMap;
 
+use crate::classes::components::timer_component::Timers;
 use crate::{
     classes::{
         characters::{
             character_stats::{StatVal, Stats},
             main_character::MainCharacter,
         },
-        components::{speed_component::SpeedComponent, timer_component::EnemyTimers},
+        components::speed_component::SpeedComponent,
         enemies,
     },
     components::state_machines::{
@@ -22,23 +23,24 @@ use godot::{classes::AnimationPlayer, prelude::*};
 use has_aggro::HasAggroArea;
 use has_hitbox::HasEnemyHitbox;
 
-use crate::classes::components::timer_component::Timer;
+use crate::classes::components::timer_component::{EnemyTimer, Time};
 
 use super::patrol_component::PatrolComponent;
 
+type ET = EnemyTimer;
 const BULLET_SPEED: real = 500.0;
 
 #[derive(GodotClass)]
 #[class(init, base=Node2D)]
 pub struct ProjectileEnemy {
     velocity: Vector2,
-    shoot_cooldown: Timer,
+    shoot_cooldown: Time,
     patrol_comp: PatrolComponent,
     speeds: SpeedComponent,
     direction: PlatformerDirection,
     stats: HashMap<Stats, StatVal>,
     state: statig::blocking::StateMachine<EnemyStateMachine>,
-    timers: EnemyTimers,
+    timers: Timers,
     base: Base<Node2D>,
     #[init(load = "res://projectile.tscn")]
     projectile_scene: OnReady<Gd<PackedScene>>,
@@ -53,15 +55,19 @@ impl INode2D for ProjectileEnemy {
         self.patrol_comp = PatrolComponent::new(138.0, 0.0, -138.0, 0.0);
         self.connect_aggro_area_signal();
         self.connect_hitbox_signal();
-        self.timers = EnemyTimers::new(1.8, 2.0, 1.0, 2.0, 2.0);
-        self.shoot_cooldown = Timer::new(2.0);
-        self.stats.insert(Stats::Health, StatVal(20));
-        self.stats.insert(Stats::MaxHealth, StatVal(20));
-        self.stats.insert(Stats::AttackDamage, StatVal(10));
-        self.stats.insert(Stats::RunningSpeed, StatVal(150));
-        self.stats.insert(Stats::JumpingSpeed, StatVal(300));
-        self.stats.insert(Stats::DodgingSpeed, StatVal(250));
-        self.stats.insert(Stats::AttackingSpeed, StatVal(10));
+        self.timers.0.push(Time::new(1.8));
+        self.timers.0.push(Time::new(2.0));
+        self.timers.0.push(Time::new(1.0));
+        self.timers.0.push(Time::new(2.0));
+        self.timers.0.push(Time::new(2.0));
+        self.shoot_cooldown = Time::new(2.0);
+        self.stats.insert(Stats::Health, StatVal::new(20));
+        self.stats.insert(Stats::MaxHealth, StatVal::new(20));
+        self.stats.insert(Stats::AttackDamage, StatVal::new(10));
+        self.stats.insert(Stats::RunningSpeed, StatVal::new(150));
+        self.stats.insert(Stats::JumpingSpeed, StatVal::new(300));
+        self.stats.insert(Stats::DodgingSpeed, StatVal::new(250));
+        self.stats.insert(Stats::AttackingSpeed, StatVal::new(10));
     }
 
     fn process(&mut self, _delta: f64) {
@@ -96,30 +102,33 @@ impl ProjectileEnemy {
 
     fn attack(&mut self, player: Gd<MainCharacter>) {
         let target = player.get_global_position();
-        let time = self.timers.attack_animation.value;
+        let time = self.timers.get(&ET::AttackAnimation);
         let delta = self.base().get_process_delta_time() as f32;
-        let attack_cooldown = self.timers.attack_cooldown.clone();
-        if attack_cooldown.value == attack_cooldown.initial_value() {
+        let attack_cooldown = self.timers.get(&ET::AttackCooldown);
+        if attack_cooldown == self.timers.get_init(&ET::AttackCooldown) {
             self.shoot_projectile(target);
-            self.timers.attack_cooldown.value -= delta;
+            self.timers
+                .set(&ET::AttackCooldown, attack_cooldown - delta);
         }
-        self.timers.attack_cooldown.value -= delta;
-        self.timers.attack_animation.value -= delta;
+        self.timers
+            .set(&ET::AttackCooldown, attack_cooldown - delta);
+        self.timers.set(&ET::AttackAnimation, time - delta);
 
         if time <= 0.0 {
-            self.timers.attack_animation.reset();
+            self.timers.reset(&ET::AttackAnimation);
             self.state
                 .handle(&enemy_state_machine::EnemyEvent::TimerElapsed);
         }
     }
 
     fn chain_attack(&mut self, _player: Gd<MainCharacter>) {
-        let time = self.timers.chain_attack.value;
+        let ac = &ET::AttackChain;
+        let time = self.timers.get(ac);
         let delta = self.base().get_process_delta_time() as f32;
-        self.timers.chain_attack.value -= delta;
+        self.timers.set(ac, time - delta);
 
         if time <= 0.0 {
-            self.timers.chain_attack.reset();
+            self.timers.reset(ac);
             self.state
                 .handle(&enemy_state_machine::EnemyEvent::TimerElapsed);
         }
@@ -129,11 +138,13 @@ impl ProjectileEnemy {
         let delta = self.base().get_process_delta_time() as f32;
 
         // Update attack cooldown timer
-        let attack_cooldown = self.timers.attack_cooldown.clone();
-        if attack_cooldown.value < attack_cooldown.initial_value() && attack_cooldown.value > 0.0 {
-            self.timers.attack_cooldown.value -= delta;
-        } else if attack_cooldown.value <= 0.0 {
-            self.timers.attack_cooldown.reset();
+        let ac = &ET::AttackCooldown;
+        let attack_cooldown = self.timers.get(ac);
+        let init = self.timers.get_init(ac);
+        if attack_cooldown < init && attack_cooldown > 0.0 {
+            self.timers.set(ac, attack_cooldown - delta);
+        } else if attack_cooldown <= 0.0 {
+            self.timers.reset(ac);
         }
     }
 }
@@ -205,36 +216,39 @@ impl character_components::animatable::Animatable for ProjectileEnemy {
 }
 
 impl character_components::enemy_state_ext::EnemyEntityStateMachineExt for ProjectileEnemy {
-    fn timers(&mut self) -> &mut crate::classes::components::timer_component::EnemyTimers {
+    fn timers(&mut self) -> &mut crate::classes::components::timer_component::Timers {
         &mut self.timers
     }
     fn attack(&mut self, player: Gd<MainCharacter>) {
         let target = player.get_global_position();
-        let time = self.timers.attack_animation.value;
+        let ac = &ET::AttackCooldown;
+        let aa = &ET::AttackAnimation;
+        let time = self.timers.get(aa);
         let delta = self.base().get_process_delta_time() as f32;
-        let attack_cooldown = self.timers.attack_cooldown.clone();
+        let attack_cooldown = self.timers.get(ac);
         self.update_animation();
-        if attack_cooldown.value == attack_cooldown.initial_value() {
+        if attack_cooldown == self.timers.get_init(ac) {
             self.shoot_projectile(target);
-            self.timers.attack_cooldown.value -= delta;
+            self.timers.set(ac, attack_cooldown - delta);
         }
-        self.timers.attack_cooldown.value -= delta;
-        self.timers.attack_animation.value -= delta;
+        self.timers.set(ac, attack_cooldown - delta);
+        self.timers.set(aa, time - delta);
 
         if time <= 0.0 {
-            self.timers.attack_animation.reset();
+            self.timers.reset(aa);
             self.state
                 .handle(&enemy_state_machine::EnemyEvent::TimerElapsed);
         }
     }
 
     fn chain_attack(&mut self, _player: Gd<MainCharacter>) {
-        let time = self.timers.chain_attack.value;
+        let ac = &ET::AttackChain;
+        let time = self.timers.get(ac);
         let delta = self.base().get_process_delta_time() as f32;
-        self.timers.chain_attack.value -= delta;
+        self.timers.set(ac, time - delta);
 
         if time <= 0.0 {
-            self.timers.chain_attack.reset();
+            self.timers.reset(ac);
             self.state
                 .handle(&enemy_state_machine::EnemyEvent::TimerElapsed);
         }

@@ -10,7 +10,7 @@ use godot::{
 };
 
 use crate::{
-    classes::enemies::projectile::Projectile,
+    classes::{components::timer_component::Time, enemies::projectile::Projectile},
     components::{
         managers::{
             input_hanlder::InputHandler, item::StatModifier, item_component::ItemComponent,
@@ -27,8 +27,9 @@ use crate::{
 };
 
 use super::character_stats::{StatVal, Stats, Stats::*};
-use crate::classes::components::timer_component::PlayerTimers;
+use crate::classes::components::timer_component::{PlayerTimer, Timers};
 
+type PT = PlayerTimer;
 type Event = crate::components::state_machines::character_state_machine::Event;
 const GRAVITY: f32 = 1100.0;
 
@@ -39,7 +40,7 @@ pub struct MainCharacter {
     velocity: Vector2,
     active_velocity: Vector2,
     can_attack_chain: bool,
-    timers: PlayerTimers,
+    timers: Timers,
     state: statig::blocking::StateMachine<CharacterStateMachine>,
     stats: HashMap<Stats, StatVal>,
     base: Base<CharacterBody2D>,
@@ -69,6 +70,11 @@ impl ICharacterBody2D for MainCharacter {
             .signals()
             .new_modifier()
             .connect_other(&this, Self::on_new_modifier);
+
+        self.item_comp
+            .signals()
+            .modifier_removed()
+            .connect_other(&this, Self::on_modifier_removed);
 
         // TODO: Find how to get tracks for specific animations.
         // That way we can dynamically divide by scaling speed.
@@ -103,26 +109,24 @@ impl ICharacterBody2D for MainCharacter {
             .unwrap()
             .get_length();
 
-        self.stats.insert(Stats::Health, StatVal(50));
-        self.stats.insert(Stats::MaxHealth, StatVal(50));
-        self.stats.insert(Stats::HealAmount, StatVal(10));
-        self.stats.insert(Stats::AttackDamage, StatVal(30));
-        self.stats.insert(Stats::RunningSpeed, StatVal(150));
-        self.stats.insert(Stats::JumpingSpeed, StatVal(300));
-        self.stats.insert(Stats::DodgingSpeed, StatVal(250));
-        self.stats.insert(Stats::AttackingSpeed, StatVal(10));
+        self.stats.insert(Stats::Health, StatVal::new(50));
+        self.stats.insert(Stats::MaxHealth, StatVal::new(50));
+        self.stats.insert(Stats::HealAmount, StatVal::new(10));
+        self.stats.insert(Stats::AttackDamage, StatVal::new(30));
+        self.stats.insert(Stats::RunningSpeed, StatVal::new(150));
+        self.stats.insert(Stats::JumpingSpeed, StatVal::new(300));
+        self.stats.insert(Stats::DodgingSpeed, StatVal::new(250));
+        self.stats.insert(Stats::AttackingSpeed, StatVal::new(10));
 
-        self.timers = PlayerTimers::new(
-            0.6,
-            dodge_animation_length,
-            jumping_animation_length,
-            attack_animation_length,
-            attack_animation_length,
-            healing_animation_length,
-            parry_animation_length,
-            0.3,
-            0.15,
-        );
+        self.timers.0.push(Time::new(0.6));
+        self.timers.0.push(Time::new(dodge_animation_length));
+        self.timers.0.push(Time::new(jumping_animation_length));
+        self.timers.0.push(Time::new(attack_animation_length));
+        self.timers.0.push(Time::new(attack_animation_length));
+        self.timers.0.push(Time::new(healing_animation_length));
+        self.timers.0.push(Time::new(parry_animation_length));
+        self.timers.0.push(Time::new(0.3));
+        self.timers.0.push(Time::new(0.15));
     }
 
     fn unhandled_input(&mut self, input: Gd<godot::classes::InputEvent>) {
@@ -232,13 +236,13 @@ impl MainCharacter {
     fn dodge(&mut self) {
         let delta = self.base().get_physics_process_delta_time() as f32;
         let mut cooldown_timer = self.get_dodging_cooldown_timer();
-        let time = self.timers.dodging_animation_timer.value;
+        let time = self.timers.get(&PT::DodgeAnimation);
 
         if cooldown_timer.get_time_left() > 0.0 {
             self.state.handle(&Event::TimerInProgress);
-        } else if time < self.timers.dodging_animation_timer.initial_value() && time > 0.0 {
+        } else if time < self.timers.get_init(&PT::DodgeAnimation) && time > 0.0 {
             self.base_mut().move_and_slide();
-            self.timers.dodging_animation_timer.value -= delta;
+            self.timers.set(&PT::DodgeAnimation, time - delta);
         } else {
             let speed = self.stats.get(&DodgingSpeed).unwrap().0 as f32;
             let velocity = self.velocity;
@@ -246,10 +250,10 @@ impl MainCharacter {
             self.base_mut().set_velocity(velocity * speed);
             self.base_mut().move_and_slide();
             self.update_animation();
-            self.timers.dodging_animation_timer.value -= delta;
+            self.timers.set(&PT::DodgeAnimation, time - delta);
 
             if time <= 0.0 {
-                self.timers.dodging_animation_timer.reset();
+                self.timers.reset(&PT::DodgeAnimation);
                 self.state.handle(&Event::TimerElapsed);
                 cooldown_timer.start();
             }
@@ -259,27 +263,27 @@ impl MainCharacter {
     fn attack(&mut self) {
         self.base_mut().set_process_unhandled_input(false);
         let speed = self.stats.get(&Stats::AttackingSpeed).unwrap().0 as f32;
-        let time = self.timers.attack_animation_timer.value;
+        let time = self.timers.get(&PT::AttackAnimation);
         let velocity = self.velocity;
         let delta = self.base().get_physics_process_delta_time() as f32;
 
-        if time < self.timers.attack_animation_timer.initial_value() && time > 0.0 {
+        if time < self.timers.get_init(&PT::AttackAnimation) && time > 0.0 {
             if Input::singleton().is_action_just_pressed("attack") {
                 self.can_attack_chain = true;
             }
             self.update_direction();
             self.base_mut().move_and_slide();
-            self.timers.attack_animation_timer.value -= delta;
+            self.timers.set(&PT::AttackAnimation, time - delta);
         } else {
             self.update_direction();
             self.update_animation();
             self.base_mut().set_velocity(velocity * speed);
             self.base_mut().move_and_slide();
-            self.timers.attack_animation_timer.value -= delta;
+            self.timers.set(&PT::AttackAnimation, time - delta);
         }
 
         if time <= 0.0 {
-            self.timers.attack_animation_timer.reset();
+            self.timers.reset(&PT::AttackAnimation);
             self.base_mut().set_process_unhandled_input(true);
             if self.can_attack_chain {
                 self.can_attack_chain = false;
@@ -291,17 +295,18 @@ impl MainCharacter {
     }
 
     fn attack_2(&mut self) {
-        let time = self.timers.attack_animation_timer_2.value;
+        let x = PT::AttackAnimation2;
+        let time = self.timers.get(&x);
         let delta = self.base().get_physics_process_delta_time() as f32;
 
-        if time < self.timers.attack_animation_timer_2.initial_value() && time > 0.0 {
-            self.timers.attack_animation_timer_2.value -= delta;
+        if time < self.timers.get_init(&x) && time > 0.0 {
+            self.timers.set(&x, time - delta);
         } else {
             self.update_animation();
-            self.timers.attack_animation_timer_2.value -= delta;
+            self.timers.set(&x, time - delta);
 
             if time <= 0.0 {
-                self.timers.attack_animation_timer_2.reset();
+                self.timers.reset(&x);
                 self.state.handle(&Event::TimerElapsed);
             }
         }
@@ -324,7 +329,8 @@ impl MainCharacter {
     }
 
     fn jump(&mut self) {
-        let time = self.timers.jumping_animation_timer.value;
+        let x = PT::JumpingAnimation;
+        let time = self.timers.get(&x);
         let delta = self.base().get_physics_process_delta_time() as f32;
 
         if self.base().is_on_floor() {
@@ -343,17 +349,18 @@ impl MainCharacter {
             self.detect_ledges();
             self.base_mut().set_velocity(velocity);
             self.base_mut().move_and_slide();
-            self.timers.jumping_animation_timer.value -= delta;
+            self.timers.set(&x, time - delta);
         }
 
         if time <= 0.0 {
-            self.timers.jumping_animation_timer.reset();
+            self.timers.reset(&x);
             self.state.handle(&Event::TimerElapsed);
         }
     }
 
     fn heal(&mut self) {
-        let time = self.timers.healing_animation_timer.value;
+        let x = PT::HealingAnimation;
+        let time = self.timers.get(&x);
         let current_health = self.stats.get(&Stats::Health).unwrap().0;
         let amount = self.stats.get(&Stats::HealAmount).unwrap().0;
         let max = self.stats.get(&Stats::MaxHealth).unwrap().0;
@@ -363,7 +370,7 @@ impl MainCharacter {
 
         self.update_animation();
         self.base_mut().set_velocity(velocity);
-        self.timers.healing_animation_timer.value -= delta;
+        self.timers.set(&x, time - delta);
 
         if time <= 0.0 {
             if current_health < max {
@@ -373,12 +380,13 @@ impl MainCharacter {
                     .player_health_changed()
                     .emit(current_health, new, amount);
             }
-            self.timers.healing_animation_timer.reset();
+            self.timers.reset(&x);
             self.state.handle(&Event::TimerElapsed);
         }
     }
 
     fn fall(&mut self) {
+        let x = &PT::JumpingAnimation;
         if !self.base().is_on_floor() {
             let delta = self.base().get_physics_process_delta_time() as f32;
             self.velocity.y += GRAVITY * delta;
@@ -393,26 +401,26 @@ impl MainCharacter {
         } else if self.base().is_on_floor() {
             self.velocity.y = 0.0;
             self.state.handle(&Event::OnFloor);
-            if self.timers.jumping_animation_timer.value
-                < self.timers.jumping_animation_timer.initial_value()
-            {
-                self.timers.jumping_animation_timer.reset();
+            if self.timers.get(x) < self.timers.get_init(x) {
+                self.timers.reset(x);
             }
         }
     }
 
     fn parry(&mut self) {
-        let time = self.timers.parry_animation_timer.value;
+        let anim_time = self.timers.get(&PT::ParryAnimation);
+        let parry_time = self.timers.get(&PT::Parry);
+        let perf_parry = self.timers.get(&PT::PerfectParry);
         let delta = self.base().get_physics_process_delta_time() as f32;
         self.update_animation();
-        self.timers.parry_animation_timer.value -= delta;
-        self.timers.parry_timer.value -= delta;
-        self.timers.perfect_parry_timer.value -= delta;
+        self.timers.set(&PT::ParryAnimation, anim_time - delta);
+        self.timers.set(&PT::Parry, parry_time - delta);
+        self.timers.set(&PT::PerfectParry, perf_parry - delta);
 
-        if time <= 0.0 {
-            self.timers.parry_animation_timer.reset();
-            self.timers.parry_timer.reset();
-            self.timers.perfect_parry_timer.reset();
+        if anim_time <= 0.0 {
+            self.timers.reset(&PT::ParryAnimation);
+            self.timers.reset(&PT::Parry);
+            self.timers.reset(&PT::PerfectParry);
             self.state.handle(&Event::TimerElapsed);
         }
     }
@@ -420,7 +428,7 @@ impl MainCharacter {
     fn parried_attack(&mut self, area: Gd<Area2D>) -> bool {
         match self.state.state() {
             State::Parry {} => {
-                if self.timers.perfect_parry_timer.value > 0.0 {
+                if self.timers.get(&PT::PerfectParry) > 0.0 {
                     println!("\nPERFECT PARRY\n");
                     if area.is_in_group("enemy_projectile") {
                         if let Some(parent) = area.get_parent() {
@@ -430,9 +438,9 @@ impl MainCharacter {
                         }
                     }
                     self.signals().parried_attack().emit();
-                    self.timers.perfect_parry_timer.reset();
+                    self.timers.reset(&PT::PerfectParry);
                     true
-                } else if self.timers.parry_timer.value > 0.0 {
+                } else if self.timers.get(&PT::Parry) > 0.0 {
                     println!("\nNORMAL PARRY\n");
                     if area.is_in_group("enemy_projectile") {
                         if let Some(parent) = area.get_parent() {
@@ -442,7 +450,7 @@ impl MainCharacter {
                         }
                     }
                     self.signals().parried_attack().emit();
-                    self.timers.parry_timer.reset();
+                    self.timers.reset(&PT::Parry);
                     true
                 } else {
                     false
@@ -475,6 +483,12 @@ impl MainCharacter {
     fn on_new_modifier(&mut self, modifier: Gd<StatModifier>) {
         if let Some(val) = self.stats.get_mut(&modifier.bind().stat) {
             val.apply_modifier(modifier.bind().clone());
+        }
+    }
+
+    fn on_modifier_removed(&mut self, modifier: Gd<StatModifier>) {
+        if let Some(val) = self.stats.get_mut(&modifier.bind().stat) {
+            val.remove_modifier(modifier.bind().clone());
         }
     }
 }

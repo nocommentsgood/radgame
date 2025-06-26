@@ -38,7 +38,6 @@ impl INode for LevelManager {
             ),
             Vector2i::new(-400, 250),
         );
-
         self.base_mut().add_child(&item);
         self.connect_to_signals();
     }
