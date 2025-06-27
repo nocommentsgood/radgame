@@ -244,7 +244,7 @@ where
         self.update_direction();
         self.move_to(&velocity);
 
-        if attack_range.has_overlapping_bodies() && time == self.timers().get_init(ac) {
+        if attack_range.has_overlapping_areas() && time == self.timers().get_init(ac) {
             self.timers().set(ac, time - delta);
             self.sm_mut()
                 .handle(&enemy_state_machine::EnemyEvent::InAttackRange);

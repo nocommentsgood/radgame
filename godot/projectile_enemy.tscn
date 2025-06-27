@@ -488,10 +488,9 @@ texture = ExtResource("2_ws556")
 hframes = 9
 
 [node name="EnemySensors" parent="." instance=ExtResource("2_wkbwq")]
-visible = false
 
-[node name="Hurtboxes" parent="EnemySensors" index="0"]
-visible = false
+[node name="AttackArea" parent="EnemySensors" index="1"]
+monitorable = false
 
 [node name="AttackShapeEast" parent="EnemySensors/AttackArea" index="0"]
 position = Vector2(0, 0)

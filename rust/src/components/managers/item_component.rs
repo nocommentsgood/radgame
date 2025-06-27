@@ -41,6 +41,7 @@ impl INode for ItemComponent {
             base,
         }
     }
+
     fn unhandled_input(&mut self, input: Gd<InputEvent>) {
         if input.is_action_pressed("interact") {
             self.pickup_item();
@@ -140,28 +141,6 @@ impl ItemComponent {
         self.in_item_area = false;
     }
 
-    fn unequip_item(
-        &mut self,
-        equipped: &mut [Option<Item>],
-        item: &super::item::Item,
-    ) -> Result<(), EquipErr> {
-        if let Some(slot) = equipped.iter_mut().find(|i| i.as_ref() == Some(item)) {
-            if let Some(item) = slot.take() {
-                let (ItemKind::RosaryBead { effect: modifier }
-                | ItemKind::Relic { effect: modifier }) = &item.kind
-                else {
-                    return Err(EquipErr::IncorrectItemKind);
-                };
-                self.signals()
-                    .modifier_removed()
-                    .emit(&Gd::from_object(modifier.clone()));
-            }
-            Ok(())
-        } else {
-            Err(EquipErr::ItemNotFound)
-        }
-    }
-
     pub fn try_equip_item(
         &mut self,
         all_items: &[Option<Item>],
@@ -196,6 +175,28 @@ impl ItemComponent {
             }
         } else {
             Err(EquipErr::OutOfBounds)
+        }
+    }
+
+    fn unequip_item(
+        &mut self,
+        equipped: &mut [Option<Item>],
+        item: &super::item::Item,
+    ) -> Result<(), EquipErr> {
+        if let Some(slot) = equipped.iter_mut().find(|i| i.as_ref() == Some(item)) {
+            if let Some(item) = slot.take() {
+                let (ItemKind::RosaryBead { effect: modifier }
+                | ItemKind::Relic { effect: modifier }) = &item.kind
+                else {
+                    return Err(EquipErr::IncorrectItemKind);
+                };
+                self.signals()
+                    .modifier_removed()
+                    .emit(&Gd::from_object(modifier.clone()));
+            }
+            Ok(())
+        } else {
+            Err(EquipErr::ItemNotFound)
         }
     }
 }
