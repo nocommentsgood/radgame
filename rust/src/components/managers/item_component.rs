@@ -6,7 +6,7 @@ use godot::{classes::InputEvent, prelude::*};
 /// Error type used for equipping and unequipping
 #[derive(Debug)]
 pub enum EquipErr {
-    CapactiyReached,
+    CapacityReached,
     ItemNotFound,
     IncorrectItemKind,
     OutOfBounds,
@@ -73,6 +73,16 @@ impl INode for ItemComponent {
         );
         self.unlocked_beads.insert(0, Some(test_bead_1));
 
+        let test_bead_2 = Item::new(
+            ItemKind::RosaryBead {
+                effect: StatModifier::new(Stats::RunningSpeed, ModifierKind::Flat(2)),
+            },
+            "TestBead1 WOW".to_string(),
+            Some("A test bead that also increases movement speed".to_string()),
+            "res://assets/bullet.webp".to_string(),
+        );
+
+        self.unlocked_beads.insert(1, Some(test_bead_2));
         let relic = Item::new(
             ItemKind::Relic {
                 effect: StatModifier::new(Stats::MaxHealth, ModifierKind::Flat(2)),
@@ -143,13 +153,13 @@ impl ItemComponent {
 
     pub fn try_equip_item(
         &mut self,
-        all_items: &[Option<Item>],
+        unlocked_items: &[Option<Item>],
         equipped_items: &mut [Option<Item>],
         idx: usize,
-    ) -> Result<(), EquipErr> {
-        let item = all_items.get(idx);
+    ) -> Result<Item, EquipErr> {
+        let item = unlocked_items.get(idx);
         if let Some(None) | None = item {
-            return Ok(());
+            return Err(EquipErr::ItemNotFound);
         }
 
         if let Some(item) = item {
@@ -157,7 +167,7 @@ impl ItemComponent {
                 return self.unequip_item(equipped_items, item.as_ref().unwrap());
             }
             if equipped_items.iter().all(|slot| slot.is_some()) {
-                return Err(EquipErr::CapactiyReached);
+                return Err(EquipErr::CapacityReached);
             }
             let (ItemKind::RosaryBead { effect: modifier } | ItemKind::Relic { effect: modifier }) =
                 item.clone().unwrap().kind
@@ -169,9 +179,9 @@ impl ItemComponent {
                 self.signals()
                     .new_modifier()
                     .emit(&Gd::from_object(modifier.clone()));
-                Ok(())
+                Ok(item.to_owned().unwrap())
             } else {
-                Err(EquipErr::CapactiyReached)
+                Err(EquipErr::CapacityReached)
             }
         } else {
             Err(EquipErr::OutOfBounds)
@@ -182,7 +192,7 @@ impl ItemComponent {
         &mut self,
         equipped: &mut [Option<Item>],
         item: &super::item::Item,
-    ) -> Result<(), EquipErr> {
+    ) -> Result<Item, EquipErr> {
         if let Some(slot) = equipped.iter_mut().find(|i| i.as_ref() == Some(item)) {
             if let Some(item) = slot.take() {
                 let (ItemKind::RosaryBead { effect: modifier }
@@ -193,8 +203,10 @@ impl ItemComponent {
                 self.signals()
                     .modifier_removed()
                     .emit(&Gd::from_object(modifier.clone()));
+                Ok(item)
+            } else {
+                Err(EquipErr::ItemNotFound)
             }
-            Ok(())
         } else {
             Err(EquipErr::ItemNotFound)
         }
