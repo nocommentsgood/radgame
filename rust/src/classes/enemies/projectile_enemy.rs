@@ -100,40 +100,6 @@ impl ProjectileEnemy {
             .call_deferred("add_child", &[bullet.to_variant()]);
     }
 
-    fn attack(&mut self, player: Gd<MainCharacter>) {
-        let target = player.get_global_position();
-        let time = self.timers.get(&ET::AttackAnimation);
-        let delta = self.base().get_process_delta_time() as f32;
-        let attack_cooldown = self.timers.get(&ET::AttackCooldown);
-        if attack_cooldown == self.timers.get_init(&ET::AttackCooldown) {
-            self.shoot_projectile(target);
-            self.timers
-                .set(&ET::AttackCooldown, attack_cooldown - delta);
-        }
-        self.timers
-            .set(&ET::AttackCooldown, attack_cooldown - delta);
-        self.timers.set(&ET::AttackAnimation, time - delta);
-
-        if time <= 0.0 {
-            self.timers.reset(&ET::AttackAnimation);
-            self.state
-                .handle(&enemy_state_machine::EnemyEvent::TimerElapsed);
-        }
-    }
-
-    fn chain_attack(&mut self, _player: Gd<MainCharacter>) {
-        let ac = &ET::AttackChain;
-        let time = self.timers.get(ac);
-        let delta = self.base().get_process_delta_time() as f32;
-        self.timers.set(ac, time - delta);
-
-        if time <= 0.0 {
-            self.timers.reset(ac);
-            self.state
-                .handle(&enemy_state_machine::EnemyEvent::TimerElapsed);
-        }
-    }
-
     fn update_timers(&mut self) {
         let delta = self.base().get_process_delta_time() as f32;
 

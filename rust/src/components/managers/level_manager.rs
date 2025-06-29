@@ -47,12 +47,14 @@ impl LevelManager {
     fn connect_to_signals(&mut self) {
         let enemy = self
             .base()
-            .get_node_as::<crate::classes::enemies::test_enemy::TestEnemy>("TestEnemy");
+            .try_get_node_as::<crate::classes::enemies::test_enemy::TestEnemy>("TestEnemy");
         let mut this = self.to_gd();
-        enemy
-            .signals()
-            .test_enemy_died()
-            .connect(move || this.bind_mut().on_enemy_died());
+        if let Some(enemy) = enemy {
+            enemy
+                .signals()
+                .test_enemy_died()
+                .connect(move || this.bind_mut().on_enemy_died());
+        }
 
         let items = self.base().get_tree().unwrap().get_nodes_in_group("items");
         for item in items.iter_shared() {
