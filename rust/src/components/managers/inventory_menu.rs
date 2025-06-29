@@ -20,6 +20,11 @@ struct InventoryMenu {
     bead_item_list: OnReady<Gd<ItemList>>,
 
     #[init(
+        node = "PanelContainer/MarginContainer/TabContainer/MarginContainer2/HBoxContainer/VBoxContainer/ItemList"
+    )]
+    relic_item_list: OnReady<Gd<ItemList>>,
+
+    #[init(
         node = "PanelContainer/MarginContainer/TabContainer/MarginContainer/HBoxContainer/VBoxContainer/ItemDescriptionLabel"
     )]
     item_desc: OnReady<Gd<Label>>,
@@ -49,7 +54,18 @@ impl IControl for InventoryMenu {
             .signals()
             .item_selected()
             .connect_other(&this, Self::on_bead_selected);
+
+        self.relic_item_list
+            .signals()
+            .item_activated()
+            .connect_other(&this, Self::on_relic_activated);
+
+        self.relic_item_list
+            .signals()
+            .item_selected()
+            .connect_other(&this, Self::on_relic_selected);
         self.tab_container.set_tab_title(0, "RosaryBeads");
+        self.tab_container.set_tab_title(1, "Relics");
     }
 
     fn unhandled_input(&mut self, event: Gd<InputEvent>) {
@@ -69,6 +85,8 @@ impl IControl for InventoryMenu {
 
 // TODO: This will have to be extended further to support setting icons in the equipped items/item
 // grid.
+//
+// TODO: The Godot scene tabs shouldn't need to have their own labels, equipped icon section, etc.
 #[godot_api]
 impl InventoryMenu {
     fn set_bead_list_icons(&mut self) {
@@ -76,6 +94,12 @@ impl InventoryMenu {
             if let Some(item) = item {
                 let icon = load::<godot::classes::Texture2D>(&item.icon_path.clone());
                 self.bead_item_list.set_item_icon(idx as i32, &icon);
+            }
+        }
+        for (idx, item) in self.item_comp.bind().unlocked_relics.iter().enumerate() {
+            if let Some(item) = item {
+                let icon = load::<godot::classes::Texture2D>(&item.icon_path.clone());
+                self.relic_item_list.set_item_icon(idx as i32, &icon);
             }
         }
     }
@@ -90,6 +114,23 @@ impl InventoryMenu {
                 self.item_desc.set_text("");
             }
         } else {
+            self.item_desc.set_text("");
+        }
+    }
+
+    fn on_relic_selected(&mut self, idx: i64) {
+        let bind = self.item_comp.bind();
+        let relic = bind.unlocked_relics.get(idx as usize);
+        if let Some(Some(relic)) = relic {
+            if let Some(text) = &relic.desc {
+                dbg!();
+                self.item_desc.set_text(text);
+            } else {
+                dbg!();
+                self.item_desc.set_text("");
+            }
+        } else {
+            dbg!();
             self.item_desc.set_text("");
         }
     }
@@ -120,15 +161,24 @@ impl InventoryMenu {
     fn on_relic_activated(&mut self, idx: i64) {
         let unlocked = self.item_comp.bind().unlocked_relics.clone();
         let mut equipped = self.item_comp.bind().equipped_relics.clone();
+        let res = self
+            .item_comp
+            .bind_mut()
+            .try_equip_item(&unlocked, &mut equipped, idx as usize);
 
-        if let Err(e) =
-            self.item_comp
-                .bind_mut()
-                .try_equip_item(&unlocked, &mut equipped, idx as usize)
-        {
-            dbg!(&e);
+        match res {
+            Ok(_item) => {
+                self.item_comp.bind_mut().unlocked_relics = unlocked;
+                self.item_comp.bind_mut().equipped_relics = equipped;
+                // TODO: Add equipped relic grid. See above comment about scene modularity.
+                // let icon = load::<Texture2D>(&item.icon_path);
+                // self.equipped_relic_grid
+                //     .get_node_as::<TextureRect>("TextureRect")
+                //     .set_texture(&icon);
+            }
+            Err(e) => {
+                dbg!(e);
+            }
         }
-        self.item_comp.bind_mut().unlocked_relics = unlocked;
-        self.item_comp.bind_mut().equipped_relics = equipped;
     }
 }
