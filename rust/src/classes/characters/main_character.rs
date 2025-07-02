@@ -10,7 +10,10 @@ use godot::{
 };
 
 use crate::{
-    classes::{components::timer_component::Time, enemies::projectile::Projectile},
+    classes::{
+        characters::entity_hitbox::EntityHitbox, components::timer_component::Time,
+        enemies::projectile::Projectile,
+    },
     components::{
         managers::{
             input_hanlder::InputHandler, item::StatModifier, item_component::ItemComponent,
@@ -31,7 +34,7 @@ use crate::classes::components::timer_component::{PlayerTimer, Timers};
 
 type PT = PlayerTimer;
 type Event = crate::components::state_machines::character_state_machine::Event;
-const GRAVITY: f32 = 1100.0;
+const GRAVITY: f32 = 980.0;
 
 #[derive(GodotClass)]
 #[class(init, base=CharacterBody2D)]
@@ -39,6 +42,7 @@ pub struct MainCharacter {
     direction: PlatformerDirection,
     velocity: Vector2,
     active_velocity: Vector2,
+    hit_enemy: bool,
     can_attack_chain: bool,
     timers: Timers,
     state: statig::blocking::StateMachine<CharacterStateMachine>,
@@ -63,9 +67,12 @@ pub struct MainCharacter {
 #[godot_api]
 impl ICharacterBody2D for MainCharacter {
     fn ready(&mut self) {
-        self.connect_hitbox();
-
         let this = self.to_gd();
+        let hitbox = self.base().get_node_as::<Area2D>("Hitbox");
+        hitbox
+            .signals()
+            .area_entered()
+            .connect_other(&this, Self::on_area_entered_hitbox);
         self.item_comp
             .signals()
             .new_modifier()
@@ -75,6 +82,12 @@ impl ICharacterBody2D for MainCharacter {
             .signals()
             .modifier_removed()
             .connect_other(&this, Self::on_modifier_removed);
+
+        let hurtbox = self.base().get_node_as::<Area2D>("Hurtbox");
+        hurtbox
+            .signals()
+            .area_entered()
+            .connect_other(&this, Self::on_area_entered_hurtbox);
 
         // TODO: Find how to get tracks for specific animations.
         // That way we can dynamically divide by scaling speed.
@@ -109,22 +122,29 @@ impl ICharacterBody2D for MainCharacter {
             .unwrap()
             .get_length();
 
+        let hurt_animation_length = self
+            .get_animation_player()
+            .get_animation("hurt_east")
+            .unwrap()
+            .get_length();
+
         self.stats.insert(Stats::Health, StatVal::new(50));
         self.stats.insert(Stats::MaxHealth, StatVal::new(50));
         self.stats.insert(Stats::HealAmount, StatVal::new(10));
         self.stats.insert(Stats::AttackDamage, StatVal::new(30));
         self.stats.insert(Stats::RunningSpeed, StatVal::new(150));
-        self.stats.insert(Stats::JumpingSpeed, StatVal::new(300));
+        self.stats.insert(Stats::JumpingSpeed, StatVal::new(350));
         self.stats.insert(Stats::DodgingSpeed, StatVal::new(250));
         self.stats.insert(Stats::AttackingSpeed, StatVal::new(10));
 
-        self.timers.0.push(Time::new(0.6));
+        self.timers.0.push(Time::new(0.3));
         self.timers.0.push(Time::new(dodge_animation_length));
         self.timers.0.push(Time::new(jumping_animation_length));
         self.timers.0.push(Time::new(attack_animation_length));
         self.timers.0.push(Time::new(attack_animation_length));
         self.timers.0.push(Time::new(healing_animation_length));
         self.timers.0.push(Time::new(parry_animation_length));
+        self.timers.0.push(Time::new(hurt_animation_length));
         self.timers.0.push(Time::new(0.3));
         self.timers.0.push(Time::new(0.15));
     }
@@ -160,16 +180,17 @@ impl ICharacterBody2D for MainCharacter {
         }
 
         match self.state.state() {
+            character_state_machine::State::Attacking {} => self.attack(),
+            character_state_machine::State::Attack2 {} => self.attack_2(),
+            character_state_machine::State::Parry {} => self.parry(),
             character_state_machine::State::Idle {} => self.idle(),
             character_state_machine::State::Dodging {} => self.dodge(),
             character_state_machine::State::Jumping {} => self.jump(),
             character_state_machine::State::Falling {} => self.fall(),
             character_state_machine::State::Moving {} => self.move_character(),
-            character_state_machine::State::Attacking {} => self.attack(),
-            character_state_machine::State::Attack2 {} => self.attack_2(),
-            character_state_machine::State::Parry {} => self.parry(),
             character_state_machine::State::Healing {} => self.heal(),
             character_state_machine::State::Grappling {} => self.grapple(),
+            character_state_machine::State::Hurt {} => self.hurt(),
         }
         self.state.handle(&event);
     }
@@ -186,22 +207,27 @@ impl MainCharacter {
     #[signal]
     fn player_died();
 
-    fn connect_hitbox(&self) {
-        let mut this = self.to_gd();
-        let hitbox = self.base().get_node_as::<Area2D>("Hitbox");
-        hitbox
-            .signals()
-            .area_entered()
-            .connect(move |area| this.bind_mut().on_area_entered_hitbox(area));
+    // Had to resort to enabling and disabling the collision shape manually, otherwise the
+    // `area_entered()` signal of the `Hurtbox` would emit twice.
+    fn on_area_entered_hurtbox(&mut self, area: Gd<Area2D>) {
+        if let Ok(_hurtbox) = area.try_cast::<EntityHitbox>() {
+            dbg!("can attack chain");
+            self.hit_enemy = true;
+            self.base()
+                .get_node_as::<godot::classes::CollisionShape2D>("Hurtbox/HurtboxShape")
+                .set_deferred("disabled", &true.to_variant());
+        }
     }
 
     fn on_area_entered_hitbox(&mut self, area: Gd<Area2D>) {
         if !self.parried_attack(area.clone()) {
             let damaging = DynGd::<Area2D, dyn Damaging>::from_godot(area);
             let target = self.to_gd().upcast::<Node2D>();
-            let _guard = self.base_mut();
+            let guard = self.base_mut();
             let damageable = DynGd::<Node2D, dyn Damageable>::from_godot(target);
             damaging.dyn_bind().do_damage(damageable);
+            drop(guard);
+            self.state.handle(&Event::Hurt);
         }
     }
 
@@ -262,39 +288,60 @@ impl MainCharacter {
 
     fn attack(&mut self) {
         self.base_mut().set_process_unhandled_input(false);
-        let speed = self.stats.get(&Stats::AttackingSpeed).unwrap().0 as f32;
         let time = self.timers.get(&PT::AttackAnimation);
-        let velocity = self.velocity;
+        let ac_timer = self.timers.get(&PT::AttackChain);
         let delta = self.base().get_physics_process_delta_time() as f32;
+        let mut h_shape = self
+            .base()
+            .get_node_as::<godot::classes::CollisionShape2D>("Hurtbox/HurtboxShape");
 
         if time < self.timers.get_init(&PT::AttackAnimation) && time > 0.0 {
-            if Input::singleton().is_action_just_pressed("attack") {
-                self.can_attack_chain = true;
-            }
-            self.update_direction();
-            self.base_mut().move_and_slide();
+            h_shape.set_deferred("disabled", &true.to_variant());
             self.timers.set(&PT::AttackAnimation, time - delta);
+
+            if Input::singleton().is_action_pressed("parry") {
+                self.timers.reset(&PT::AttackAnimation);
+                self.base_mut().set_process_unhandled_input(true);
+                self.state.handle(&Event::ParryButton);
+            }
+
+            if ac_timer < self.timers.get_init(&PT::AttackChain) && ac_timer > 0.0 {
+                if Input::singleton().is_action_just_pressed("attack") {
+                    if self.hit_enemy {
+                        self.can_attack_chain = true;
+                        self.hit_enemy = false;
+                    }
+                } else {
+                    self.timers.set(&PT::AttackChain, ac_timer - delta);
+                }
+            }
         } else {
+            h_shape.set_deferred("disabled", &false.to_variant());
             self.update_direction();
             self.update_animation();
-            self.base_mut().set_velocity(velocity * speed);
-            self.base_mut().move_and_slide();
             self.timers.set(&PT::AttackAnimation, time - delta);
+            self.timers.set(&PT::AttackChain, ac_timer - delta);
         }
-
         if time <= 0.0 {
+            h_shape.set_deferred("disabled", &true.to_variant());
             self.timers.reset(&PT::AttackAnimation);
-            self.base_mut().set_process_unhandled_input(true);
-            if self.can_attack_chain {
+            self.timers.reset(&PT::AttackChain);
+            if dbg!(self.can_attack_chain) {
                 self.can_attack_chain = false;
+                dbg!(self.can_attack_chain);
+                self.hit_enemy = false;
+                self.base_mut().set_process_unhandled_input(true);
                 self.state.handle(&Event::AttackButton);
             } else {
+                self.hit_enemy = false;
+                self.base_mut().set_process_unhandled_input(true);
                 self.state.handle(&Event::TimerElapsed);
             }
         }
     }
 
     fn attack_2(&mut self) {
+        self.can_attack_chain = false;
         let x = PT::AttackAnimation2;
         let time = self.timers.get(&x);
         let delta = self.base().get_physics_process_delta_time() as f32;
@@ -309,6 +356,21 @@ impl MainCharacter {
                 self.timers.reset(&x);
                 self.state.handle(&Event::TimerElapsed);
             }
+        }
+    }
+
+    fn hurt(&mut self) {
+        let time = self.timers.get(&PT::HurtAnimation);
+        let delta = self.base().get_physics_process_delta_time();
+        if time > 0.0 {
+            self.timers.set(&PT::HurtAnimation, time - delta as f32);
+            self.base_mut().set_velocity(Vector2::ZERO);
+            self.update_animation();
+        }
+
+        if time <= 0.0 {
+            self.timers.reset(&PT::HurtAnimation);
+            self.state.handle(&Event::TimerElapsed);
         }
     }
 

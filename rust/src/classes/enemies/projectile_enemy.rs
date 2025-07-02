@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 
+use crate::classes::components::hurtbox::Hurtbox;
 use crate::classes::components::timer_component::Timers;
+use crate::classes::enemies::projectile::Projectile;
 use crate::{
     classes::{
         characters::{
@@ -8,7 +10,6 @@ use crate::{
             main_character::MainCharacter,
         },
         components::speed_component::SpeedComponent,
-        enemies,
     },
     components::state_machines::{
         enemy_state_machine::{self, *},
@@ -42,8 +43,9 @@ pub struct ProjectileEnemy {
     state: statig::blocking::StateMachine<EnemyStateMachine>,
     timers: Timers,
     base: Base<Node2D>,
-    #[init(load = "res://projectile.tscn")]
+    #[init(val = OnReady::manual())]
     projectile_scene: OnReady<Gd<PackedScene>>,
+
     #[init(node = "AnimationPlayer")]
     animation_player: OnReady<Gd<AnimationPlayer>>,
 }
@@ -51,16 +53,19 @@ pub struct ProjectileEnemy {
 #[godot_api]
 impl INode2D for ProjectileEnemy {
     fn ready(&mut self) {
+        self.projectile_scene.init(load("res://projectile.tscn"));
         self.speeds = SpeedComponent::new(40.0, 40.0, 80.0);
         self.patrol_comp = PatrolComponent::new(138.0, 0.0, -138.0, 0.0);
         self.connect_aggro_area_signal();
         self.connect_hitbox_signal();
+
         self.timers.0.push(Time::new(1.8));
         self.timers.0.push(Time::new(2.0));
         self.timers.0.push(Time::new(1.0));
         self.timers.0.push(Time::new(2.0));
         self.timers.0.push(Time::new(2.0));
         self.shoot_cooldown = Time::new(2.0);
+
         self.stats.insert(Stats::Health, StatVal::new(20));
         self.stats.insert(Stats::MaxHealth, StatVal::new(20));
         self.stats.insert(Stats::AttackDamage, StatVal::new(10));
@@ -91,13 +96,20 @@ impl INode2D for ProjectileEnemy {
 impl ProjectileEnemy {
     fn shoot_projectile(&mut self, target: Vector2) {
         let position = self.base().get_global_position();
-        let mut bullet = self
-            .projectile_scene
-            .instantiate_as::<enemies::projectile::Projectile>();
         let target = position.direction_to(target).normalized_or_zero();
-        bullet.bind_mut().velocity = target * BULLET_SPEED;
-        self.base_mut()
-            .call_deferred("add_child", &[bullet.to_variant()]);
+        let mut inst = self.projectile_scene.instantiate_as::<Projectile>();
+        let mut hurtbox = inst.get_node_as::<Hurtbox>("Hurtbox");
+        inst.bind_mut().velocity = target * BULLET_SPEED;
+        hurtbox.set_collision_layer_value(
+            crate::utils::collision_layers::CollisionLayers::EnemyHurtbox as i32,
+            true,
+        );
+        hurtbox.set_collision_mask_value(
+            crate::utils::collision_layers::CollisionLayers::PlayerHurtbox as i32,
+            true,
+        );
+        hurtbox.bind_mut().attack_damage = 20;
+        self.base_mut().add_child(&inst);
     }
 
     fn update_timers(&mut self) {

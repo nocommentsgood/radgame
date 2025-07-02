@@ -8,8 +8,10 @@ use crate::utils::collision_layers;
 #[class(init, base=Node2D)]
 pub struct Projectile {
     pub velocity: Vector2,
+    #[init(node = "Hurtbox")]
+    pub hurtbox: OnReady<Gd<Hurtbox>>,
     start_pos: Vector2,
-    speed: real,
+    pub speed: real,
     timeout: Time,
     base: Base<Node2D>,
 }
@@ -46,9 +48,14 @@ impl Projectile {
             collision_layers::CollisionLayers::EnemyHurtbox as i32,
             false,
         );
+        area.set_collision_mask_value(collision_layers::CollisionLayers::EnemyHitbox as i32, true);
         area.set_collision_layer_value(
             collision_layers::CollisionLayers::PlayerHurtbox as i32,
             true,
+        );
+        area.set_collision_layer_value(
+            collision_layers::CollisionLayers::PlayerHurtbox as i32,
+            false,
         );
     }
 
