@@ -3446,7 +3446,7 @@ slide_on_ceiling = false
 position = Vector2(0, 6)
 shape = SubResource("RectangleShape2D_wj53o")
 
-[node name="Hitbox" type="Area2D" parent="." groups=["player"]]
+[node name="Hitbox" type="EntityHitbox" parent="." groups=["player"]]
 collision_layer = 4
 collision_mask = 32
 

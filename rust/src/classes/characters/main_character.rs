@@ -287,6 +287,9 @@ impl MainCharacter {
     }
 
     fn attack(&mut self) {
+        // TODO: Maybe there is a better way of ignoring input. If the player is hit during an
+        // attack, the state machine switches to 'hurt' state (as it should), but input handling is
+        // never turned back on.
         self.base_mut().set_process_unhandled_input(false);
         let time = self.timers.get(&PT::AttackAnimation);
         let ac_timer = self.timers.get(&PT::AttackChain);
@@ -323,18 +326,16 @@ impl MainCharacter {
             self.timers.set(&PT::AttackChain, ac_timer - delta);
         }
         if time <= 0.0 {
+            self.base_mut().set_process_unhandled_input(true);
             h_shape.set_deferred("disabled", &true.to_variant());
             self.timers.reset(&PT::AttackAnimation);
             self.timers.reset(&PT::AttackChain);
-            if dbg!(self.can_attack_chain) {
+            if self.can_attack_chain {
                 self.can_attack_chain = false;
-                dbg!(self.can_attack_chain);
                 self.hit_enemy = false;
-                self.base_mut().set_process_unhandled_input(true);
                 self.state.handle(&Event::AttackButton);
             } else {
                 self.hit_enemy = false;
-                self.base_mut().set_process_unhandled_input(true);
                 self.state.handle(&Event::TimerElapsed);
             }
         }
@@ -360,6 +361,7 @@ impl MainCharacter {
     }
 
     fn hurt(&mut self) {
+        self.base_mut().set_process_unhandled_input(true);
         let time = self.timers.get(&PT::HurtAnimation);
         let delta = self.base().get_physics_process_delta_time();
         if time > 0.0 {
