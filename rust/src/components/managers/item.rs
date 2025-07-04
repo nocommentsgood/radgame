@@ -4,7 +4,7 @@ use godot::{
 };
 
 use crate::{
-    classes::characters::{character_hitbox::CharacterHitbox, character_stats::Stats},
+    classes::characters::{character_stats::Stats, entity_hitbox::EntityHitbox},
     utils::collision_layers::CollisionLayers,
 };
 
@@ -132,14 +132,14 @@ impl GameItem {
     }
 
     fn on_area_entered(&mut self, area: Gd<Area2D>) {
-        if let Ok(_area) = area.try_cast::<CharacterHitbox>() {
+        if let Ok(_area) = area.try_cast::<EntityHitbox>() {
             let this = self.to_gd();
             self.signals().player_entered_item_area().emit(&this);
         }
     }
 
     fn on_area_exited(&mut self, area: Gd<Area2D>) {
-        if let Ok(_area) = area.try_cast::<CharacterHitbox>() {
+        if let Ok(_area) = area.try_cast::<EntityHitbox>() {
             self.signals().player_exited_item_area().emit();
         }
     }

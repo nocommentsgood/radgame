@@ -53,6 +53,10 @@ impl ICharacterBody2D for TestEnemy {
         self.timers.0.push(Time::new(2.7));
         self.timers.0.push(Time::new(2.0));
         self.timers.0.push(Time::new(4.0));
+        self.base()
+            .get_node_as::<crate::classes::components::hurtbox::Hurtbox>("EnemySensors/Hurtboxes")
+            .bind_mut()
+            .attack_damage = 10;
     }
 
     fn physics_process(&mut self, _delta: f64) {
@@ -145,17 +149,6 @@ impl HasAggroArea for TestEnemy {}
 
 #[godot_dyn]
 impl character_components::damageable::Damageable for TestEnemy {
-    fn take_damage(&mut self, amount: u32) {
-        let mut current_health = self.get_health();
-
-        current_health = current_health.saturating_sub(amount);
-        self.set_health(current_health);
-
-        if self.is_dead() {
-            self.destroy();
-        }
-    }
-
     fn destroy(&mut self) {
         self.signals().test_enemy_died().emit();
         self.base_mut().queue_free();

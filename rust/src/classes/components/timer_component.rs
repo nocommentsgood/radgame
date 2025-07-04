@@ -6,6 +6,7 @@ pub enum PlayerTimer {
     AttackAnimation,
     AttackAnimation2,
     HealingAnimation,
+    HurtAnimation,
     ParryAnimation,
     Parry,
     PerfectParry,

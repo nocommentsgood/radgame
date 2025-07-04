@@ -10,7 +10,7 @@ use crate::traits::components::character_components::damaging::Damaging;
 #[class(init, base=Area2D)]
 pub struct Hurtbox {
     #[export]
-    attack_damage: u32,
+    pub attack_damage: u32,
     base: Base<Area2D>,
 }
 

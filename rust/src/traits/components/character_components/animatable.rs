@@ -16,7 +16,7 @@ pub trait Animatable: HasState {
         let direction = self.get_direction();
         let mut state = self.sm().state().to_string();
         state.push('_');
-        format!("{}{}", state, direction)
+        format!("{state}{direction}")
     }
 
     fn update_animation(&mut self) {

@@ -6,6 +6,7 @@ pub struct CharacterStateMachine;
 impl std::fmt::Display for State {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            State::Hurt {} => write!(f, "hurt"),
             State::Attacking {} => write!(f, "attack_1"),
             State::Attack2 {} => write!(f, "attack_2"),
             State::Dodging {} => write!(f, "dodge"),
@@ -35,6 +36,7 @@ pub enum Event {
     TimerElapsed,
     TimerInProgress,
     OnFloor,
+    Hurt,
     #[default]
     None,
 }
@@ -50,6 +52,7 @@ impl CharacterStateMachine {
             Event::HealingButton => Response::Transition(State::healing()),
             Event::ParryButton => Response::Transition(State::parry()),
             Event::FailedFloorCheck => Response::Transition(State::falling()),
+            Event::Hurt => Response::Transition(State::hurt()),
             _ => Handled,
         }
     }
@@ -64,6 +67,7 @@ impl CharacterStateMachine {
             Event::JumpButton => Response::Transition(State::jumping()),
             Event::HealingButton => Response::Transition(State::healing()),
             Event::FailedFloorCheck => Response::Transition(State::falling()),
+            Event::Hurt => Response::Transition(State::hurt()),
             Event::None => Response::Transition(State::idle()),
             _ => Handled,
         }
@@ -84,6 +88,8 @@ impl CharacterStateMachine {
         match event {
             Event::AttackButton => Response::Transition(State::attack_2()),
             Event::TimerElapsed => Response::Transition(State::moving()),
+            Event::ParryButton => Response::Transition(State::parry()),
+            Event::Hurt => Response::Transition(State::hurt()),
             _ => Handled,
         }
     }
@@ -93,6 +99,15 @@ impl CharacterStateMachine {
         match event {
             Event::TimerElapsed => Response::Transition(State::idle()),
             Event::FailedFloorCheck => Response::Transition(State::falling()),
+            Event::Hurt => Response::Transition(State::hurt()),
+            _ => Handled,
+        }
+    }
+
+    #[state]
+    fn hurt(event: &Event) -> Response<State> {
+        match event {
+            Event::TimerElapsed => Response::Transition(State::idle()),
             _ => Handled,
         }
     }

@@ -127,7 +127,7 @@ where
         self.update_direction();
         self.slide(&velocity, &speed);
 
-        if attack_range.has_overlapping_bodies()
+        if attack_range.has_overlapping_areas()
             && self.timers().get(ac) == self.timers().get_init(ac)
         {
             let time = self.timers().get(ac);
