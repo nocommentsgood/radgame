@@ -5,11 +5,6 @@
 [node name="CanvasLayer" type="CanvasLayer"]
 
 [node name="ItemMenu" type="InventoryMenu" parent="."]
-tab_container_path = NodePath("PanelContainer/MarginContainer/TabContainer")
-bead_item_list_path = NodePath("PanelContainer/MarginContainer/TabContainer/MarginContainer/HBoxContainer/VBoxContainer/ItemList")
-relic_item_list_path = NodePath("PanelContainer/MarginContainer/TabContainer/MarginContainer2/HBoxContainer/VBoxContainer/ItemList")
-item_desc_path = NodePath("PanelContainer/MarginContainer/TabContainer/MarginContainer/HBoxContainer/VBoxContainer/ItemDescriptionLabel")
-equip_item_grid_path = NodePath("PanelContainer/MarginContainer/TabContainer/MarginContainer/HBoxContainer/GridContainer")
 size_flags_horizontal = 3
 size_flags_vertical = 3
 focus_mode = 2
