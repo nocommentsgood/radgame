@@ -23,7 +23,7 @@ PlayerStatsUIHandler="*res://singleton_player_stats_ui_handler.tscn"
 
 window/size/viewport_width=640
 window/size/viewport_height=360
-window/size/mode=4
+window/size/mode=3
 window/size/initial_position_type=2
 window/size/initial_screen=1
 window/stretch/mode="viewport"

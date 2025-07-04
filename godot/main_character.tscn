@@ -906,3 +906,8 @@ libraries = {
 }
 
 [node name="EnemySensors" parent="." instance=ExtResource("4_2q423")]
+
+[node name="Hurtboxes" parent="EnemySensors" index="0"]
+attack_damage = 10
+
+[editable path="EnemySensors"]

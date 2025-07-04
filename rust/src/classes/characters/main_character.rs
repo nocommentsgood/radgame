@@ -11,7 +11,8 @@ use godot::{
 
 use crate::{
     classes::{
-        characters::entity_hitbox::EntityHitbox, components::timer_component::Time,
+        characters::entity_hitbox::EntityHitbox,
+        components::{hurtbox::Hurtbox, timer_component::Time},
         enemies::projectile::Projectile,
     },
     components::{
@@ -147,6 +148,9 @@ impl ICharacterBody2D for MainCharacter {
         self.timers.0.push(Time::new(hurt_animation_length));
         self.timers.0.push(Time::new(0.3));
         self.timers.0.push(Time::new(0.15));
+
+        let mut hurtbox = self.base().get_node_as::<Hurtbox>("Hurtbox");
+        hurtbox.bind_mut().attack_damage = self.stats.get(&Stats::AttackDamage).unwrap().0;
     }
 
     fn unhandled_input(&mut self, input: Gd<godot::classes::InputEvent>) {
@@ -494,24 +498,22 @@ impl MainCharacter {
             State::Parry {} => {
                 if self.timers.get(&PT::PerfectParry) > 0.0 {
                     println!("\nPERFECT PARRY\n");
-                    if area.is_in_group("enemy_projectile") {
-                        if let Some(parent) = area.get_parent() {
-                            if let Ok(mut projectile) = parent.try_cast::<Projectile>() {
-                                projectile.bind_mut().on_parried();
-                            }
-                        }
+                    if area.is_in_group("enemy_projectile")
+                        && let Some(parent) = area.get_parent()
+                        && let Ok(mut projectile) = parent.try_cast::<Projectile>()
+                    {
+                        projectile.bind_mut().on_parried();
                     }
                     self.signals().parried_attack().emit();
                     self.timers.reset(&PT::PerfectParry);
                     true
                 } else if self.timers.get(&PT::Parry) > 0.0 {
                     println!("\nNORMAL PARRY\n");
-                    if area.is_in_group("enemy_projectile") {
-                        if let Some(parent) = area.get_parent() {
-                            if let Ok(mut projectile) = parent.try_cast::<Projectile>() {
-                                projectile.bind_mut().on_parried();
-                            }
-                        }
+                    if area.is_in_group("enemy_projectile")
+                        && let Some(parent) = area.get_parent()
+                        && let Ok(mut projectile) = parent.try_cast::<Projectile>()
+                    {
+                        projectile.bind_mut().on_parried();
                     }
                     self.signals().parried_attack().emit();
                     self.timers.reset(&PT::Parry);

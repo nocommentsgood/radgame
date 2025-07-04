@@ -48,15 +48,15 @@ impl Projectile {
             collision_layers::CollisionLayers::EnemyHurtbox as i32,
             false,
         );
-        area.set_collision_mask_value(collision_layers::CollisionLayers::EnemyHitbox as i32, true);
+        area.set_collision_mask_value(
+            collision_layers::CollisionLayers::PlayerHitbox as i32,
+            false,
+        );
         area.set_collision_layer_value(
             collision_layers::CollisionLayers::PlayerHurtbox as i32,
             true,
         );
-        area.set_collision_layer_value(
-            collision_layers::CollisionLayers::PlayerHurtbox as i32,
-            false,
-        );
+        area.set_collision_mask_value(collision_layers::CollisionLayers::EnemyHitbox as i32, true);
     }
 
     fn tick(&mut self) {
