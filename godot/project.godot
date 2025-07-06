@@ -17,13 +17,14 @@ config/icon="res://icon.svg"
 
 [autoload]
 
-PlayerStatsUIHandler="*res://singleton_player_stats_ui_handler.tscn"
+PlayerStatsUIHandler="*res://autoloads/singleton_player_stats_ui_handler.tscn"
+GlobalPlayerManager="*res://autoloads/player_manager.tscn"
 
 [display]
 
 window/size/viewport_width=640
 window/size/viewport_height=360
-window/size/mode=3
+window/size/mode=2
 window/size/initial_position_type=2
 window/size/initial_screen=1
 window/stretch/mode="viewport"

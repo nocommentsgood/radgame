@@ -203,7 +203,7 @@ impl ICharacterBody2D for MainCharacter {
 #[godot_api]
 impl MainCharacter {
     #[signal]
-    pub fn player_health_changed(previous_health: u32, new_health: u32, damage_amount: u32);
+    pub fn player_damaged(previous_health: u32, new_health: u32, damage_amount: u32);
 
     #[signal]
     fn parried_attack();
@@ -445,7 +445,7 @@ impl MainCharacter {
                 self.stats.get_mut(&Stats::Health).unwrap().0 += amount;
                 let new = self.stats.get(&Stats::Health).unwrap().0;
                 self.signals()
-                    .player_health_changed()
+                    .player_damaged()
                     .emit(current_health, new, amount);
             }
             self.timers.reset(&x);
@@ -595,7 +595,7 @@ impl Damageable for MainCharacter {
 
         self.set_health(current_health);
         self.signals()
-            .player_health_changed()
+            .player_damaged()
             .emit(previous_health, current_health, amount);
 
         if self.is_dead() {
