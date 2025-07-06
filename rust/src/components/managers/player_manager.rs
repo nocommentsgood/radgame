@@ -1,7 +1,8 @@
 use godot::prelude::*;
 
 use crate::classes::characters::{
-    main_character::MainCharacter, shaky_player_camera::ShakyPlayerCamera,
+    main_character::MainCharacter,
+    shaky_player_camera::{ShakyPlayerCamera, TraumaLevel},
 };
 
 #[derive(GodotClass)]
@@ -42,13 +43,15 @@ impl PlayerManager {
 
     fn on_player_ready(&mut self) {
         if let Some(player) = &self.player {
-            let camera = player.get_node_as::<ShakyPlayerCamera>("RustPlayerCamera");
-            player
-                .signals()
-                .player_damaged()
-                .connect_other(&camera, |camera, _prev, _new, _am| {
-                    camera.add_trauma(0.4);
-                });
+            let camera = player.get_node_as::<ShakyPlayerCamera>("ShakyPlayerCamera");
+            player.signals().player_health_changed().connect_other(
+                &camera,
+                |camera, prev, new, _am| {
+                    if new < prev {
+                        camera.add_trauma(TraumaLevel::Low);
+                    }
+                },
+            );
         }
     }
 }
