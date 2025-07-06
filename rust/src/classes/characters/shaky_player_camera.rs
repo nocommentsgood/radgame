@@ -10,6 +10,13 @@ use godot::{
 // x_offset = max_offset * shake * PerlinNoise[-1, 1]
 // y_offset = max_offset * shake * PerlinNoise[-1, 1]
 
+#[allow(dead_code)]
+pub enum TraumaLevel {
+    Low,
+    Med,
+    High,
+}
+
 #[derive(GodotClass)]
 #[class(base = Camera2D, init)]
 pub struct ShakyPlayerCamera {
@@ -20,11 +27,8 @@ pub struct ShakyPlayerCamera {
     #[init(val = Vector2::new(100.0, 75.0))]
     max_offset: Vector2,
     #[export]
-    #[init(val = 5000.0)]
+    #[init(val = 20.0)]
     max_rot: f32,
-    #[export]
-    #[init(val = 0.5)]
-    trauma_additive: f32,
     #[init(val = FastNoiseLite::new())]
     noise: FastNoiseLite,
     trauma: f32,
@@ -55,8 +59,13 @@ impl ICamera2D for ShakyPlayerCamera {
 
 #[godot_api]
 impl ShakyPlayerCamera {
-    pub fn add_trauma(&mut self, amount: f32) {
-        self.trauma = (self.trauma + amount).clamp(0.0, 1.0);
+    pub fn add_trauma(&mut self, amount: TraumaLevel) {
+        let level = match amount {
+            TraumaLevel::Low => 0.25,
+            TraumaLevel::Med => 0.5,
+            TraumaLevel::High => 0.7,
+        };
+        self.trauma = (self.trauma + level).clamp(0.0, 1.0);
     }
 
     fn rust_shake(&mut self) {
@@ -67,6 +76,7 @@ impl ShakyPlayerCamera {
             * self
                 .noise
                 .get_noise_2d(self.noise.seed as f32, self.noise_y as f32);
+        dbg!(rotation);
 
         let offset_x = self.max_offset.x
             * amount
@@ -80,7 +90,8 @@ impl ShakyPlayerCamera {
                 .noise
                 .get_noise_2d(self.noise.seed as f32 * 3.0, self.noise_y as f32);
 
-        self.base_mut().set_global_rotation(rotation);
+        // TODO: I have never experienced motion sickness, until now.
+        self.base_mut().set_rotation(rotation);
         self.base_mut().set_offset(Vector2::new(offset_x, offset_y));
     }
 
