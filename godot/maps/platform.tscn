@@ -4,7 +4,7 @@
 size = Vector2(50, 8)
 
 [sub_resource type="PlaceholderTexture2D" id="PlaceholderTexture2D_d5x1h"]
-size = Vector2(50, 10)
+size = Vector2(75, 15)
 
 [node name="Platform" type="StaticBody2D"]
 collision_layer = 66

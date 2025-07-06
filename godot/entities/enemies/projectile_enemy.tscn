@@ -1,6 +1,6 @@
 [gd_scene load_steps=16 format=3 uid="uid://bcae4wnfye0do"]
 
-[ext_resource type="PackedScene" uid="uid://ktv3myqxd2dt" path="res://enemy_sensors.tscn" id="2_wkbwq"]
+[ext_resource type="PackedScene" uid="uid://ktv3myqxd2dt" path="res://entities/enemies/enemy_sensors.tscn" id="2_wkbwq"]
 [ext_resource type="Texture2D" uid="uid://bluq4jmeunkg7" path="res://assets/entities/samurai/IDLE.png" id="2_ws556"]
 [ext_resource type="Texture2D" uid="uid://dtumlhkn3n0to" path="res://assets/entities/samurai/RUN.png" id="3_ws556"]
 [ext_resource type="Texture2D" uid="uid://dmi2l7gc2cobb" path="res://assets/entities/samurai/ATTACK 1.png" id="4_nthab"]
@@ -488,6 +488,7 @@ texture = ExtResource("2_ws556")
 hframes = 9
 
 [node name="EnemySensors" parent="." instance=ExtResource("2_wkbwq")]
+visible = false
 
 [node name="AttackArea" parent="EnemySensors" index="1"]
 visible = false

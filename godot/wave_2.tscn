@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3 uid="uid://dlsrre1qid8e5"]
 
-[ext_resource type="PackedScene" uid="uid://dmnvgp7j5vtfe" path="res://main_character.tscn" id="1_memej"]
+[ext_resource type="PackedScene" uid="uid://dmnvgp7j5vtfe" path="res://entities/enemies/test_enemy.tscn" id="1_memej"]
 
 [node name="Wave2" type="Wave2"]
 

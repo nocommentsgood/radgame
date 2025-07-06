@@ -4,7 +4,7 @@
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_qxf0c"]
 
-[node name="Node2D" type="Projectile"]
+[node name="Projectile" type="Projectile"]
 
 [node name="Hurtbox" type="Hurtbox" parent="." groups=["enemy_projectile"]]
 collision_layer = 0

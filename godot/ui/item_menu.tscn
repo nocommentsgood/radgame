@@ -5,14 +5,15 @@
 [node name="CanvasLayer" type="CanvasLayer"]
 
 [node name="ItemMenu" type="InventoryMenu" parent="."]
-offset_right = 640.0
-offset_bottom = 360.0
+size_flags_horizontal = 3
+size_flags_vertical = 3
 focus_mode = 2
+metadata/_edit_use_anchors_ = true
 
 [node name="PanelContainer" type="PanelContainer" parent="ItemMenu"]
 layout_mode = 1
-offset_right = 640.0
-offset_bottom = 360.0
+offset_right = 389.0
+offset_bottom = 513.0
 
 [node name="MarginContainer" type="MarginContainer" parent="ItemMenu/PanelContainer"]
 layout_mode = 2

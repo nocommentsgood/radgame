@@ -11,31 +11,50 @@ use super::item_component::ItemComponent;
 #[derive(GodotClass)]
 #[class(base=Control, init)]
 struct InventoryMenu {
+    #[export]
+    tab_container_path: NodePath,
+
     #[init(node = "PanelContainer/MarginContainer/TabContainer")]
     tab_container: OnReady<Gd<TabContainer>>,
+
+    #[export]
+    bead_item_list_path: NodePath,
 
     #[init(
         node = "PanelContainer/MarginContainer/TabContainer/MarginContainer/HBoxContainer/VBoxContainer/ItemList"
     )]
     bead_item_list: OnReady<Gd<ItemList>>,
 
+    #[export]
+    relic_item_list_path: NodePath,
+
     #[init(
         node = "PanelContainer/MarginContainer/TabContainer/MarginContainer2/HBoxContainer/VBoxContainer/ItemList"
     )]
     relic_item_list: OnReady<Gd<ItemList>>,
+
+    #[export]
+    item_desc_path: NodePath,
 
     #[init(
         node = "PanelContainer/MarginContainer/TabContainer/MarginContainer/HBoxContainer/VBoxContainer/ItemDescriptionLabel"
     )]
     item_desc: OnReady<Gd<Label>>,
 
+    #[export]
+    equip_item_grid_path: NodePath,
+
     #[init(
         node = "PanelContainer/MarginContainer/TabContainer/MarginContainer/HBoxContainer/GridContainer"
     )]
     equipped_item_grid: OnReady<Gd<GridContainer>>,
 
+    #[export]
+    item_comp_path: NodePath,
+
     #[init(node = "../../TileMapLayer/LevelManager/MainCharacter/ItemComponent")]
     item_comp: OnReady<Gd<ItemComponent>>,
+
     base: Base<Control>,
 }
 
