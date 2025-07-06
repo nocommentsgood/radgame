@@ -17,12 +17,7 @@ impl HealthBar {
         self.health_bar.set_value(value);
     }
 
-    pub fn on_player_health_changed(
-        &mut self,
-        _previous_health: u32,
-        current_health: u32,
-        _amount: u32,
-    ) {
+    pub fn on_player_damaged(&mut self, _previous_health: u32, current_health: u32, _amount: u32) {
         self.update_range_value(current_health as f64);
     }
 }

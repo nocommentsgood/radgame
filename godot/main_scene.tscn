@@ -63,5 +63,3 @@ shape = SubResource("WorldBoundaryShape2D_7qxfc")
 position = Vector2(1003, 213)
 
 [node name="HealthBar" parent="." instance=ExtResource("1_d5x1h")]
-
-[connection signal="player_health_changed" from="TileMapLayer/LevelManager/MainCharacter" to="HealthBar" method="on_player_health_changed"]

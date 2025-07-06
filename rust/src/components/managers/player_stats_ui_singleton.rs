@@ -23,10 +23,10 @@ impl INode2D for PlayerStatsUIHandler {
 
 impl PlayerStatsUIHandler {
     fn connect_signals(&mut self) {
-        self.player.signals().player_health_changed().connect_other(
+        self.player.signals().player_damaged().connect_other(
             &*self.player_ui,
             |s: &mut HealthBar, previous_health, current_health, amount| {
-                s.on_player_health_changed(previous_health, current_health, amount);
+                s.on_player_damaged(previous_health, current_health, amount);
             },
         );
     }
