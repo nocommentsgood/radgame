@@ -3,7 +3,7 @@
 [ext_resource type="Texture2D" uid="uid://jajkhxvbqumn" path="res://assets/entities/knight/Run.png" id="1_6d32q"]
 [ext_resource type="Texture2D" uid="uid://c0yvk1ca22cd" path="res://assets/entities/knight/Idle.png" id="2_0wqo3"]
 [ext_resource type="Texture2D" uid="uid://dfjmgpggtd0hy" path="res://assets/entities/knight/Attacks.png" id="3_p43tl"]
-[ext_resource type="PackedScene" uid="uid://ktv3myqxd2dt" path="res://enemy_sensors.tscn" id="4_2q423"]
+[ext_resource type="PackedScene" uid="uid://ktv3myqxd2dt" path="res://entities/enemies/enemy_sensors.tscn" id="4_2q423"]
 [ext_resource type="Texture2D" uid="uid://7w0bckfil2tq" path="res://assets/entities/knight/Jump.png" id="4_8yqgs"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_eqfgp"]

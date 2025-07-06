@@ -3507,7 +3507,5 @@ collide_with_areas = true
 
 [node name="ItemComponent" type="ItemComponent" parent="."]
 
-[node name="RustPlayerCamera" type="RustPlayerCamera" parent="."]
-decay = 1.3
-max_offset = Vector2(500, 75)
+[node name="RustPlayerCamera" type="Camera2D" parent="."]
 process_callback = 0

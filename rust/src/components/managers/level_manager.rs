@@ -15,7 +15,7 @@ use super::{
 struct LevelManager {
     #[init(val = 0)]
     kill_count: u8,
-    #[init(val = OnReady::from_loaded("res://main_character.tscn"))]
+    #[init(val = OnReady::from_loaded("res://entities/enemies/test_enemy.tscn"))]
     enemy_scene: OnReady<Gd<PackedScene>>,
     #[init(val = OnReady::from_loaded("res://wave_2.tscn"))]
     wave_2: OnReady<Gd<PackedScene>>,
