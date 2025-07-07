@@ -7,21 +7,21 @@
 [ext_resource type="PackedScene" uid="uid://dmnvgp7j5vtfe" path="res://entities/enemies/test_enemy.tscn" id="6_nfk4m"]
 [ext_resource type="PackedScene" uid="uid://1i4j8dd082bp" path="res://ui/item_menu.tscn" id="7_nfk4m"]
 
-[node name="Node2D" type="Node2D"]
+[node name="Main" type="Node2D"]
 
 [node name="ItemMenu" parent="." instance=ExtResource("7_nfk4m")]
 
-[node name="TileMapLayer" parent="." instance=ExtResource("3_7ycvg")]
+[node name="HealthBar" parent="." instance=ExtResource("1_d5x1h")]
 
-[node name="LevelManager" type="LevelManager" parent="TileMapLayer"]
+[node name="World" type="Node" parent="."]
 
-[node name="MainCharacter" parent="TileMapLayer/LevelManager" instance=ExtResource("3_u6kov")]
+[node name="MapForeground" parent="World" instance=ExtResource("3_7ycvg")]
+
+[node name="MainCharacter" parent="World" instance=ExtResource("3_u6kov")]
 position = Vector2(153, -39)
 
-[node name="TestEnemy" parent="TileMapLayer/LevelManager" instance=ExtResource("6_nfk4m")]
-position = Vector2(797, 77)
-
-[node name="ProjectileEnemy" parent="TileMapLayer/LevelManager" instance=ExtResource("5_hq1ik")]
+[node name="ProjectileEnemy" parent="World" instance=ExtResource("5_hq1ik")]
 position = Vector2(200, -179)
 
-[node name="HealthBar" parent="." instance=ExtResource("1_d5x1h")]
+[node name="TestEnemy" parent="World" instance=ExtResource("6_nfk4m")]
+position = Vector2(797, 77)
