@@ -17,6 +17,19 @@ pub enum TraumaLevel {
     High,
 }
 
+impl TraumaLevel {
+    /// For value in range \[30, u32::MAX] => Self::High
+    /// For value in range \[10, 29] => Self::Med,
+    /// Otherwise, Self::Low
+    pub fn from_damage_amount(amount: u32) -> Self {
+        match amount {
+            30..=u32::MAX => Self::High,
+            10..=29 => Self::Med,
+            _ => Self::Low,
+        }
+    }
+}
+
 #[derive(GodotClass)]
 #[class(base = Camera2D, init)]
 pub struct ShakyPlayerCamera {

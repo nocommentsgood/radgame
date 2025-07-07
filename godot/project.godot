@@ -18,7 +18,6 @@ config/icon="res://icon.svg"
 [autoload]
 
 PlayerStatsUIHandler="*res://autoloads/singleton_player_stats_ui_handler.tscn"
-GlobalPlayerManager="*res://autoloads/player_manager.tscn"
 
 [display]
 
