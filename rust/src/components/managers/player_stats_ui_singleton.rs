@@ -7,9 +7,9 @@ use crate::classes::characters::{health_bar::HealthBar, main_character::MainChar
 #[derive(GodotClass)]
 #[class(init, base=Node2D)]
 struct PlayerStatsUIHandler {
-    #[init(node = "/root/Node2D/TileMapLayer/LevelManager/MainCharacter")]
+    #[init(node = "/root/Main/World/MainCharacter")]
     player: OnReady<Gd<MainCharacter>>,
-    #[init(node = "/root/Node2D/HealthBar")]
+    #[init(node = "/root/Main/HealthBar")]
     player_ui: OnReady<Gd<HealthBar>>,
     base: Base<Node2D>,
 }

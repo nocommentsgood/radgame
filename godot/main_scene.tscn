@@ -1,9 +1,8 @@
-[gd_scene load_steps=7 format=3 uid="uid://csphx4r51adby"]
+[gd_scene load_steps=6 format=3 uid="uid://csphx4r51adby"]
 
 [ext_resource type="PackedScene" uid="uid://cgmacri0vrmtw" path="res://ui/health_bar.tscn" id="1_d5x1h"]
 [ext_resource type="PackedScene" uid="uid://cmebdxyowjgsn" path="res://maps/map1.tscn" id="3_7ycvg"]
 [ext_resource type="PackedScene" uid="uid://5fcrp4sc1aqy" path="res://entities/player/main_character.tscn" id="3_u6kov"]
-[ext_resource type="PackedScene" uid="uid://bcae4wnfye0do" path="res://entities/enemies/projectile_enemy.tscn" id="5_hq1ik"]
 [ext_resource type="PackedScene" uid="uid://dmnvgp7j5vtfe" path="res://entities/enemies/test_enemy.tscn" id="6_nfk4m"]
 [ext_resource type="PackedScene" uid="uid://1i4j8dd082bp" path="res://ui/item_menu.tscn" id="7_nfk4m"]
 
@@ -18,10 +17,7 @@
 [node name="MapForeground" parent="World" instance=ExtResource("3_7ycvg")]
 
 [node name="MainCharacter" parent="World" instance=ExtResource("3_u6kov")]
-position = Vector2(153, -39)
-
-[node name="ProjectileEnemy" parent="World" instance=ExtResource("5_hq1ik")]
-position = Vector2(200, -179)
+position = Vector2(500, -234)
 
 [node name="TestEnemy" parent="World" instance=ExtResource("6_nfk4m")]
 position = Vector2(797, 77)
