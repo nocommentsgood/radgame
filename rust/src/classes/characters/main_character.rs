@@ -240,9 +240,7 @@ impl MainCharacter {
                 .get_node_as::<ShakyPlayerCamera>("ShakyPlayerCamera");
             camera
                 .bind_mut()
-                .add_trauma(TraumaLevel::from_damage_amount(
-                    damaging.dyn_bind().damage_amount(),
-                ));
+                .add_trauma(TraumaLevel::from(damaging.dyn_bind().damage_amount()));
             self.state.handle(&Event::Hurt);
         }
     }
