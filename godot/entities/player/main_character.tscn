@@ -240,7 +240,7 @@ tracks/17/keys = {
 }
 
 [sub_resource type="Animation" id="Animation_my085"]
-resource_name = "attack_1_east"
+resource_name = "attack_east"
 length = 0.2
 loop_mode = 1
 step = 0.01
@@ -401,10 +401,11 @@ tracks/12/keys = {
 "values": [1.0]
 }
 
-[sub_resource type="Animation" id="Animation_ew3r3"]
-resource_name = "attack_1_west"
-length = 0.7
-step = 0.1
+[sub_resource type="Animation" id="Animation_62fq1"]
+resource_name = "attack_west"
+length = 0.2
+loop_mode = 1
+step = 0.01
 tracks/0/type = "value"
 tracks/0/imported = false
 tracks/0/enabled = true
@@ -472,7 +473,7 @@ tracks/5/path = NodePath("Sprite2D:frame")
 tracks/5/interp = 1
 tracks/5/loop_wrap = true
 tracks/5/keys = {
-"times": PackedFloat32Array(0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6),
+"times": PackedFloat32Array(0, 0.01, 0.03, 0.06, 0.09, 0.11, 0.13),
 "transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1),
 "update": 1,
 "values": [0, 1, 2, 3, 4, 5, 6]
@@ -523,7 +524,7 @@ tracks/9/keys = {
 "times": PackedFloat32Array(0),
 "transitions": PackedFloat32Array(1),
 "update": 0,
-"values": [Vector2(-26, 10)]
+"values": [Vector2(26, 10)]
 }
 tracks/10/type = "value"
 tracks/10/imported = false
@@ -539,12 +540,12 @@ tracks/10/keys = {
 }
 tracks/11/type = "value"
 tracks/11/imported = false
-tracks/11/enabled = true
+tracks/11/enabled = false
 tracks/11/path = NodePath("Hurtbox/HurtboxShape:disabled")
 tracks/11/interp = 1
 tracks/11/loop_wrap = true
 tracks/11/keys = {
-"times": PackedFloat32Array(0, 0.2, 0.6),
+"times": PackedFloat32Array(0, 0.06, 0.12),
 "transitions": PackedFloat32Array(1, 1, 1),
 "update": 1,
 "values": [true, false, true]
@@ -563,7 +564,7 @@ tracks/12/keys = {
 }
 
 [sub_resource type="Animation" id="Animation_18xsm"]
-resource_name = "attack_2_east"
+resource_name = "chainattack_east"
 length = 0.7
 step = 0.1
 tracks/0/type = "value"
@@ -724,7 +725,7 @@ tracks/12/keys = {
 }
 
 [sub_resource type="Animation" id="Animation_th6kt"]
-resource_name = "attack_2_west"
+resource_name = "chainattack_west"
 length = 0.7
 step = 0.1
 tracks/0/type = "value"
@@ -1254,6 +1255,7 @@ tracks/14/keys = {
 
 [sub_resource type="Animation" id="Animation_4fyk8"]
 resource_name = "falling_east"
+loop_mode = 1
 step = 0.1
 tracks/0/type = "value"
 tracks/0/imported = false
@@ -1426,6 +1428,7 @@ tracks/13/keys = {
 
 [sub_resource type="Animation" id="Animation_n5uwk"]
 resource_name = "falling_west"
+loop_mode = 1
 step = 0.1
 tracks/0/type = "value"
 tracks/0/imported = false
@@ -2251,6 +2254,7 @@ tracks/12/keys = {
 [sub_resource type="Animation" id="Animation_q8o6a"]
 resource_name = "idle_east"
 length = 0.8
+loop_mode = 1
 step = 0.1
 tracks/0/type = "value"
 tracks/0/imported = false
@@ -2340,6 +2344,7 @@ tracks/6/keys = {
 [sub_resource type="Animation" id="Animation_a28on"]
 resource_name = "idle_west"
 length = 0.8
+loop_mode = 1
 step = 0.1
 tracks/0/type = "value"
 tracks/0/imported = false
@@ -3096,6 +3101,7 @@ tracks/12/keys = {
 [sub_resource type="Animation" id="Animation_fayfq"]
 resource_name = "run_east"
 length = 0.8
+loop_mode = 1
 step = 0.1
 tracks/0/type = "value"
 tracks/0/imported = false
@@ -3209,6 +3215,7 @@ tracks/8/keys = {
 [sub_resource type="Animation" id="Animation_qaxu3"]
 resource_name = "run_west"
 length = 0.8
+loop_mode = 1
 step = 0.1
 tracks/0/type = "value"
 tracks/0/imported = false
@@ -3410,10 +3417,10 @@ tracks/6/keys = {
 [sub_resource type="AnimationLibrary" id="AnimationLibrary_i78o7"]
 _data = {
 &"RESET": SubResource("Animation_hcu7p"),
-&"attack_1_east": SubResource("Animation_my085"),
-&"attack_1_west": SubResource("Animation_ew3r3"),
-&"attack_2_east": SubResource("Animation_18xsm"),
-&"attack_2_west": SubResource("Animation_th6kt"),
+&"attack_east": SubResource("Animation_my085"),
+&"attack_west": SubResource("Animation_62fq1"),
+&"chainattack_east": SubResource("Animation_18xsm"),
+&"chainattack_west": SubResource("Animation_th6kt"),
 &"dodge_east": SubResource("Animation_to2hw"),
 &"dodge_west": SubResource("Animation_2l2e4"),
 &"falling_east": SubResource("Animation_4fyk8"),
@@ -3509,6 +3516,7 @@ collide_with_areas = true
 
 [node name="ShakyPlayerCamera" type="ShakyPlayerCamera" parent="."]
 decay = 0.8
+max_offset = Vector2(50, 50)
 max_rot = 0.0
 ignore_rotation = false
 process_callback = 0

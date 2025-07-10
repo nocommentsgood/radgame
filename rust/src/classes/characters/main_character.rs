@@ -45,6 +45,7 @@ const GRAVITY: f32 = 980.0;
 pub struct MainCharacter {
     direction: PlatformerDirection,
     velocity: Vector2,
+    prev_velocity: Vector2,
     active_velocity: Vector2,
     hit_enemy: bool,
     can_attack_chain: bool,
@@ -94,6 +95,15 @@ impl ICharacterBody2D for MainCharacter {
             .area_entered()
             .connect_other(&this, Self::on_area_entered_hurtbox);
 
+        self.signals()
+            .animation_state_changed()
+            .connect_self(Self::on_animation_state_changed);
+
+        self.get_dodging_cooldown_timer()
+            .signals()
+            .timeout()
+            .connect_other(&self.to_gd(), Self::on_dodge_timer_timeout);
+
         // TODO: Find how to get tracks for specific animations.
         // That way we can dynamically divide by scaling speed.
 
@@ -109,7 +119,7 @@ impl ICharacterBody2D for MainCharacter {
 
         let attack_animation_length = self
             .get_animation_player()
-            .get_animation("attack_1_east")
+            .get_animation("attack_east")
             .unwrap()
             .get_length();
 
@@ -155,38 +165,85 @@ impl ICharacterBody2D for MainCharacter {
 
         let mut hurtbox = self.base().get_node_as::<Hurtbox>("Hurtbox");
         hurtbox.bind_mut().attack_damage = self.stats.get(&Stats::AttackDamage).unwrap().0;
+
+        self.animation_player.play_ex().name("idle_east").done();
     }
 
+    // When a user provides input, execution of the relevant state function starts immediately.
+    // This ensures that the `animation_state_changed` signal is emitted when an input changes the
+    // state by eagerly checking the state machine's next state, just before it changes state.
+    // Otherwise, `physics_process` handles emitting the signal.
     fn unhandled_input(&mut self, input: Gd<godot::classes::InputEvent>) {
         if input.is_action_pressed("attack") {
             self.state.handle(&Event::AttackButton);
+            if self.state.new_state.as_descriminant()
+                == character_state_machine::to_descriminant(&State::Attacking {})
+            {
+                self.signals().animation_state_changed().emit();
+            }
         }
         if input.is_action_pressed("jump") {
             self.state.handle(&Event::JumpButton);
+            if self.state.new_state.as_descriminant()
+                == character_state_machine::to_descriminant(&State::Jumping {})
+            {
+                self.signals().animation_state_changed().emit();
+            }
         }
         if input.is_action_released("jump") {
             self.state.handle(&Event::ActionReleasedEarly);
         }
-        if input.is_action_pressed("dodge") {
+        if input.is_action_pressed("dodge")
+            && dbg!(self.get_dodging_cooldown_timer().get_time_left() <= 0.0)
+            && dbg!(
+                self.timers.get(&PT::DodgeAnimation) == self.timers.get_init(&PT::DodgeAnimation)
+            )
+        {
             self.state.handle(&Event::DodgeButton);
+            if self.state.new_state.as_descriminant()
+                == character_state_machine::to_descriminant(&State::Dodging {})
+            {
+                self.signals().animation_state_changed().emit();
+            }
         }
         if input.is_action_pressed("heal") {
             self.state.handle(&Event::HealingButton);
+            if self.state.new_state.as_descriminant()
+                == character_state_machine::to_descriminant(&State::Healing {})
+            {
+                self.signals().animation_state_changed().emit();
+            }
         }
         if input.is_action_pressed("parry") {
             self.state.handle(&Event::ParryButton);
+            if self.state.new_state.as_descriminant()
+                == character_state_machine::to_descriminant(&State::Parry {})
+            {
+                self.signals().animation_state_changed().emit();
+            }
         }
     }
 
     fn physics_process(&mut self, _delta: f64) {
-        let input = Input::singleton();
-        let event = InputHandler::to_platformer_event(&Input::singleton());
-        self.velocity.x = InputHandler::get_velocity(&input).x;
+        let event;
+        (event, self.velocity.x) = InputHandler::get_vel_and_event(&Input::singleton());
+
+        // If we are in the moving state, update the animation each time the velocity changes.
+        // Without this, the animation takes too long to update.
+        if self.state.state().as_descriminant()
+            == character_state_machine::to_descriminant(&State::Moving {})
+            && self.prev_velocity.x != self.velocity.x
+        {
+            self.prev_velocity.x = self.velocity.x;
+            self.signals().animation_state_changed().emit();
+        }
 
         if !self.base().is_on_floor() {
             self.state.handle(&Event::FailedFloorCheck);
+            self.signals().animation_state_changed().emit();
         }
 
+        let prev_state = self.state.state().as_descriminant();
         match self.state.state() {
             character_state_machine::State::Attacking {} => self.attack(),
             character_state_machine::State::Attack2 {} => self.attack_2(),
@@ -201,6 +258,12 @@ impl ICharacterBody2D for MainCharacter {
             character_state_machine::State::Hurt {} => self.hurt(),
         }
         self.state.handle(&event);
+        let new_state = self.state.state().as_descriminant();
+
+        // If the state machine changed states, the animation needs to change as well.
+        if prev_state != new_state {
+            self.signals().animation_state_changed().emit();
+        }
     }
 }
 
@@ -214,6 +277,9 @@ impl MainCharacter {
 
     #[signal]
     fn player_died();
+
+    #[signal]
+    pub fn animation_state_changed();
 
     // Had to resort to enabling and disabling the collision shape manually, otherwise the
     // `area_entered()` signal of the `Hurtbox` would emit twice.
@@ -278,24 +344,24 @@ impl MainCharacter {
         let mut cooldown_timer = self.get_dodging_cooldown_timer();
         let time = self.timers.get(&PT::DodgeAnimation);
 
-        if cooldown_timer.get_time_left() > 0.0 {
-            self.state.handle(&Event::TimerInProgress);
-        } else if time < self.timers.get_init(&PT::DodgeAnimation) && time > 0.0 {
+        if time < self.timers.get_init(&PT::DodgeAnimation) && time > 0.0 {
             self.base_mut().move_and_slide();
             self.timers.set(&PT::DodgeAnimation, time - delta);
         } else {
             let speed = self.stats.get(&DodgingSpeed).unwrap().0 as f32;
             let velocity = self.velocity;
+            cooldown_timer.start();
 
             self.base_mut().set_velocity(velocity * speed);
             self.base_mut().move_and_slide();
-            self.update_animation();
             self.timers.set(&PT::DodgeAnimation, time - delta);
 
             if time <= 0.0 {
-                self.timers.reset(&PT::DodgeAnimation);
-                self.state.handle(&Event::TimerElapsed);
-                cooldown_timer.start();
+                if self.velocity.x == 0.0 {
+                    self.state.handle(&Event::MovingToIdle);
+                } else {
+                    self.state.handle(&Event::TimerElapsed);
+                }
             }
         }
     }
@@ -334,8 +400,6 @@ impl MainCharacter {
             }
         } else {
             h_shape.set_deferred("disabled", &false.to_variant());
-            self.update_direction();
-            self.update_animation();
             self.timers.set(&PT::AttackAnimation, time - delta);
             self.timers.set(&PT::AttackChain, ac_timer - delta);
         }
@@ -350,7 +414,11 @@ impl MainCharacter {
                 self.state.handle(&Event::AttackButton);
             } else {
                 self.hit_enemy = false;
-                self.state.handle(&Event::TimerElapsed);
+                if self.velocity.x == 0.0 {
+                    self.state.handle(&Event::MovingToIdle);
+                } else {
+                    self.state.handle(&Event::TimerElapsed);
+                }
             }
         }
     }
@@ -364,7 +432,6 @@ impl MainCharacter {
         if time < self.timers.get_init(&x) && time > 0.0 {
             self.timers.set(&x, time - delta);
         } else {
-            self.update_animation();
             self.timers.set(&x, time - delta);
 
             if time <= 0.0 {
@@ -381,7 +448,6 @@ impl MainCharacter {
         if time > 0.0 {
             self.timers.set(&PT::HurtAnimation, time - delta as f32);
             self.base_mut().set_velocity(Vector2::ZERO);
-            self.update_animation();
         }
 
         if time <= 0.0 {
@@ -392,18 +458,22 @@ impl MainCharacter {
 
     fn idle(&mut self) {
         self.active_velocity = Vector2::ZERO;
-        self.update_animation();
+        if self.velocity.x != 0.0 {
+            self.state.handle(&Event::Wasd);
+        }
     }
 
     fn move_character(&mut self) {
-        let target_velocity = self.velocity * self.stats.get(&RunningSpeed).unwrap().0 as f32;
-        self.active_velocity = self.active_velocity.lerp(target_velocity, 0.2);
-        let velocity = self.active_velocity;
+        if self.velocity == Vector2::ZERO {
+            self.state.handle(&Event::None);
+        } else {
+            let target_velocity = self.velocity * self.stats.get(&RunningSpeed).unwrap().0 as f32;
+            self.active_velocity = self.active_velocity.lerp(target_velocity, 0.7);
+            let velocity = self.active_velocity;
 
-        self.update_direction();
-        self.update_animation();
-        self.base_mut().set_velocity(velocity);
-        self.base_mut().move_and_slide();
+            self.base_mut().set_velocity(velocity);
+            self.base_mut().move_and_slide();
+        }
     }
 
     fn jump(&mut self) {
@@ -422,8 +492,6 @@ impl MainCharacter {
             let target_x = self.velocity.x * self.stats.get(&RunningSpeed).unwrap().0 as f32;
             self.active_velocity.x = self.active_velocity.x.lerp(target_x, 0.2);
             let velocity = Vector2::new(self.active_velocity.x, self.velocity.y);
-            self.update_direction();
-            self.update_animation();
             self.detect_ledges();
             self.base_mut().set_velocity(velocity);
             self.base_mut().move_and_slide();
@@ -446,7 +514,6 @@ impl MainCharacter {
         self.velocity = Vector2::ZERO;
         let velocity = self.velocity;
 
-        self.update_animation();
         self.base_mut().set_velocity(velocity);
         self.timers.set(&x, time - delta);
 
@@ -471,14 +538,16 @@ impl MainCharacter {
             self.velocity.x *= self.stats.get(&RunningSpeed).unwrap().0 as f32;
 
             let velocity = self.velocity;
-            self.update_direction();
-            self.update_animation();
             self.detect_ledges();
             self.base_mut().set_velocity(velocity);
             self.base_mut().move_and_slide();
         } else if self.base().is_on_floor() {
             self.velocity.y = 0.0;
-            self.state.handle(&Event::OnFloor);
+            if self.velocity.x == 0.0 {
+                self.state.handle(&Event::MovingToIdle);
+            } else {
+                self.state.handle(&Event::OnFloor);
+            }
             if self.timers.get(x) < self.timers.get_init(x) {
                 self.timers.reset(x);
             }
@@ -490,7 +559,6 @@ impl MainCharacter {
         let parry_time = self.timers.get(&PT::Parry);
         let perf_parry = self.timers.get(&PT::PerfectParry);
         let delta = self.base().get_physics_process_delta_time() as f32;
-        self.update_animation();
         self.timers.set(&PT::ParryAnimation, anim_time - delta);
         self.timers.set(&PT::Parry, parry_time - delta);
         self.timers.set(&PT::PerfectParry, perf_parry - delta);
@@ -536,7 +604,15 @@ impl MainCharacter {
         }
     }
 
-    fn get_current_animation(&self) -> String {
+    fn on_dodge_timer_timeout(&mut self) {
+        self.timers.reset(&PT::DodgeAnimation);
+    }
+
+    fn on_animation_state_changed(&mut self) {
+        self.update_animation();
+    }
+
+    fn get_animation_name(&self) -> String {
         let mut animation = self.state.state().to_string();
         animation.push('_');
         animation.push_str(self.direction.to_string().as_str());
@@ -545,9 +621,17 @@ impl MainCharacter {
     }
 
     fn update_animation(&mut self) {
-        let animation = self.get_current_animation();
-        self.animation_player.play_ex().name(&animation).done();
-        self.animation_player.advance(0.0);
+        self.update_direction();
+        let prev_anim = self.animation_player.get_current_animation().to_string();
+        let next_anim = self.get_animation_name();
+        let state = next_anim.split_once("_");
+        if prev_anim != next_anim
+            && let Some(s) = state
+            && s.0 == self.state.state().to_string()
+        {
+            self.animation_player.play_ex().name(&next_anim).done();
+            self.animation_player.advance(0.0);
+        }
     }
 
     fn update_direction(&mut self) {
