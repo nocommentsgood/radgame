@@ -1,5 +1,11 @@
 use statig::blocking::*;
 
+// #[derive(Default, Debug, Clone)]
+// pub struct CharacterStateMachine<C, Ps> {
+//     c: C,
+//     p: Ps,
+// }
+
 #[derive(Default, Debug, Clone)]
 pub struct CharacterStateMachine;
 
@@ -7,8 +13,8 @@ impl std::fmt::Display for State {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             State::Hurt {} => write!(f, "hurt"),
-            State::Attacking {} => write!(f, "attack_1"),
-            State::Attack2 {} => write!(f, "attack_2"),
+            State::Attacking {} => write!(f, "attack"),
+            State::Attack2 {} => write!(f, "chainattack"),
             State::Dodging {} => write!(f, "dodge"),
             State::Idle {} => write!(f, "idle"),
             State::Moving {} => write!(f, "run"),
@@ -36,12 +42,13 @@ pub enum Event {
     TimerElapsed,
     TimerInProgress,
     OnFloor,
+    MovingToIdle,
     Hurt,
     #[default]
     None,
 }
 
-#[state_machine(initial = "State::idle()", state(derive(Debug, Clone)))]
+#[state_machine(initial = "State::idle()", state(derive(Debug, Clone, PartialEq)))]
 impl CharacterStateMachine {
     #[state]
     fn idle(event: &Event) -> Response<State> {
@@ -76,7 +83,8 @@ impl CharacterStateMachine {
     #[state]
     fn dodging(&mut self, event: &Event) -> Response<State> {
         match event {
-            Event::TimerElapsed => Response::Transition(State::idle()),
+            Event::TimerElapsed => Response::Transition(State::moving()),
+            Event::MovingToIdle => Response::Transition(State::idle()),
             Event::TimerInProgress => Response::Transition(State::idle()),
             Event::FailedFloorCheck => Response::Transition(State::falling()),
             _ => Handled,
@@ -87,6 +95,7 @@ impl CharacterStateMachine {
     fn attacking(event: &Event) -> Response<State> {
         match event {
             Event::AttackButton => Response::Transition(State::attack_2()),
+            Event::MovingToIdle => Response::Transition(State::idle()),
             Event::TimerElapsed => Response::Transition(State::moving()),
             Event::ParryButton => Response::Transition(State::parry()),
             Event::Hurt => Response::Transition(State::hurt()),
@@ -125,6 +134,7 @@ impl CharacterStateMachine {
     #[state]
     fn falling(event: &Event) -> Response<State> {
         match event {
+            Event::MovingToIdle => Response::Transition(State::idle()),
             Event::OnFloor => Response::Transition(State::moving()),
             Event::GrabbedLedge => Response::Transition(State::grappling()),
             _ => Handled,
@@ -155,4 +165,7 @@ impl CharacterStateMachine {
             _ => Handled,
         }
     }
+
+    // #[action]
+    // fn on_state_changed<C, Ps>(context: &mut impl godot::register::SignalReceiver) {}
 }
