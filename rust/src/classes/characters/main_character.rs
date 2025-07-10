@@ -99,6 +99,11 @@ impl ICharacterBody2D for MainCharacter {
             .animation_state_changed()
             .connect_self(Self::on_animation_state_changed);
 
+        self.get_dodging_cooldown_timer()
+            .signals()
+            .timeout()
+            .connect_other(&self.to_gd(), Self::on_dodge_timer_timeout);
+
         // TODO: Find how to get tracks for specific animations.
         // That way we can dynamically divide by scaling speed.
 
@@ -164,27 +169,58 @@ impl ICharacterBody2D for MainCharacter {
         self.animation_player.play_ex().name("idle_east").done();
     }
 
+    // When a user provides input, execution of the relevant state function starts immediately.
+    // This ensures that the `animation_state_changed` signal is emitted when an input changes the
+    // state by eagerly checking the state machine's next state, just before it changes state.
+    // Otherwise, `physics_process` handles emitting the signal.
     fn unhandled_input(&mut self, input: Gd<godot::classes::InputEvent>) {
         if input.is_action_pressed("attack") {
             self.state.handle(&Event::AttackButton);
+            if self.state.new_state.as_descriminant()
+                == character_state_machine::to_descriminant(&State::Attacking {})
+            {
+                self.signals().animation_state_changed().emit();
+            }
         }
         if input.is_action_pressed("jump") {
             self.state.handle(&Event::JumpButton);
+            if self.state.new_state.as_descriminant()
+                == character_state_machine::to_descriminant(&State::Jumping {})
+            {
+                self.signals().animation_state_changed().emit();
+            }
         }
         if input.is_action_released("jump") {
             self.state.handle(&Event::ActionReleasedEarly);
         }
         if input.is_action_pressed("dodge")
-            && self.get_dodging_cooldown_timer().get_time_left() <= 0.0
-            && self.timers.get(&PT::DodgeAnimation) == self.timers.get_init(&PT::DodgeAnimation)
+            && dbg!(self.get_dodging_cooldown_timer().get_time_left() <= 0.0)
+            && dbg!(
+                self.timers.get(&PT::DodgeAnimation) == self.timers.get_init(&PT::DodgeAnimation)
+            )
         {
             self.state.handle(&Event::DodgeButton);
+            if self.state.new_state.as_descriminant()
+                == character_state_machine::to_descriminant(&State::Dodging {})
+            {
+                self.signals().animation_state_changed().emit();
+            }
         }
         if input.is_action_pressed("heal") {
             self.state.handle(&Event::HealingButton);
+            if self.state.new_state.as_descriminant()
+                == character_state_machine::to_descriminant(&State::Healing {})
+            {
+                self.signals().animation_state_changed().emit();
+            }
         }
         if input.is_action_pressed("parry") {
             self.state.handle(&Event::ParryButton);
+            if self.state.new_state.as_descriminant()
+                == character_state_machine::to_descriminant(&State::Parry {})
+            {
+                self.signals().animation_state_changed().emit();
+            }
         }
     }
 
@@ -194,8 +230,8 @@ impl ICharacterBody2D for MainCharacter {
 
         // If we are in the moving state, update the animation each time the velocity changes.
         // Without this, the animation takes too long to update.
-        if std::mem::discriminant(self.state.state())
-            == std::mem::discriminant(&character_state_machine::State::Moving {})
+        if self.state.state().as_descriminant()
+            == character_state_machine::to_descriminant(&State::Moving {})
             && self.prev_velocity.x != self.velocity.x
         {
             self.prev_velocity.x = self.velocity.x;
@@ -204,11 +240,10 @@ impl ICharacterBody2D for MainCharacter {
 
         if !self.base().is_on_floor() {
             self.state.handle(&Event::FailedFloorCheck);
+            self.signals().animation_state_changed().emit();
         }
 
-        let prev_state = std::mem::discriminant(self.state.state());
-        println!("Previous state: {}", self.state.state());
-
+        let prev_state = self.state.state().as_descriminant();
         match self.state.state() {
             character_state_machine::State::Attacking {} => self.attack(),
             character_state_machine::State::Attack2 {} => self.attack_2(),
@@ -223,16 +258,11 @@ impl ICharacterBody2D for MainCharacter {
             character_state_machine::State::Hurt {} => self.hurt(),
         }
         self.state.handle(&event);
-        let x = self.signals().animation_state_changed();
-        let new_state = std::mem::discriminant(self.state.state());
-        println!("New state: {}", self.state.state());
+        let new_state = self.state.state().as_descriminant();
 
-        if prev_state != new_state
-        // && prev_state != std::mem::discriminant(&character_state_machine::State::Moving {})
-        // && new_state != std::mem::discriminant(&character_state_machine::State::Moving {})
-        {
+        // If the state machine changed states, the animation needs to change as well.
+        if prev_state != new_state {
             self.signals().animation_state_changed().emit();
-            println!("Emitted signals");
         }
     }
 }
@@ -249,7 +279,7 @@ impl MainCharacter {
     fn player_died();
 
     #[signal]
-    fn animation_state_changed();
+    pub fn animation_state_changed();
 
     // Had to resort to enabling and disabling the collision shape manually, otherwise the
     // `area_entered()` signal of the `Hurtbox` would emit twice.
@@ -320,19 +350,18 @@ impl MainCharacter {
         } else {
             let speed = self.stats.get(&DodgingSpeed).unwrap().0 as f32;
             let velocity = self.velocity;
+            cooldown_timer.start();
 
             self.base_mut().set_velocity(velocity * speed);
             self.base_mut().move_and_slide();
             self.timers.set(&PT::DodgeAnimation, time - delta);
 
             if time <= 0.0 {
-                self.timers.reset(&PT::DodgeAnimation);
                 if self.velocity.x == 0.0 {
                     self.state.handle(&Event::MovingToIdle);
                 } else {
                     self.state.handle(&Event::TimerElapsed);
                 }
-                cooldown_timer.start();
             }
         }
     }
@@ -575,6 +604,10 @@ impl MainCharacter {
         }
     }
 
+    fn on_dodge_timer_timeout(&mut self) {
+        self.timers.reset(&PT::DodgeAnimation);
+    }
+
     fn on_animation_state_changed(&mut self) {
         self.update_animation();
     }
@@ -589,11 +622,11 @@ impl MainCharacter {
 
     fn update_animation(&mut self) {
         self.update_direction();
-        let previous_anim = self.animation_player.get_current_animation().to_string();
+        let prev_anim = self.animation_player.get_current_animation().to_string();
         let next_anim = self.get_animation_name();
         let state = next_anim.split_once("_");
-        if previous_anim != next_anim
-            && let Some(s) = state.inspect(|t| println!("state is: {t:?}"))
+        if prev_anim != next_anim
+            && let Some(s) = state
             && s.0 == self.state.state().to_string()
         {
             self.animation_player.play_ex().name(&next_anim).done();

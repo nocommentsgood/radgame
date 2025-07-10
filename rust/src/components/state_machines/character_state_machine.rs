@@ -1,13 +1,9 @@
 use statig::blocking::*;
 
-// #[derive(Default, Debug, Clone)]
-// pub struct CharacterStateMachine<C, Ps> {
-//     c: C,
-//     p: Ps,
-// }
-
 #[derive(Default, Debug, Clone)]
-pub struct CharacterStateMachine;
+pub struct CharacterStateMachine {
+    pub new_state: State,
+}
 
 impl std::fmt::Display for State {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -24,6 +20,34 @@ impl std::fmt::Display for State {
             State::Healing {} => write!(f, "heal"),
             State::Parry {} => write!(f, "parry"),
         }
+    }
+}
+
+impl Default for State {
+    fn default() -> Self {
+        State::Idle {}
+    }
+}
+
+impl State {
+    pub fn as_descriminant(&self) -> std::mem::Discriminant<Self> {
+        std::mem::discriminant(self)
+    }
+}
+
+pub fn to_descriminant(state: &State) -> std::mem::Discriminant<State> {
+    match state {
+        State::Hurt {} => std::mem::discriminant(&State::Hurt {}),
+        State::Jumping {} => std::mem::discriminant(&State::Jumping {}),
+        State::Moving {} => std::mem::discriminant(&State::Moving {}),
+        State::Grappling {} => std::mem::discriminant(&State::Grappling {}),
+        State::Dodging {} => std::mem::discriminant(&State::Dodging {}),
+        State::Attacking {} => std::mem::discriminant(&State::Attacking {}),
+        State::Healing {} => std::mem::discriminant(&State::Healing {}),
+        State::Attack2 {} => std::mem::discriminant(&State::Attack2 {}),
+        State::Falling {} => std::mem::discriminant(&State::Falling {}),
+        State::Parry {} => std::mem::discriminant(&State::Parry {}),
+        State::Idle {} => std::mem::discriminant(&State::Idle {}),
     }
 }
 
@@ -48,34 +72,44 @@ pub enum Event {
     None,
 }
 
-#[state_machine(initial = "State::idle()", state(derive(Debug, Clone, PartialEq)))]
+#[state_machine(initial = "State::idle()", state(derive(Debug, Clone)))]
 impl CharacterStateMachine {
-    #[state]
-    fn idle(event: &Event) -> Response<State> {
-        match event {
-            Event::Wasd => Response::Transition(State::moving()),
-            Event::AttackButton => Response::Transition(State::attacking()),
-            Event::JumpButton => Response::Transition(State::jumping()),
-            Event::HealingButton => Response::Transition(State::healing()),
-            Event::ParryButton => Response::Transition(State::parry()),
-            Event::FailedFloorCheck => Response::Transition(State::falling()),
-            Event::Hurt => Response::Transition(State::hurt()),
-            _ => Handled,
-        }
+    // fn transition_to(&mut self, from: State, next: State) -> Response<State> {
+    //     self.prev_state = from;
+    //     self.new_state = next.clone(); // requires Clone on State
+    //     Response::Transition(next)
+    // }
+
+    fn transition_to(&mut self, next: State) -> Response<State> {
+        self.new_state = next.clone();
+        Response::Transition(next)
     }
 
     #[state]
-    fn moving(&self, event: &Event) -> Response<State> {
+    fn idle(&mut self, event: &Event) -> Response<State> {
         match event {
-            Event::Wasd => Response::Transition(State::moving()),
-            Event::DodgeButton => Response::Transition(State::dodging()),
-            Event::AttackButton => Response::Transition(State::attacking()),
-            Event::ParryButton => Response::Transition(State::parry()),
-            Event::JumpButton => Response::Transition(State::jumping()),
-            Event::HealingButton => Response::Transition(State::healing()),
-            Event::FailedFloorCheck => Response::Transition(State::falling()),
-            Event::Hurt => Response::Transition(State::hurt()),
-            Event::None => Response::Transition(State::idle()),
+            Event::Wasd => self.transition_to(State::moving()),
+            Event::AttackButton => self.transition_to(State::attacking()),
+            Event::JumpButton => self.transition_to(State::jumping()),
+            Event::HealingButton => self.transition_to(State::healing()),
+            Event::ParryButton => self.transition_to(State::parry()),
+            Event::FailedFloorCheck => self.transition_to(State::falling()),
+            Event::Hurt => self.transition_to(State::hurt()),
+            _ => Handled,
+        }
+    }
+    #[state]
+    fn moving(&mut self, event: &Event) -> Response<State> {
+        match event {
+            Event::Wasd => self.transition_to(State::moving()),
+            Event::DodgeButton => self.transition_to(State::dodging()),
+            Event::AttackButton => self.transition_to(State::attacking()),
+            Event::ParryButton => self.transition_to(State::parry()),
+            Event::JumpButton => self.transition_to(State::jumping()),
+            Event::HealingButton => self.transition_to(State::healing()),
+            Event::FailedFloorCheck => self.transition_to(State::falling()),
+            Event::Hurt => self.transition_to(State::hurt()),
+            Event::None => self.transition_to(State::idle()),
             _ => Handled,
         }
     }
@@ -83,89 +117,86 @@ impl CharacterStateMachine {
     #[state]
     fn dodging(&mut self, event: &Event) -> Response<State> {
         match event {
-            Event::TimerElapsed => Response::Transition(State::moving()),
-            Event::MovingToIdle => Response::Transition(State::idle()),
-            Event::TimerInProgress => Response::Transition(State::idle()),
-            Event::FailedFloorCheck => Response::Transition(State::falling()),
+            Event::TimerElapsed => self.transition_to(State::moving()),
+            Event::MovingToIdle => self.transition_to(State::idle()),
+            Event::TimerInProgress => self.transition_to(State::idle()),
+            Event::FailedFloorCheck => self.transition_to(State::falling()),
             _ => Handled,
         }
     }
 
     #[state]
-    fn attacking(event: &Event) -> Response<State> {
+    fn attacking(&mut self, event: &Event) -> Response<State> {
         match event {
-            Event::AttackButton => Response::Transition(State::attack_2()),
-            Event::MovingToIdle => Response::Transition(State::idle()),
-            Event::TimerElapsed => Response::Transition(State::moving()),
-            Event::ParryButton => Response::Transition(State::parry()),
-            Event::Hurt => Response::Transition(State::hurt()),
+            Event::AttackButton => self.transition_to(State::attack_2()),
+            Event::MovingToIdle => self.transition_to(State::idle()),
+            Event::TimerElapsed => self.transition_to(State::moving()),
+            Event::ParryButton => self.transition_to(State::parry()),
+            Event::Hurt => self.transition_to(State::hurt()),
             _ => Handled,
         }
     }
 
     #[state]
-    fn attack_2(event: &Event) -> Response<State> {
+    fn attack_2(&mut self, event: &Event) -> Response<State> {
         match event {
-            Event::TimerElapsed => Response::Transition(State::idle()),
-            Event::FailedFloorCheck => Response::Transition(State::falling()),
-            Event::Hurt => Response::Transition(State::hurt()),
+            Event::TimerElapsed => self.transition_to(State::idle()),
+            Event::FailedFloorCheck => self.transition_to(State::falling()),
+            Event::Hurt => self.transition_to(State::hurt()),
             _ => Handled,
         }
     }
 
     #[state]
-    fn hurt(event: &Event) -> Response<State> {
+    fn hurt(&mut self, event: &Event) -> Response<State> {
         match event {
-            Event::TimerElapsed => Response::Transition(State::idle()),
+            Event::TimerElapsed => self.transition_to(State::idle()),
             _ => Handled,
         }
     }
 
     #[state]
-    fn jumping(event: &Event) -> Response<State> {
+    fn jumping(&mut self, event: &Event) -> Response<State> {
         match event {
-            Event::TimerElapsed => Response::Transition(State::falling()),
-            Event::ActionReleasedEarly => Response::Transition(State::falling()),
-            Event::GrabbedLedge => Response::Transition(State::grappling()),
+            Event::TimerElapsed => self.transition_to(State::falling()),
+            Event::ActionReleasedEarly => self.transition_to(State::falling()),
+            Event::GrabbedLedge => self.transition_to(State::grappling()),
             _ => Handled,
         }
     }
 
     #[state]
-    fn falling(event: &Event) -> Response<State> {
+    fn falling(&mut self, event: &Event) -> Response<State> {
         match event {
-            Event::MovingToIdle => Response::Transition(State::idle()),
-            Event::OnFloor => Response::Transition(State::moving()),
-            Event::GrabbedLedge => Response::Transition(State::grappling()),
+            Event::MovingToIdle => self.transition_to(State::idle()),
+            Event::OnFloor => self.transition_to(State::moving()),
+            Event::GrabbedLedge => self.transition_to(State::grappling()),
             _ => Handled,
         }
     }
 
     #[state]
-    fn grappling(event: &Event) -> Response<State> {
+    fn grappling(&mut self, event: &Event) -> Response<State> {
         match event {
-            Event::WasdJustPressed => Response::Transition(State::falling()),
-            Event::JumpButton => Response::Transition(State::jumping()),
+            Event::WasdJustPressed => self.transition_to(State::falling()),
+            Event::JumpButton => self.transition_to(State::jumping()),
             _ => Handled,
         }
     }
 
     #[state]
-    fn healing(event: &Event) -> Response<State> {
+    fn healing(&mut self, event: &Event) -> Response<State> {
         match event {
-            Event::TimerElapsed => Response::Transition(State::idle()),
+            Event::TimerElapsed => self.transition_to(State::idle()),
             _ => Handled,
         }
     }
 
     #[state]
-    fn parry(event: &Event) -> Response<State> {
+    fn parry(&mut self, event: &Event) -> Response<State> {
         match event {
-            Event::TimerElapsed => Response::Transition(State::idle()),
+            Event::TimerElapsed => self.transition_to(State::idle()),
             _ => Handled,
         }
     }
-
-    // #[action]
-    // fn on_state_changed<C, Ps>(context: &mut impl godot::register::SignalReceiver) {}
 }
