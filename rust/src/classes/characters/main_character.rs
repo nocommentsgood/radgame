@@ -167,30 +167,24 @@ impl ICharacterBody2D for MainCharacter {
     fn unhandled_input(&mut self, input: Gd<godot::classes::InputEvent>) {
         if input.is_action_pressed("attack") {
             self.state.handle(&Event::AttackButton);
-            // self.signals().animation_state_changed().emit();
         }
         if input.is_action_pressed("jump") {
             self.state.handle(&Event::JumpButton);
-            // self.signals().animation_state_changed().emit();
         }
         if input.is_action_released("jump") {
             self.state.handle(&Event::ActionReleasedEarly);
-            // self.signals().animation_state_changed().emit();
         }
         if input.is_action_pressed("dodge")
             && self.get_dodging_cooldown_timer().get_time_left() <= 0.0
             && self.timers.get(&PT::DodgeAnimation) == self.timers.get_init(&PT::DodgeAnimation)
         {
             self.state.handle(&Event::DodgeButton);
-            // self.signals().animation_state_changed().emit();
         }
         if input.is_action_pressed("heal") {
             self.state.handle(&Event::HealingButton);
-            // self.signals().animation_state_changed().emit();
         }
         if input.is_action_pressed("parry") {
             self.state.handle(&Event::ParryButton);
-            // self.signals().animation_state_changed().emit();
         }
     }
 
@@ -210,7 +204,6 @@ impl ICharacterBody2D for MainCharacter {
 
         if !self.base().is_on_floor() {
             self.state.handle(&Event::FailedFloorCheck);
-            // self.signals().animation_state_changed().emit();
         }
 
         let prev_state = std::mem::discriminant(self.state.state());
@@ -339,7 +332,6 @@ impl MainCharacter {
                 } else {
                     self.state.handle(&Event::TimerElapsed);
                 }
-                // self.signals().animation_state_changed().emit();
                 cooldown_timer.start();
             }
         }
@@ -365,7 +357,6 @@ impl MainCharacter {
                 self.timers.reset(&PT::AttackAnimation);
                 self.base_mut().set_process_unhandled_input(true);
                 self.state.handle(&Event::ParryButton);
-                // self.signals().animation_state_changed().emit();
             }
 
             if ac_timer < self.timers.get_init(&PT::AttackChain) && ac_timer > 0.0 {
@@ -392,7 +383,6 @@ impl MainCharacter {
                 self.can_attack_chain = false;
                 self.hit_enemy = false;
                 self.state.handle(&Event::AttackButton);
-                // self.signals().animation_state_changed().emit();
             } else {
                 self.hit_enemy = false;
                 if self.velocity.x == 0.0 {
@@ -400,7 +390,6 @@ impl MainCharacter {
                 } else {
                     self.state.handle(&Event::TimerElapsed);
                 }
-                // self.signals().animation_state_changed().emit();
             }
         }
     }
@@ -419,7 +408,6 @@ impl MainCharacter {
             if time <= 0.0 {
                 self.timers.reset(&x);
                 self.state.handle(&Event::TimerElapsed);
-                // self.signals().animation_state_changed().emit();
             }
         }
     }
@@ -436,7 +424,6 @@ impl MainCharacter {
         if time <= 0.0 {
             self.timers.reset(&PT::HurtAnimation);
             self.state.handle(&Event::TimerElapsed);
-            // self.signals().animation_state_changed().emit();
         }
     }
 
@@ -444,14 +431,12 @@ impl MainCharacter {
         self.active_velocity = Vector2::ZERO;
         if self.velocity.x != 0.0 {
             self.state.handle(&Event::Wasd);
-            self.signals().animation_state_changed().emit();
         }
     }
 
     fn move_character(&mut self) {
         if self.velocity == Vector2::ZERO {
             self.state.handle(&Event::None);
-            // self.signals().animation_state_changed().emit();
         } else {
             let target_velocity = self.velocity * self.stats.get(&RunningSpeed).unwrap().0 as f32;
             self.active_velocity = self.active_velocity.lerp(target_velocity, 0.7);
@@ -487,7 +472,6 @@ impl MainCharacter {
         if time <= 0.0 {
             self.timers.reset(&x);
             self.state.handle(&Event::TimerElapsed);
-            // self.signals().animation_state_changed().emit();
         }
     }
 
@@ -514,7 +498,6 @@ impl MainCharacter {
             }
             self.timers.reset(&x);
             self.state.handle(&Event::TimerElapsed);
-            // self.signals().animation_state_changed().emit();
         }
     }
 
@@ -536,7 +519,6 @@ impl MainCharacter {
             } else {
                 self.state.handle(&Event::OnFloor);
             }
-            // self.signals().animation_state_changed().emit();
             if self.timers.get(x) < self.timers.get_init(x) {
                 self.timers.reset(x);
             }
@@ -557,7 +539,6 @@ impl MainCharacter {
             self.timers.reset(&PT::Parry);
             self.timers.reset(&PT::PerfectParry);
             self.state.handle(&Event::TimerElapsed);
-            // self.signals().animation_state_changed().emit();
         }
     }
 
