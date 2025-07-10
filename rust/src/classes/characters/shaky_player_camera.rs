@@ -17,6 +17,16 @@ pub enum TraumaLevel {
     High,
 }
 
+impl From<u32> for TraumaLevel {
+    fn from(value: u32) -> Self {
+        match value {
+            30..=u32::MAX => Self::High,
+            10..=29 => Self::Med,
+            _ => Self::Low,
+        }
+    }
+}
+
 #[derive(GodotClass)]
 #[class(base = Camera2D, init)]
 pub struct ShakyPlayerCamera {
@@ -71,13 +81,6 @@ impl ShakyPlayerCamera {
     fn rust_shake(&mut self) {
         let amount = self.trauma.powf(2.0);
         self.noise_y = self.noise_y.wrapping_add(1);
-        let rotation = self.max_rot
-            * amount
-            * self
-                .noise
-                .get_noise_2d(self.noise.seed as f32, self.noise_y as f32);
-        dbg!(rotation);
-
         let offset_x = self.max_offset.x
             * amount
             * self
@@ -90,8 +93,6 @@ impl ShakyPlayerCamera {
                 .noise
                 .get_noise_2d(self.noise.seed as f32 * 3.0, self.noise_y as f32);
 
-        // TODO: I have never experienced motion sickness, until now.
-        self.base_mut().set_rotation(rotation);
         self.base_mut().set_offset(Vector2::new(offset_x, offset_y));
     }
 
@@ -99,18 +100,18 @@ impl ShakyPlayerCamera {
     // Rust crate.
     #[allow(dead_code, unused_variables)]
     fn godot_shake(&mut self) {
-        let amount = self.trauma.powf(2.0);
-        // let offset_x = self.amp
-        //     * amount
-        //     * self
-        //         .noise
-        //         .get_noise_2d(self.noise.get_seed() as f32, self.noise_y);
-        // let offset_y = self.amp
-        //     * amount
-        //     * self
-        //         .noise
-        //         .get_noise_2d(self.noise.get_seed() as f32 * 2.0, self.noise_y);
+        //     let amount = self.trauma.powf(2.0);
+        //     let offset_x = self.amp
+        //         * amount
+        //         * self
+        //             .noise
+        //             .get_noise_2d(self.noise.get_seed() as f32, self.noise_y);
+        //     let offset_y = self.amp
+        //         * amount
+        //         * self
+        //             .noise
+        //             .get_noise_2d(self.noise.get_seed() as f32 * 2.0, self.noise_y);
         //
-        // self.base_mut().set_offset(Vector2::new(offset_x, offset_y));
+        //     self.base_mut().set_offset(Vector2::new(offset_x, offset_y));
     }
 }

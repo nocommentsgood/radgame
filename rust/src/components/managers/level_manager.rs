@@ -19,7 +19,7 @@ struct LevelManager {
     enemy_scene: OnReady<Gd<PackedScene>>,
     #[init(val = OnReady::from_loaded("res://wave_2.tscn"))]
     wave_2: OnReady<Gd<PackedScene>>,
-    #[init(node = "MainCharacter")]
+    #[init(val = OnReady::manual())]
     player: OnReady<Gd<MainCharacter>>,
     base: Base<Node>,
 }
@@ -39,11 +39,37 @@ impl INode for LevelManager {
             Vector2i::new(-400, 250),
         );
         self.base_mut().add_child(&item);
-        self.connect_to_signals();
+
+        let player = self
+            .base()
+            .get_node_as::<MainCharacter>("/root/Main/World/MainCharacter");
+
+        player
+            .signals()
+            .player_health_changed()
+            .connect_other(&self.to_gd(), Self::on_p_h);
+        // self.connect_to_signals();
     }
 }
 
 impl LevelManager {
+    // A function for testing WorldData autoload changing player path.
+    fn on_p_h(&mut self, _a: u32, _b: u32, _c: u32) {
+        let player = self
+            .base()
+            .get_node_as::<MainCharacter>("/root/Main/World/MainCharacter");
+
+        let mut temp_node = Node::new_alloc();
+        temp_node.set_name("ATempNode");
+        self.base_mut().add_sibling(&temp_node);
+
+        player
+            .get_parent()
+            .unwrap()
+            .call_deferred("remove_child", &[player.to_variant()]);
+        temp_node.call_deferred("add_child", &[player.to_variant()]);
+    }
+
     fn connect_to_signals(&mut self) {
         let enemy = self
             .base()

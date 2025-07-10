@@ -11,7 +11,10 @@ use godot::{
 
 use crate::{
     classes::{
-        characters::entity_hitbox::EntityHitbox,
+        characters::{
+            entity_hitbox::EntityHitbox,
+            shaky_player_camera::{ShakyPlayerCamera, TraumaLevel},
+        },
         components::{hurtbox::Hurtbox, timer_component::Time},
         enemies::projectile::Projectile,
     },
@@ -69,6 +72,7 @@ pub struct MainCharacter {
 impl ICharacterBody2D for MainCharacter {
     fn ready(&mut self) {
         let this = self.to_gd();
+
         let hitbox = self.base().get_node_as::<Area2D>("Hitbox");
         hitbox
             .signals()
@@ -231,6 +235,12 @@ impl MainCharacter {
             let damageable = DynGd::<Node2D, dyn Damageable>::from_godot(target);
             damaging.dyn_bind().do_damage(damageable);
             drop(guard);
+            let mut camera = self
+                .base()
+                .get_node_as::<ShakyPlayerCamera>("ShakyPlayerCamera");
+            camera
+                .bind_mut()
+                .add_trauma(TraumaLevel::from(damaging.dyn_bind().damage_amount()));
             self.state.handle(&Event::Hurt);
         }
     }
