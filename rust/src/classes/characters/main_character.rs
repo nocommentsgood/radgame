@@ -162,6 +162,7 @@ impl ICharacterBody2D for MainCharacter {
         self.timers.0.push(Time::new(hurt_animation_length));
         self.timers.0.push(Time::new(0.3));
         self.timers.0.push(Time::new(0.15));
+        self.timers.0.push(Time::new(0.15));
 
         let mut hurtbox = self.base().get_node_as::<Hurtbox>("Hurtbox");
         hurtbox.bind_mut().attack_damage = self.stats.get(&Stats::AttackDamage).unwrap().0;
@@ -224,7 +225,7 @@ impl ICharacterBody2D for MainCharacter {
         }
     }
 
-    fn physics_process(&mut self, _delta: f64) {
+    fn physics_process(&mut self, delta: f32) {
         let event;
         (event, self.velocity.x) = InputHandler::get_vel_and_event(&Input::singleton());
 
@@ -239,8 +240,14 @@ impl ICharacterBody2D for MainCharacter {
         }
 
         if !self.base().is_on_floor() {
-            self.state.handle(&Event::FailedFloorCheck);
-            self.signals().animation_state_changed().emit();
+            let coyote = self.timers.get(&PT::Coyote);
+            if coyote > 0.0 {
+                self.timers.set(&PT::Coyote, coyote - delta);
+            }
+            if coyote <= 0.0 {
+                self.timers.reset(&PT::Coyote);
+                self.state.handle(&Event::FailedFloorCheck);
+            }
         }
 
         let prev_state = self.state.state().as_descriminant();

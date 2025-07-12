@@ -10,6 +10,7 @@ pub enum PlayerTimer {
     ParryAnimation,
     Parry,
     PerfectParry,
+    Coyote,
 }
 
 #[derive(Clone, Copy)]
