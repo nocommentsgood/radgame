@@ -17,7 +17,7 @@
 [node name="MapForeground" parent="World" instance=ExtResource("3_7ycvg")]
 
 [node name="MainCharacter" parent="World" instance=ExtResource("3_u6kov")]
-position = Vector2(500, -234)
+position = Vector2(110, -30)
 
 [node name="TestEnemy" parent="World" instance=ExtResource("6_nfk4m")]
 position = Vector2(797, 77)

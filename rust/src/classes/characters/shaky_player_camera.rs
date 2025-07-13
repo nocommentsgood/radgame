@@ -43,16 +43,29 @@ pub struct ShakyPlayerCamera {
     noise: FastNoiseLite,
     trauma: f32,
     noise_y: i32,
+
+    pub set_right: bool,
     base: Base<Camera2D>,
 }
 
 #[godot_api]
 impl ICamera2D for ShakyPlayerCamera {
-    fn physics_process(&mut self, delta: f32) {
+    fn process(&mut self, delta: f32) {
         if self.trauma > 0.0 {
             self.trauma = f32::max(self.trauma - self.decay * delta, 0.0);
             self.rust_shake();
         }
+
+        // Lerp towards the players last movement.
+        let cur_pos = self.base().get_offset();
+        let target = if self.set_right {
+            Vector2::new(50.0, self.base().get_offset().y)
+        } else {
+            Vector2::new(-50.0, self.base().get_offset().y)
+        };
+
+        let vel = cur_pos.lerp(target, 2.0 * delta);
+        self.base_mut().set_offset(vel);
     }
 
     fn ready(&mut self) {

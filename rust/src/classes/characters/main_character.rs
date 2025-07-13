@@ -38,7 +38,8 @@ use crate::classes::components::timer_component::{PlayerTimer, Timers};
 
 type PT = PlayerTimer;
 type Event = crate::components::state_machines::character_state_machine::Event;
-const GRAVITY: f32 = 980.0;
+const GRAVITY: f32 = 1100.0;
+const TERMINAL_VELOCITY: f32 = 200.0;
 
 #[derive(GodotClass)]
 #[class(init, base=CharacterBody2D)]
@@ -53,6 +54,18 @@ pub struct MainCharacter {
     state: statig::blocking::StateMachine<CharacterStateMachine>,
     stats: HashMap<Stats, StatVal>,
     base: Base<CharacterBody2D>,
+
+    #[export]
+    #[init(val = 500.0)]
+    terminal_y_speed: f32,
+
+    #[export]
+    #[init(val = 280.0)]
+    temp_jump_speed: f32,
+
+    #[export]
+    #[init(val = 980.0)]
+    temp_gravity: f32,
 
     #[init(node = "ItemComponent")]
     pub item_comp: OnReady<Gd<ItemComponent>>,
@@ -148,7 +161,7 @@ impl ICharacterBody2D for MainCharacter {
         self.stats.insert(Stats::HealAmount, StatVal::new(10));
         self.stats.insert(Stats::AttackDamage, StatVal::new(30));
         self.stats.insert(Stats::RunningSpeed, StatVal::new(150));
-        self.stats.insert(Stats::JumpingSpeed, StatVal::new(350));
+        self.stats.insert(Stats::JumpingSpeed, StatVal::new(280));
         self.stats.insert(Stats::DodgingSpeed, StatVal::new(250));
         self.stats.insert(Stats::AttackingSpeed, StatVal::new(10));
 
@@ -162,6 +175,7 @@ impl ICharacterBody2D for MainCharacter {
         self.timers.0.push(Time::new(hurt_animation_length));
         self.timers.0.push(Time::new(0.3));
         self.timers.0.push(Time::new(0.15));
+        self.timers.0.push(Time::new(0.08)); // coyote
 
         let mut hurtbox = self.base().get_node_as::<Hurtbox>("Hurtbox");
         hurtbox.bind_mut().attack_damage = self.stats.get(&Stats::AttackDamage).unwrap().0;
@@ -191,6 +205,7 @@ impl ICharacterBody2D for MainCharacter {
             }
         }
         if input.is_action_released("jump") {
+            self.timers.reset(&PT::JumpingAnimation);
             self.state.handle(&Event::ActionReleasedEarly);
         }
         if input.is_action_pressed("dodge")
@@ -224,7 +239,7 @@ impl ICharacterBody2D for MainCharacter {
         }
     }
 
-    fn physics_process(&mut self, _delta: f64) {
+    fn physics_process(&mut self, delta: f32) {
         let event;
         (event, self.velocity.x) = InputHandler::get_vel_and_event(&Input::singleton());
 
@@ -239,8 +254,15 @@ impl ICharacterBody2D for MainCharacter {
         }
 
         if !self.base().is_on_floor() {
-            self.state.handle(&Event::FailedFloorCheck);
-            self.signals().animation_state_changed().emit();
+            let coyote = self.timers.get(&PT::Coyote);
+            if coyote > 0.0 {
+                self.timers.set(&PT::Coyote, coyote - delta);
+            }
+            if coyote <= 0.0 {
+                self.timers.reset(&PT::Coyote);
+                self.state.handle(&Event::FailedFloorCheck);
+                self.signals().animation_state_changed().emit();
+            }
         }
 
         let prev_state = self.state.state().as_descriminant();
@@ -477,29 +499,20 @@ impl MainCharacter {
     }
 
     fn jump(&mut self) {
-        let x = PT::JumpingAnimation;
-        let time = self.timers.get(&x);
+        let ja = PT::JumpingAnimation;
+        let time = self.timers.get(&ja);
         let delta = self.base().get_physics_process_delta_time() as f32;
 
-        if self.base().is_on_floor() {
-            self.velocity.y = Vector2::UP.y * self.stats.get(&JumpingSpeed).unwrap().0 as f32;
-            self.velocity.x *= self.stats.get(&RunningSpeed).unwrap().0 as f32;
-            let velocity = self.velocity;
-            self.base_mut().set_velocity(velocity);
-            self.base_mut().move_and_slide();
-        } else {
-            self.velocity.y += GRAVITY * delta;
-            let target_x = self.velocity.x * self.stats.get(&RunningSpeed).unwrap().0 as f32;
-            self.active_velocity.x = self.active_velocity.x.lerp(target_x, 0.2);
-            let velocity = Vector2::new(self.active_velocity.x, self.velocity.y);
-            self.detect_ledges();
-            self.base_mut().set_velocity(velocity);
-            self.base_mut().move_and_slide();
-            self.timers.set(&x, time - delta);
-        }
+        // TODO: Use jumping speed player stat.
+        self.velocity.y = Vector2::UP.y * self.temp_jump_speed;
+        self.velocity.x *= self.stats.get(&RunningSpeed).unwrap().0 as f32;
+        let velocity = self.velocity;
+        self.base_mut().set_velocity(velocity);
+        self.base_mut().move_and_slide();
+        self.timers.set(&ja, time - delta);
 
         if time <= 0.0 {
-            self.timers.reset(&x);
+            self.timers.reset(&ja);
             self.state.handle(&Event::TimerElapsed);
         }
     }
@@ -532,16 +545,20 @@ impl MainCharacter {
 
     fn fall(&mut self) {
         let x = &PT::JumpingAnimation;
-        if !self.base().is_on_floor() {
-            let delta = self.base().get_physics_process_delta_time() as f32;
-            self.velocity.y += GRAVITY * delta;
+        let delta = self.base().get_physics_process_delta_time() as f32;
+
+        if self.velocity.y <= self.terminal_y_speed {
+            self.velocity.y += self.temp_gravity * delta;
             self.velocity.x *= self.stats.get(&RunningSpeed).unwrap().0 as f32;
 
             let velocity = self.velocity;
-            self.detect_ledges();
             self.base_mut().set_velocity(velocity);
             self.base_mut().move_and_slide();
-        } else if self.base().is_on_floor() {
+        } else {
+            self.base_mut().move_and_slide();
+        }
+
+        if self.base().is_on_floor() {
             self.velocity.y = 0.0;
             if self.velocity.x == 0.0 {
                 self.state.handle(&Event::MovingToIdle);
@@ -637,6 +654,20 @@ impl MainCharacter {
     fn update_direction(&mut self) {
         if !self.velocity.x.is_zero_approx() {
             self.direction = PlatformerDirection::from_platformer_velocity(&self.velocity);
+
+            if self.velocity.x.is_sign_positive() {
+                let mut camera = self
+                    .base()
+                    .get_node_as::<ShakyPlayerCamera>("ShakyPlayerCamera");
+                camera.bind_mut().set_right = true;
+            }
+
+            if self.velocity.x.is_sign_negative() {
+                let mut camera = self
+                    .base()
+                    .get_node_as::<ShakyPlayerCamera>("ShakyPlayerCamera");
+                camera.bind_mut().set_right = false;
+            }
         }
     }
 
