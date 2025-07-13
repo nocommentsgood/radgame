@@ -511,8 +511,6 @@ impl MainCharacter {
         self.base_mut().move_and_slide();
         self.timers.set(&ja, time - delta);
 
-        println!("Jump time: {}", self.timers.get(&ja));
-
         if time <= 0.0 {
             self.timers.reset(&ja);
             self.state.handle(&Event::TimerElapsed);
@@ -656,23 +654,20 @@ impl MainCharacter {
     fn update_direction(&mut self) {
         if !self.velocity.x.is_zero_approx() {
             self.direction = PlatformerDirection::from_platformer_velocity(&self.velocity);
-        }
-        if self.velocity.x == 0.0 {
-            return;
-        }
 
-        if self.velocity.x.is_sign_positive() {
-            let mut camera = self
-                .base()
-                .get_node_as::<ShakyPlayerCamera>("ShakyPlayerCamera");
-            camera.bind_mut().set_right = true;
-        }
+            if self.velocity.x.is_sign_positive() {
+                let mut camera = self
+                    .base()
+                    .get_node_as::<ShakyPlayerCamera>("ShakyPlayerCamera");
+                camera.bind_mut().set_right = true;
+            }
 
-        if self.velocity.x.is_sign_negative() {
-            let mut camera = self
-                .base()
-                .get_node_as::<ShakyPlayerCamera>("ShakyPlayerCamera");
-            camera.bind_mut().set_right = false;
+            if self.velocity.x.is_sign_negative() {
+                let mut camera = self
+                    .base()
+                    .get_node_as::<ShakyPlayerCamera>("ShakyPlayerCamera");
+                camera.bind_mut().set_right = false;
+            }
         }
     }
 
