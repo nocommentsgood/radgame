@@ -1,0 +1,37 @@
+[gd_scene load_steps=6 format=3 uid="uid://4mh8c6ua1jlg"]
+
+[ext_resource type="PackedScene" uid="uid://b05ix3h8osl2g" path="res://maps/arena.tscn" id="1_oein3"]
+[ext_resource type="PackedScene" uid="uid://cgmacri0vrmtw" path="res://ui/health_bar.tscn" id="1_u3p1o"]
+[ext_resource type="PackedScene" uid="uid://5fcrp4sc1aqy" path="res://entities/player/main_character.tscn" id="2_u3p1o"]
+[ext_resource type="PackedScene" uid="uid://cb2l6ctn5uru8" path="res://sliding_door.tscn" id="4_s6hhk"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_oein3"]
+size = Vector2(20, 285)
+
+[node name="Main" type="ArenaScene"]
+
+[node name="HealthBar" parent="." instance=ExtResource("1_u3p1o")]
+
+[node name="World" type="Node" parent="."]
+
+[node name="SlidingDoor" parent="World" instance=ExtResource("4_s6hhk")]
+open_position = Vector2(9, 56)
+closed_position = Vector2(9, -38)
+position = Vector2(9, 56)
+
+[node name="MainCharacter" parent="World" instance=ExtResource("2_u3p1o")]
+position = Vector2(58, -23)
+
+[node name="EnvironmentTrigger" type="EnvironmentTrigger" parent="World"]
+position = Vector2(130, -10)
+collision_layer = 512
+collision_mask = 4
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="World/EnvironmentTrigger"]
+position = Vector2(0, -132.5)
+shape = SubResource("RectangleShape2D_oein3")
+
+[node name="EnemySpawner" type="EnemySpawner" parent="World"]
+position = Vector2(356, -139)
+
+[node name="Arena" parent="World" instance=ExtResource("1_oein3")]

@@ -1,3 +1,4 @@
+pub mod enemy_spawner;
 pub mod input_hanlder;
 mod inventory_menu;
 pub mod item;
