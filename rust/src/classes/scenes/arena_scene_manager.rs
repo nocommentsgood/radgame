@@ -8,12 +8,8 @@ use crate::{
 #[derive(GodotClass)]
 #[class(base = Node, init)]
 struct ArenaScene {
-    // proj_enemy_spawner: Gd<EnemySpawner>,
     #[init(node = "World")]
     world: OnReady<Gd<Node>>,
-
-    #[init(load = "uid://bcae4wnfye0do")]
-    proj_enemy: OnReady<Gd<PackedScene>>,
 
     #[init(node = "World/EnemySpawner")]
     spawner: OnReady<Gd<EnemySpawner>>,

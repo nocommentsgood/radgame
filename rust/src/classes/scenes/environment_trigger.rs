@@ -34,12 +34,9 @@ impl EnvironmentTrigger {
     fn on_player_enters_area(&mut self, area: Gd<Area2D>) {
         if let Ok(h_box) = area.try_cast::<EntityHitbox>() {
             if let Some(_player) = h_box.get_owner() {
-                println!("Emitting area signal");
                 self.signals().prepare_arena().emit();
                 self.base_mut().queue_free();
             }
-        } else {
-            println!("Not a player");
         }
     }
 }

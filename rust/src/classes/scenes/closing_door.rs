@@ -36,7 +36,6 @@ impl IStaticBody2D for ClosingDoor {
                 self.base_mut()
                     .set_position(Vector2::new(x, position.y + Vector2::UP.y * 20.0 * delta));
             } else {
-                println!("Closed!\n {}", self.base().get_position());
                 self.is_closed = true;
                 self.base_mut().set_process(false);
             }
@@ -49,7 +48,6 @@ impl IStaticBody2D for ClosingDoor {
                 self.base_mut()
                     .set_position(Vector2::new(x, position.y + Vector2::UP.y * 20.0 * delta));
             } else {
-                println!("Open!\n {}", self.base().get_position());
                 self.is_closed = false;
                 self.base_mut().set_process(false);
             }
