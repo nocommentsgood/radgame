@@ -98,6 +98,7 @@ impl ProjectileEnemy {
         let position = self.base().get_global_position();
         let target = position.direction_to(target).normalized_or_zero();
         let mut inst = self.projectile_scene.instantiate_as::<Projectile>();
+        inst.set_global_position(position);
         let mut hurtbox = inst.get_node_as::<Hurtbox>("Hurtbox");
         inst.bind_mut().velocity = target * BULLET_SPEED;
         hurtbox.set_collision_layer_value(
@@ -109,7 +110,7 @@ impl ProjectileEnemy {
             true,
         );
         hurtbox.bind_mut().attack_damage = 20;
-        self.base_mut().add_child(&inst);
+        self.base_mut().add_sibling(&inst);
     }
 
     fn update_timers(&mut self) {
@@ -197,6 +198,22 @@ impl character_components::enemy_state_ext::EnemyEntityStateMachineExt for Proje
     fn timers(&mut self) -> &mut crate::classes::components::timer_component::Timers {
         &mut self.timers
     }
+    fn get_velocity(&self) -> Vector2 {
+        self.velocity
+    }
+
+    fn set_velocity(&mut self, velocity: Vector2) {
+        self.velocity = velocity;
+    }
+
+    fn speeds(&self) -> crate::classes::components::speed_component::SpeedComponent {
+        self.speeds.clone()
+    }
+
+    fn patrol_comp(&self) -> PatrolComponent {
+        self.patrol_comp.clone()
+    }
+
     fn attack(&mut self, player: Gd<MainCharacter>) {
         let target = player.get_global_position();
         let ac = &ET::AttackCooldown;
@@ -230,21 +247,5 @@ impl character_components::enemy_state_ext::EnemyEntityStateMachineExt for Proje
             self.state
                 .handle(&enemy_state_machine::EnemyEvent::TimerElapsed);
         }
-    }
-
-    fn get_velocity(&self) -> Vector2 {
-        self.velocity
-    }
-
-    fn set_velocity(&mut self, velocity: Vector2) {
-        self.velocity = velocity;
-    }
-
-    fn speeds(&self) -> crate::classes::components::speed_component::SpeedComponent {
-        self.speeds.clone()
-    }
-
-    fn patrol_comp(&self) -> PatrolComponent {
-        self.patrol_comp.clone()
     }
 }

@@ -9,6 +9,7 @@ pub enum CollisionLayers {
     PlatformLedges = 7,
     PlayerPhysics = 8,
     Items = 9,
+    WorldEffects = 10,
 }
 
 #[cfg(test)]
@@ -26,5 +27,6 @@ mod test {
         assert_eq!(CollisionLayers::PlatformLedges as i32, 7);
         assert_eq!(CollisionLayers::PlayerPhysics as i32, 8);
         assert_eq!(CollisionLayers::Items as i32, 9);
+        assert_eq!(CollisionLayers::WorldEffects as i32, 10);
     }
 }
