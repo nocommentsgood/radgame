@@ -119,6 +119,7 @@ teleport={
 2d_physics/layer_7="platform ledges"
 2d_physics/layer_8="player physics"
 2d_physics/layer_9="items"
+2d_physics/layer_10="world effects"
 
 [physics]
 
