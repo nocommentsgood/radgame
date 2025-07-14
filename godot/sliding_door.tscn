@@ -1,0 +1,23 @@
+[gd_scene load_steps=3 format=3 uid="uid://cb2l6ctn5uru8"]
+
+[ext_resource type="Texture2D" uid="uid://b3w0a7wguiang" path="res://assets/environment/tiles/tilemap.png" id="1_kxely"]
+
+[sub_resource type="WorldBoundaryShape2D" id="WorldBoundaryShape2D_hgm2i"]
+
+[node name="StaticBody2D" type="ClosingDoor"]
+open_position = Vector2(9, -38)
+closed_position = Vector2(9, 52)
+collision_layer = 2
+collision_mask = 134
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+rotation = 1.5708
+shape = SubResource("WorldBoundaryShape2D_hgm2i")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+rotation = 1.5708
+scale = Vector2(2, 1)
+texture = ExtResource("1_kxely")
+region_enabled = true
+region_rect = Rect2(152, 38, 56, 19)
+region_filter_clip_enabled = true
