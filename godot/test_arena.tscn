@@ -32,6 +32,6 @@ position = Vector2(0, -132.5)
 shape = SubResource("RectangleShape2D_oein3")
 
 [node name="EnemySpawner" type="EnemySpawner" parent="World"]
-position = Vector2(356, -139)
+position = Vector2(351, -75)
 
 [node name="Arena" parent="World" instance=ExtResource("1_oein3")]

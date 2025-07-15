@@ -19,6 +19,7 @@ impl std::fmt::Display for State {
             State::Grappling {} => write!(f, "grapple"),
             State::Healing {} => write!(f, "heal"),
             State::Parry {} => write!(f, "parry"),
+            State::AirAttack {} => write!(f, "airattack"),
         }
     }
 }
@@ -48,6 +49,7 @@ pub fn to_descriminant(state: &State) -> std::mem::Discriminant<State> {
         State::Falling {} => std::mem::discriminant(&State::Falling {}),
         State::Parry {} => std::mem::discriminant(&State::Parry {}),
         State::Idle {} => std::mem::discriminant(&State::Idle {}),
+        State::AirAttack {} => std::mem::discriminant(&State::AirAttack {}),
     }
 }
 
@@ -74,12 +76,6 @@ pub enum Event {
 
 #[state_machine(initial = "State::idle()", state(derive(Debug, Clone)))]
 impl CharacterStateMachine {
-    // fn transition_to(&mut self, from: State, next: State) -> Response<State> {
-    //     self.prev_state = from;
-    //     self.new_state = next.clone(); // requires Clone on State
-    //     Response::Transition(next)
-    // }
-
     fn transition_to(&mut self, next: State) -> Response<State> {
         self.new_state = next.clone();
         Response::Transition(next)
@@ -155,12 +151,16 @@ impl CharacterStateMachine {
         }
     }
 
+    #[allow(unused_variables)]
     #[state]
     fn jumping(&mut self, event: &Event) -> Response<State> {
+        self.transition_to(State::falling())
+    }
+
+    #[state]
+    fn air_attack(&mut self, event: &Event) -> Response<State> {
         match event {
             Event::TimerElapsed => self.transition_to(State::falling()),
-            Event::ActionReleasedEarly => self.transition_to(State::falling()),
-            Event::GrabbedLedge => self.transition_to(State::grappling()),
             _ => Handled,
         }
     }
@@ -168,6 +168,7 @@ impl CharacterStateMachine {
     #[state]
     fn falling(&mut self, event: &Event) -> Response<State> {
         match event {
+            Event::AttackButton => self.transition_to(State::air_attack()),
             Event::MovingToIdle => self.transition_to(State::idle()),
             Event::OnFloor => self.transition_to(State::moving()),
             Event::GrabbedLedge => self.transition_to(State::grappling()),

@@ -278,6 +278,7 @@ impl ICharacterBody2D for MainCharacter {
             character_state_machine::State::Healing {} => self.heal(),
             character_state_machine::State::Grappling {} => self.grapple(),
             character_state_machine::State::Hurt {} => self.hurt(),
+            character_state_machine::State::AirAttack {} => self.air_attack(),
         }
         self.state.handle(&event);
         let new_state = self.state.state().as_descriminant();
@@ -465,6 +466,30 @@ impl MainCharacter {
         }
     }
 
+    fn air_attack(&mut self) {
+        let aa = PT::AttackAnimation;
+        let time = self.timers.get(&aa);
+        let delta = self.base().get_physics_process_delta_time() as f32;
+
+        if self.velocity.y <= self.terminal_y_speed {
+            self.velocity.y += self.temp_gravity * delta;
+            self.velocity.x *= self.stats.get(&RunningSpeed).unwrap().0 as f32;
+
+            let velocity = self.velocity;
+            self.base_mut().set_velocity(velocity);
+            self.base_mut().move_and_slide();
+            self.timers.set(&aa, time - delta);
+        } else {
+            self.base_mut().move_and_slide();
+            self.timers.set(&aa, time - delta);
+        }
+
+        if time <= 0.0 {
+            self.timers.reset(&aa);
+            self.state.handle(&Event::TimerElapsed);
+        }
+    }
+
     fn hurt(&mut self) {
         self.base_mut().set_process_unhandled_input(true);
         let time = self.timers.get(&PT::HurtAnimation);
@@ -501,22 +526,12 @@ impl MainCharacter {
     }
 
     fn jump(&mut self) {
-        let ja = PT::JumpingAnimation;
-        let time = self.timers.get(&ja);
-        let delta = self.base().get_physics_process_delta_time() as f32;
-
         // TODO: Use jumping speed player stat.
         self.velocity.y = Vector2::UP.y * self.temp_jump_speed;
         self.velocity.x *= self.stats.get(&RunningSpeed).unwrap().0 as f32;
         let velocity = self.velocity;
         self.base_mut().set_velocity(velocity);
         self.base_mut().move_and_slide();
-        self.timers.set(&ja, time - delta);
-
-        if time <= 0.0 {
-            self.timers.reset(&ja);
-            self.state.handle(&Event::TimerElapsed);
-        }
     }
 
     fn heal(&mut self) {
@@ -528,7 +543,6 @@ impl MainCharacter {
         let delta = self.base().get_physics_process_delta_time() as f32;
         self.velocity = Vector2::ZERO;
         let velocity = self.velocity;
-
         self.base_mut().set_velocity(velocity);
         self.timers.set(&x, time - delta);
 
@@ -552,12 +566,15 @@ impl MainCharacter {
         if self.velocity.y <= self.terminal_y_speed {
             self.velocity.y += self.temp_gravity * delta;
             self.velocity.x *= self.stats.get(&RunningSpeed).unwrap().0 as f32;
-
             let velocity = self.velocity;
+
             self.base_mut().set_velocity(velocity);
             self.base_mut().move_and_slide();
         } else {
             self.base_mut().move_and_slide();
+            if Input::singleton().is_action_just_pressed("attack") {
+                self.state.handle(&Event::AttackButton);
+            }
         }
 
         if self.base().is_on_floor() {
