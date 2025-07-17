@@ -1,10 +1,15 @@
-[gd_scene load_steps=6 format=3 uid="uid://csphx4r51adby"]
+[gd_scene load_steps=7 format=3 uid="uid://csphx4r51adby"]
 
 [ext_resource type="PackedScene" uid="uid://cgmacri0vrmtw" path="res://ui/health_bar.tscn" id="1_d5x1h"]
 [ext_resource type="PackedScene" uid="uid://cmebdxyowjgsn" path="res://maps/map1.tscn" id="3_7ycvg"]
 [ext_resource type="PackedScene" uid="uid://5fcrp4sc1aqy" path="res://entities/player/main_character.tscn" id="3_u6kov"]
 [ext_resource type="PackedScene" uid="uid://dmnvgp7j5vtfe" path="res://entities/enemies/test_enemy.tscn" id="6_nfk4m"]
 [ext_resource type="PackedScene" uid="uid://1i4j8dd082bp" path="res://ui/item_menu.tscn" id="7_nfk4m"]
+
+[sub_resource type="NavigationPolygon" id="NavigationPolygon_8mm7a"]
+vertices = PackedVector2Array(1167.91, 99, 596.906, 99, 596.094, 11.9766, 1167.09, 11.0078)
+polygons = Array[PackedInt32Array]([PackedInt32Array(0, 1, 2, 3)])
+outlines = Array[PackedVector2Array]([PackedVector2Array(586, 2, 587, 109, 1178, 109, 1177, 1)])
 
 [node name="Main" type="Node2D"]
 
@@ -21,3 +26,6 @@ position = Vector2(110, -30)
 
 [node name="TestEnemy" parent="World" instance=ExtResource("6_nfk4m")]
 position = Vector2(797, 77)
+
+[node name="NavigationRegion2D" type="NavigationRegion2D" parent="World"]
+navigation_polygon = SubResource("NavigationPolygon_8mm7a")

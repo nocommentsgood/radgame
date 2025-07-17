@@ -39,6 +39,9 @@ pub struct TestEnemy {
     health: u32,
     #[init(node = "AnimationPlayer")]
     animation_player: OnReady<Gd<AnimationPlayer>>,
+
+    #[init(node = "NavigationAgent2D")]
+    nav_agent: OnReady<Gd<godot::classes::NavigationAgent2D>>,
 }
 
 #[godot_api]
