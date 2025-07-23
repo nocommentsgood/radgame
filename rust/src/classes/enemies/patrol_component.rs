@@ -1,24 +1,23 @@
-use godot::prelude::*;
+use godot::builtin::Vector2;
 
-#[derive(Default, Clone)]
-pub struct PatrolComponent {
-    east_target: Vector2,
-    west_target: Vector2,
+/// Used for setting the maximum distance an enemy can move in its patrol state.
+#[derive(Default)]
+pub struct PatrolComp {
+    /// The furthest distance the entity should move to the left in its patrol state.
+    /// Note that only the x-axis is considered.
+    pub left_target: Vector2,
+
+    /// The furthest distance the entity should move to the right in its patrol state.
+    /// Note that only the x-axis is considered.
+    pub right_target: Vector2,
 }
 
-impl PatrolComponent {
-    pub fn new(east_x: f32, east_y: f32, west_x: f32, west_y: f32) -> Self {
-        Self {
-            east_target: Vector2::new(east_x, east_y),
-            west_target: Vector2::new(west_x, west_y),
-        }
-    }
-
+impl PatrolComp {
     pub fn get_furthest_distance(&self, current_pos: Vector2) -> Vector2 {
-        let left_distance = current_pos.distance_to(self.west_target);
-        let right_distance = current_pos.distance_to(self.east_target);
+        let left_dist = (self.left_target.x - current_pos.x).abs();
+        let right_dist = (self.right_target.x - current_pos.x).abs();
 
-        if left_distance >= right_distance {
+        if left_dist > right_dist {
             Vector2::LEFT
         } else {
             Vector2::RIGHT

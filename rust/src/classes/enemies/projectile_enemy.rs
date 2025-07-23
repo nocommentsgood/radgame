@@ -26,7 +26,7 @@ use has_hitbox::HasEnemyHitbox;
 
 use crate::classes::components::timer_component::{EnemyTimer, Time};
 
-use super::patrol_component::PatrolComponent;
+use super::patrol_component::PatrolComp;
 
 type ET = EnemyTimer;
 const BULLET_SPEED: real = 500.0;
@@ -36,7 +36,6 @@ const BULLET_SPEED: real = 500.0;
 pub struct ProjectileEnemy {
     velocity: Vector2,
     shoot_cooldown: Time,
-    patrol_comp: PatrolComponent,
     speeds: SpeedComponent,
     direction: PlatformerDirection,
     stats: HashMap<Stats, StatVal>,
@@ -46,6 +45,15 @@ pub struct ProjectileEnemy {
     #[init(val = OnReady::manual())]
     projectile_scene: OnReady<Gd<PackedScene>>,
 
+    #[export]
+    #[export_subgroup(name = "PatrolComponent")]
+    left_target: Vector2,
+    #[export]
+    #[export_subgroup(name = "PatrolComponent")]
+    right_target: Vector2,
+
+    patrol_comp: PatrolComp,
+
     #[init(node = "AnimationPlayer")]
     animation_player: OnReady<Gd<AnimationPlayer>>,
 }
@@ -53,9 +61,10 @@ pub struct ProjectileEnemy {
 #[godot_api]
 impl INode2D for ProjectileEnemy {
     fn ready(&mut self) {
+        self.patrol_comp.left_target = self.left_target;
+        self.patrol_comp.right_target = self.right_target;
         self.projectile_scene.init(load("res://projectile.tscn"));
         self.speeds = SpeedComponent::new(40.0, 40.0, 80.0);
-        self.patrol_comp = PatrolComponent::new(138.0, 0.0, -138.0, 0.0);
         self.connect_aggro_area_signal();
         self.connect_hitbox_signal();
 
@@ -210,8 +219,8 @@ impl character_components::enemy_state_ext::EnemyEntityStateMachineExt for Proje
         self.speeds.clone()
     }
 
-    fn patrol_comp(&self) -> PatrolComponent {
-        self.patrol_comp.clone()
+    fn patrol_comp(&self) -> &PatrolComp {
+        &self.patrol_comp
     }
 
     fn attack(&mut self, player: Gd<MainCharacter>) {

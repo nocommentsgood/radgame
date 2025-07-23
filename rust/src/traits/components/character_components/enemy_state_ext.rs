@@ -4,7 +4,7 @@ use godot::obj::{Gd, Inherits, WithBaseField};
 use crate::classes::characters::main_character::MainCharacter;
 use crate::classes::components::speed_component::SpeedComponent;
 use crate::classes::components::timer_component::{self as timers, EnemyTimer};
-use crate::classes::enemies::patrol_component::PatrolComponent;
+use crate::classes::enemies::patrol_component::PatrolComp;
 use crate::components::state_machines::enemy_state_machine;
 
 use super::moveable::{MoveableCharacter, MoveableEntity};
@@ -25,7 +25,7 @@ where
     fn get_velocity(&self) -> Vector2;
     fn set_velocity(&mut self, velocity: Vector2);
     fn speeds(&self) -> SpeedComponent;
-    fn patrol_comp(&self) -> PatrolComponent;
+    fn patrol_comp(&self) -> &PatrolComp;
 
     fn attack(&mut self, _player: Gd<MainCharacter>) {
         let aa = &ET::AttackAnimation;
@@ -102,10 +102,10 @@ where
 
         if time <= 0.0 {
             self.timers().reset(idle);
-            self.set_velocity(
-                self.patrol_comp()
-                    .get_furthest_distance(self.base().get_global_position()),
-            );
+            let v = self
+                .patrol_comp()
+                .get_furthest_distance(self.base().get_position());
+            self.set_velocity(v);
             self.sm_mut()
                 .handle(&enemy_state_machine::EnemyEvent::TimerElapsed);
         }
@@ -146,7 +146,7 @@ where
     fn get_velocity(&self) -> Vector2;
     fn set_velocity(&mut self, velocity: Vector2);
     fn speeds(&self) -> SpeedComponent;
-    fn patrol_comp(&self) -> PatrolComponent;
+    fn patrol_comp(&self) -> &PatrolComp;
 
     fn attack(&mut self, _player: Gd<MainCharacter>) {
         let aa = &ET::AttackAnimation;
@@ -213,10 +213,10 @@ where
 
         if time <= 0.0 {
             self.timers().reset(i);
-            self.set_velocity(
-                self.patrol_comp()
-                    .get_furthest_distance(self.base().upcast_ref().get_global_position()),
-            );
+            let v = self
+                .patrol_comp()
+                .get_furthest_distance(self.base().upcast_ref().get_global_position());
+            self.set_velocity(v);
             self.sm_mut()
                 .handle(&enemy_state_machine::EnemyEvent::TimerElapsed);
         }

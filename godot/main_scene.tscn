@@ -22,9 +22,11 @@ outlines = Array[PackedVector2Array]([PackedVector2Array(586, 2, 587, 109, 1178,
 [node name="MapForeground" parent="World" instance=ExtResource("3_7ycvg")]
 
 [node name="MainCharacter" parent="World" instance=ExtResource("3_u6kov")]
-position = Vector2(110, -30)
+position = Vector2(858, 84)
 
 [node name="TestEnemy" parent="World" instance=ExtResource("6_nfk4m")]
+left_target = Vector2(654, 0)
+right_target = Vector2(950, 0)
 position = Vector2(797, 77)
 
 [node name="NavigationRegion2D" type="NavigationRegion2D" parent="World"]
