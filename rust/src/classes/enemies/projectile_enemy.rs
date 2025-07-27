@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use crate::classes::components::hurtbox::Hurtbox;
 use crate::classes::components::timer_component::Timers;
 use crate::classes::enemies::projectile::Projectile;
+use crate::traits::components::character_components::moveable::MoveableEntity;
 use crate::{
     classes::{
         characters::{
@@ -41,18 +42,24 @@ pub struct ProjectileEnemy {
     stats: HashMap<Stats, StatVal>,
     state: statig::blocking::StateMachine<EnemyStateMachine>,
     timers: Timers,
+    patrol_comp: PatrolComp,
+    nav_agent_vel: Vector2,
+    player_pos: Option<Vector2>,
     base: Base<Node2D>,
+
     #[init(val = OnReady::manual())]
     projectile_scene: OnReady<Gd<PackedScene>>,
 
     #[export]
     #[export_subgroup(name = "PatrolComponent")]
     left_target: Vector2,
+
     #[export]
     #[export_subgroup(name = "PatrolComponent")]
     right_target: Vector2,
 
-    patrol_comp: PatrolComp,
+    #[init(node = "NavigationAgent2D")]
+    nav_agent: OnReady<Gd<godot::classes::NavigationAgent2D>>,
 
     #[init(node = "AnimationPlayer")]
     animation_player: OnReady<Gd<AnimationPlayer>>,
@@ -61,6 +68,10 @@ pub struct ProjectileEnemy {
 #[godot_api]
 impl INode2D for ProjectileEnemy {
     fn ready(&mut self) {
+        self.nav_agent
+            .signals()
+            .velocity_computed()
+            .connect_other(&self.to_gd(), Self::on_velocity_computed);
         self.patrol_comp.left_target = self.left_target;
         self.patrol_comp.right_target = self.right_target;
         self.projectile_scene.init(load("res://projectile.tscn"));
@@ -84,25 +95,36 @@ impl INode2D for ProjectileEnemy {
         self.stats.insert(Stats::AttackingSpeed, StatVal::new(10));
     }
 
-    fn process(&mut self, _delta: f64) {
+    fn physics_process(&mut self, _delta: f64) {
         match self.state.state() {
             enemy_state_machine::State::Idle {} => self.idle(),
-            enemy_state_machine::State::Attack2 { player } => {
-                self.chain_attack(player.clone());
+            enemy_state_machine::State::Attack2 {} => {
+                self.chain_attack();
             }
-            enemy_state_machine::State::ChasePlayer { player } => self.chase_player(player.clone()),
+            enemy_state_machine::State::ChasePlayer {} => {
+                if let Some(p) = self.get_player_pos() {
+                    self.nav_agent.set_target_position(p);
+                }
+                self.chase_player()
+            }
             enemy_state_machine::State::Patrol {} => self.patrol(),
             enemy_state_machine::State::Falling {} => (),
-            enemy_state_machine::State::Attack { player } => {
-                self.attack(player.clone());
+            enemy_state_machine::State::Attack {} => {
+                self.attack();
             }
         }
+        // dbg!(self.state.state());
         self.update_timers();
     }
 }
 
 #[godot_api]
 impl ProjectileEnemy {
+    fn on_velocity_computed(&mut self, safe_vel: Vector2) {
+        if self.state.state().as_discriminant() == (State::ChasePlayer {}).as_discriminant() {
+            self.move_to(&safe_vel, true);
+        }
+    }
     fn shoot_projectile(&mut self, target: Vector2) {
         let position = self.base().get_global_position();
         let target = position.direction_to(target).normalized_or_zero();
@@ -181,7 +203,11 @@ impl character_components::has_state::HasState for ProjectileEnemy {
     }
 }
 
-impl character_components::has_aggro::HasAggroArea for ProjectileEnemy {}
+impl character_components::has_aggro::HasAggroArea for ProjectileEnemy {
+    fn set_player_pos(&mut self, pos: Option<Vector2>) {
+        self.player_pos = pos;
+    }
+}
 
 impl character_components::has_hitbox::HasEnemyHitbox for ProjectileEnemy {}
 
@@ -223,15 +249,17 @@ impl character_components::enemy_state_ext::EnemyEntityStateMachineExt for Proje
         &self.patrol_comp
     }
 
-    fn attack(&mut self, player: Gd<MainCharacter>) {
-        let target = player.get_global_position();
+    fn attack(&mut self) {
         let ac = &ET::AttackCooldown;
         let aa = &ET::AttackAnimation;
         let time = self.timers.get(aa);
         let delta = self.base().get_process_delta_time() as f32;
         let attack_cooldown = self.timers.get(ac);
         self.update_animation();
-        if attack_cooldown == self.timers.get_init(ac) {
+
+        if attack_cooldown == self.timers.get_init(ac)
+            && let Some(target) = self.get_player_pos()
+        {
             self.shoot_projectile(target);
             self.timers.set(ac, attack_cooldown - delta);
         }
@@ -245,7 +273,7 @@ impl character_components::enemy_state_ext::EnemyEntityStateMachineExt for Proje
         }
     }
 
-    fn chain_attack(&mut self, _player: Gd<MainCharacter>) {
+    fn chain_attack(&mut self) {
         let ac = &ET::AttackChain;
         let time = self.timers.get(ac);
         let delta = self.base().get_process_delta_time() as f32;
@@ -256,5 +284,28 @@ impl character_components::enemy_state_ext::EnemyEntityStateMachineExt for Proje
             self.state
                 .handle(&enemy_state_machine::EnemyEvent::TimerElapsed);
         }
+    }
+
+    fn chase_player(&mut self) {
+        let next = self.nav_agent.get_next_path_position();
+        let v = self.base().get_global_position().direction_to(next) * self.speeds.aggro;
+        self.track_player();
+        self.nav_agent.set_velocity(v);
+
+        let ac = &ET::AttackCooldown;
+        let attack_range = self
+            .base()
+            .get_node_as::<godot::classes::Area2D>("EnemySensors/AttackArea");
+        let delta = self.base().get_process_delta_time() as f32;
+        let time = self.timers().get(ac);
+        if attack_range.has_overlapping_areas() && time == self.timers().get_init(ac) {
+            self.timers().set(ac, time - delta);
+            self.state
+                .handle(&enemy_state_machine::EnemyEvent::InAttackRange);
+        }
+    }
+
+    fn get_player_pos(&self) -> Option<Vector2> {
+        self.player_pos
     }
 }

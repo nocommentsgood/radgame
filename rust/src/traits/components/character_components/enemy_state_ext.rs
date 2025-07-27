@@ -26,8 +26,9 @@ where
     fn set_velocity(&mut self, velocity: Vector2);
     fn speeds(&self) -> SpeedComponent;
     fn patrol_comp(&self) -> &PatrolComp;
+    fn get_player_pos(&self) -> Option<Vector2>;
 
-    fn attack(&mut self, _player: Gd<MainCharacter>) {
+    fn attack(&mut self) {
         let aa = &ET::AttackAnimation;
         let time = self.timers().get(aa);
         let delta = self
@@ -58,7 +59,7 @@ where
         }
     }
 
-    fn chain_attack(&mut self, _player: Gd<MainCharacter>) {
+    fn chain_attack(&mut self) {
         let ac = &ET::AttackChain;
         let time = self.timers().get(ac);
         let delta = self.base().get_physics_process_delta_time() as f32;
@@ -111,21 +112,22 @@ where
         }
     }
 
-    fn chase_player(&mut self, player: Gd<MainCharacter>) {
+    fn chase_player(&mut self) {
         let ac = &ET::AttackCooldown;
         let attack_range = self
             .base()
             .get_node_as::<godot::classes::Area2D>("EnemySensors/AttackArea");
         let delta = self.base().get_physics_process_delta_time() as f32;
         let speed = self.speeds().aggro;
-        let player_position = player.get_position();
-        let velocity = Vector2::new(
-            self.base().get_position().direction_to(player_position).x,
-            0.0,
-        );
-        self.set_velocity(velocity);
-        self.update_direction();
-        self.slide(&velocity, &speed);
+        if let Some(player_position) = self.get_player_pos() {
+            let velocity = Vector2::new(
+                self.base().get_position().direction_to(player_position).x,
+                0.0,
+            );
+            self.set_velocity(velocity);
+            self.update_direction();
+            self.slide(&velocity, &speed);
+        }
 
         if attack_range.has_overlapping_areas()
             && self.timers().get(ac) == self.timers().get_init(ac)
@@ -147,8 +149,9 @@ where
     fn set_velocity(&mut self, velocity: Vector2);
     fn speeds(&self) -> SpeedComponent;
     fn patrol_comp(&self) -> &PatrolComp;
+    fn get_player_pos(&self) -> Option<Vector2>;
 
-    fn attack(&mut self, _player: Gd<MainCharacter>) {
+    fn attack(&mut self) {
         let aa = &ET::AttackAnimation;
         let time = self.timers().get(aa);
         let delta = self
@@ -158,7 +161,7 @@ where
         let speed = self.speeds().attack;
         let velocity = self.get_velocity() * speed;
         self.timers().set(aa, time - delta);
-        self.move_to(&velocity);
+        self.move_to(&velocity, false);
 
         if time <= 0.0 {
             self.timers().reset(aa);
@@ -168,14 +171,14 @@ where
         }
     }
 
-    fn chain_attack(&mut self, _player: Gd<MainCharacter>) {
+    fn chain_attack(&mut self) {
         let ac = &ET::AttackChain;
         let time = self.timers().get(ac);
         let delta = self.base().upcast_ref().get_process_delta_time() as f32;
         let speed = self.speeds().attack;
         let velocity = self.get_velocity() * speed;
         self.timers().set(ac, time - delta);
-        self.move_to(&velocity);
+        self.move_to(&velocity, false);
 
         if time <= 0.0 {
             self.timers().reset(ac);
@@ -192,7 +195,7 @@ where
         let delta = self.base().upcast_ref().get_process_delta_time() as f32;
 
         self.update_direction();
-        self.move_to(&velocity);
+        self.move_to(&velocity, false);
         self.timers().set(p, time - delta);
 
         if time <= 0.0 {
@@ -208,7 +211,7 @@ where
         let delta = self.base().upcast_ref().get_process_delta_time() as f32;
         let velocity = Vector2::ZERO;
 
-        self.move_to(&velocity);
+        self.move_to(&velocity, false);
         self.timers().set(i, time - delta);
 
         if time <= 0.0 {
@@ -222,7 +225,7 @@ where
         }
     }
 
-    fn chase_player(&mut self, player: Gd<MainCharacter>) {
+    fn chase_player(&mut self) {
         let ac = &ET::AttackCooldown;
         let attack_range = self
             .base()
@@ -231,18 +234,16 @@ where
         let delta = self.base().upcast_ref().get_process_delta_time() as f32;
         let time = self.timers().get(ac);
         let speed = self.speeds().aggro;
-        let player_position = player.get_position();
-        let velocity = Vector2::new(
-            self.base()
-                .upcast_ref()
-                .get_position()
-                .direction_to(player_position)
-                .x,
-            0.0,
-        ) * speed;
-        self.set_velocity(velocity);
-        self.update_direction();
-        self.move_to(&velocity);
+
+        if let Some(p) = self.get_player_pos() {
+            let velocity = Vector2::new(
+                self.base().upcast_ref().get_position().direction_to(p).x,
+                0.0,
+            ) * speed;
+            self.set_velocity(velocity);
+            self.update_direction();
+            self.move_to(&velocity, false);
+        }
 
         if attack_range.has_overlapping_areas() && time == self.timers().get_init(ac) {
             self.timers().set(ac, time - delta);

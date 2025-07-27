@@ -36,6 +36,7 @@ pub struct TestEnemy {
     base: Base<CharacterBody2D>,
     energy: u32,
     mana: u32,
+    player_pos: Option<Vector2>,
     #[init(val = 100)]
     health: u32,
     #[init(node = "AnimationPlayer")]
@@ -78,10 +79,10 @@ impl ICharacterBody2D for TestEnemy {
 
         match self.state.state() {
             enemy_state_machine::State::Idle {} => self.idle(),
-            enemy_state_machine::State::ChasePlayer { player } => self.chase_player(player.clone()),
+            enemy_state_machine::State::ChasePlayer {} => self.chase_player(),
             enemy_state_machine::State::Patrol {} => self.patrol(),
-            enemy_state_machine::State::Attack { player } => self.attack(player.clone()),
-            enemy_state_machine::State::Attack2 { player } => self.chain_attack(player.clone()),
+            enemy_state_machine::State::Attack {} => self.attack(),
+            enemy_state_machine::State::Attack2 {} => self.chain_attack(),
             enemy_state_machine::State::Falling {} => self.fall(),
         }
 
@@ -158,7 +159,11 @@ impl HasState for TestEnemy {
     }
 }
 
-impl HasAggroArea for TestEnemy {}
+impl HasAggroArea for TestEnemy {
+    fn set_player_pos(&mut self, pos: Option<Vector2>) {
+        self.player_pos = pos;
+    }
+}
 
 #[godot_dyn]
 impl character_components::damageable::Damageable for TestEnemy {
@@ -205,5 +210,9 @@ impl EnemyCharacterStateMachineExt for TestEnemy {
 
     fn patrol_comp(&self) -> &PatrolComp {
         &self.patrol_comp
+    }
+
+    fn get_player_pos(&self) -> Option<Vector2> {
+        self.player_pos
     }
 }

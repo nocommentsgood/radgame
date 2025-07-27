@@ -1,5 +1,5 @@
 use godot::{
-    builtin::{real, Vector2},
+    builtin::{Vector2, real},
     classes::{CharacterBody2D, Node2D},
     obj::{Inherits, WithBaseField},
 };
@@ -21,9 +21,13 @@ pub trait MoveableEntity: Animatable
 where
     Self: Inherits<Node2D> + WithBaseField<Base: Inherits<Node2D>>,
 {
-    fn move_to(&mut self, target: &Vector2) {
+    fn move_to(&mut self, target: &Vector2, use_physics_delta: bool) {
         self.update_animation();
-        let delta = self.base().upcast_ref().get_process_delta_time();
+        let delta = if use_physics_delta {
+            self.base().upcast_ref().get_physics_process_delta_time()
+        } else {
+            self.base().upcast_ref().get_process_delta_time()
+        };
         let pos = self.base().upcast_ref().get_global_position();
 
         self.base_mut()
