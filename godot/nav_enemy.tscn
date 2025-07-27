@@ -1,0 +1,27 @@
+[gd_scene load_steps=3 format=3 uid="uid://ds0umhoj1jmjb"]
+
+[ext_resource type="Texture2D" uid="uid://c350iit4lopo8" path="res://assets/icon.svg" id="1_w5ntj"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_2c0ij"]
+size = Vector2(130, 132)
+
+[node name="NavEnemy" type="NavEnemy"]
+scale = Vector2(0.1, 0.1)
+collision_layer = 8
+collision_mask = 10
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("RectangleShape2D_2c0ij")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+texture = ExtResource("1_w5ntj")
+
+[node name="NavigationAgent2D" type="NavigationAgent2D" parent="."]
+path_desired_distance = 4.0
+navigation_layers = 4
+avoidance_enabled = true
+radius = 17.21
+time_horizon_obstacles = 1.01
+debug_enabled = true
+debug_use_custom = true
+debug_path_custom_line_width = 2.0

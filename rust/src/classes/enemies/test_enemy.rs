@@ -5,9 +5,12 @@ use godot::{
 };
 
 use crate::{
-    classes::components::{
-        speed_component::SpeedComponent,
-        timer_component::{EnemyTimer, Time, Timers},
+    classes::{
+        components::{
+            speed_component::SpeedComponent,
+            timer_component::{EnemyTimer, Time, Timers},
+        },
+        enemies::patrol_component::PatrolComp,
     },
     components::state_machines::{
         enemy_state_machine::{self, *},
@@ -20,7 +23,6 @@ use crate::{
     },
 };
 
-use super::patrol_component::PatrolComponent;
 type ET = EnemyTimer;
 
 #[derive(GodotClass)]
@@ -29,23 +31,35 @@ pub struct TestEnemy {
     direction: PlatformerDirection,
     velocity: Vector2,
     timers: Timers,
-    patrol_comp: PatrolComponent,
     speeds: SpeedComponent,
     state: statig::blocking::StateMachine<EnemyStateMachine>,
     base: Base<CharacterBody2D>,
     energy: u32,
     mana: u32,
+    player_pos: Option<Vector2>,
     #[init(val = 100)]
     health: u32,
     #[init(node = "AnimationPlayer")]
     animation_player: OnReady<Gd<AnimationPlayer>>,
+
+    patrol_comp: PatrolComp,
+    #[export]
+    #[export_subgroup(name = "PatrolComponent")]
+    left_target: Vector2,
+    #[export]
+    #[export_subgroup(name = "PatrolComponent")]
+    right_target: Vector2,
+
+    #[init(node = "NavigationAgent2D")]
+    nav_agent: OnReady<Gd<godot::classes::NavigationAgent2D>>,
 }
 
 #[godot_api]
 impl ICharacterBody2D for TestEnemy {
     fn ready(&mut self) {
+        self.patrol_comp.left_target = self.left_target;
+        self.patrol_comp.right_target = self.right_target;
         self.speeds = SpeedComponent::new(40.0, 40.0, 80.0);
-        self.patrol_comp = PatrolComponent::new(50.0, 0.0, -50.0, 0.0);
         self.connect_aggro_area_signal();
         self.connect_hitbox_signal();
         self.timers.0.push(Time::new(1.8));
@@ -65,10 +79,10 @@ impl ICharacterBody2D for TestEnemy {
 
         match self.state.state() {
             enemy_state_machine::State::Idle {} => self.idle(),
-            enemy_state_machine::State::ChasePlayer { player } => self.chase_player(player.clone()),
+            enemy_state_machine::State::ChasePlayer {} => self.chase_player(),
             enemy_state_machine::State::Patrol {} => self.patrol(),
-            enemy_state_machine::State::Attack { player } => self.attack(player.clone()),
-            enemy_state_machine::State::Attack2 { player } => self.chain_attack(player.clone()),
+            enemy_state_machine::State::Attack {} => self.attack(),
+            enemy_state_machine::State::Attack2 {} => self.chain_attack(),
             enemy_state_machine::State::Falling {} => self.fall(),
         }
 
@@ -145,7 +159,11 @@ impl HasState for TestEnemy {
     }
 }
 
-impl HasAggroArea for TestEnemy {}
+impl HasAggroArea for TestEnemy {
+    fn set_player_pos(&mut self, pos: Option<Vector2>) {
+        self.player_pos = pos;
+    }
+}
 
 #[godot_dyn]
 impl character_components::damageable::Damageable for TestEnemy {
@@ -190,7 +208,11 @@ impl EnemyCharacterStateMachineExt for TestEnemy {
         self.speeds.clone()
     }
 
-    fn patrol_comp(&self) -> PatrolComponent {
-        self.patrol_comp.clone()
+    fn patrol_comp(&self) -> &PatrolComp {
+        &self.patrol_comp
+    }
+
+    fn get_player_pos(&self) -> Option<Vector2> {
+        self.player_pos
     }
 }

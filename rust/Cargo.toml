@@ -8,7 +8,9 @@ crate-type = ["cdylib"]
 
 [dependencies]
 fastnoise-lite = "1.1.1"
-godot = { git = "https://github.com/godot-rust/gdext", branch = "master", features = [
+godot = { git = "https://github.com/godot-rust/gdext", features = [
   "register-docs",
-] }
+  "experimental-godot-api",
+  "experimental-threads",
+], version = "0.3.4" }
 statig = "0.3.0"

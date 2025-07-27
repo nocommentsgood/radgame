@@ -27,6 +27,8 @@ window/size/viewport_height=360
 window/size/mode=3
 window/size/initial_position_type=2
 window/size/initial_screen=1
+window/size/window_width_override=1920
+window/size/window_height_override=1080
 window/stretch/mode="viewport"
 window/stretch/aspect="expand"
 window/stretch/scale_mode="integer"
@@ -36,6 +38,7 @@ window/stretch/scale_mode="integer"
 enemy=""
 player=""
 items=""
+"floor/wall tiles navigation"=""
 
 [input]
 
@@ -112,8 +115,11 @@ teleport={
 [layer_names]
 
 2d_physics/layer_2="floor / wall"
+2d_navigation/layer_2="ground enemies"
 2d_physics/layer_3="player hitbox"
+2d_navigation/layer_3="flying enemies"
 2d_physics/layer_4="enemy hitbox"
+2d_navigation/layer_4="ground jumping enemies"
 2d_physics/layer_5="player hurtbox"
 2d_physics/layer_6="enemy hurtbox"
 2d_physics/layer_7="platform ledges"

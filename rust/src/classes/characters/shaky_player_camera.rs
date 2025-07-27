@@ -27,6 +27,7 @@ impl From<u32> for TraumaLevel {
     }
 }
 
+// BUG: Offset doesn't seem to reset to original position after trauma is gone.
 #[derive(GodotClass)]
 #[class(base = Camera2D, init)]
 pub struct ShakyPlayerCamera {
@@ -41,6 +42,7 @@ pub struct ShakyPlayerCamera {
     max_rot: f32,
     #[init(val = FastNoiseLite::new())]
     noise: FastNoiseLite,
+    original_offset: Vector2,
     trauma: f32,
     noise_y: i32,
 
@@ -55,7 +57,6 @@ impl ICamera2D for ShakyPlayerCamera {
             self.trauma = f32::max(self.trauma - self.decay * delta, 0.0);
             self.rust_shake();
         }
-
         // Lerp towards the players last movement.
         let cur_pos = self.base().get_offset();
         let target = if self.set_right {
@@ -69,6 +70,7 @@ impl ICamera2D for ShakyPlayerCamera {
     }
 
     fn ready(&mut self) {
+        self.original_offset = self.base().get_offset();
         self.noise.seed = godot::global::randi() as i32;
         // TODO: Learn more about noise generation.
         // Use wrapping math operations to prevent overflow?
@@ -106,7 +108,9 @@ impl ShakyPlayerCamera {
                 .noise
                 .get_noise_2d(self.noise.seed as f32 * 3.0, self.noise_y as f32);
 
-        self.base_mut().set_offset(Vector2::new(offset_x, offset_y));
+        let o = self.original_offset;
+        self.base_mut()
+            .set_offset(o + Vector2::new(offset_x, offset_y));
     }
 
     // Leaving this, in the event I decide to use Godot's FastNoiseLite implementation over the

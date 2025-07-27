@@ -1,0 +1,9 @@
+[gd_scene format=3 uid="uid://yfxhdtf41kcd"]
+
+[node name="PatrolComp" type="Node"]
+
+[node name="LeftTarget" type="Marker2D" parent="."]
+gizmo_extents = 30.0
+
+[node name="RightTarget" type="Marker2D" parent="."]
+gizmo_extents = 30.0
