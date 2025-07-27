@@ -3801,19 +3801,6 @@ input_pickable = false
 position = Vector2(26, 10)
 shape = SubResource("CapsuleShape2D_wd5k3")
 
-[node name="Camera2D" type="Camera2D" parent="."]
-ignore_rotation = false
-enabled = false
-zoom = Vector2(1.5, 1.5)
-process_callback = 0
-limit_smoothed = true
-position_smoothing_enabled = true
-rotation_smoothing_enabled = true
-drag_horizontal_enabled = true
-drag_vertical_enabled = true
-editor_draw_limits = true
-editor_draw_drag_margin = true
-
 [node name="DodgingCooldownTimer" type="Timer" parent="."]
 process_callback = 0
 wait_time = 0.75
@@ -3848,7 +3835,7 @@ collide_with_areas = true
 
 [node name="ShakyPlayerCamera" type="ShakyPlayerCamera" parent="."]
 decay = 0.8
-max_offset = Vector2(50, 300)
+max_offset = Vector2(50, -55)
 max_rot = 0.0
 offset = Vector2(0, -55)
 ignore_rotation = false
