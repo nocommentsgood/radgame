@@ -3,6 +3,10 @@ use godot::{
     prelude::*,
 };
 
+pub trait TriggerableEnvObject {
+    fn on_activated(&mut self);
+}
+
 #[derive(GodotClass)]
 #[class(init, base = StaticBody2D)]
 pub struct ClosingDoor {
@@ -21,6 +25,7 @@ pub struct ClosingDoor {
 #[godot_api]
 impl IStaticBody2D for ClosingDoor {
     fn ready(&mut self) {
+        self.is_closed = false;
         self.base_mut().set_process(false);
         let mut shape = self
             .base()
@@ -46,7 +51,7 @@ impl IStaticBody2D for ClosingDoor {
                 let position = self.base().get_position();
                 let x = self.get_open_position().x;
                 self.base_mut()
-                    .set_position(Vector2::new(x, position.y + Vector2::UP.y * 20.0 * delta));
+                    .set_position(Vector2::new(x, position.y + Vector2::DOWN.y * 20.0 * delta));
             } else {
                 self.is_closed = false;
                 self.base_mut().set_process(false);
@@ -55,24 +60,17 @@ impl IStaticBody2D for ClosingDoor {
     }
 }
 
-#[godot_api]
-impl ClosingDoor {
-    pub fn close(&mut self) {
-        if !self.is_closed {
-            let mut shape = self
-                .base()
-                .get_node_as::<CollisionShape2D>("CollisionShape2D");
-            shape.set_deferred("disabled", &false.to_variant());
-            self.base_mut().set_process(true);
-        }
-    }
-
-    pub fn open(&mut self) {
+#[godot_dyn]
+impl TriggerableEnvObject for ClosingDoor {
+    fn on_activated(&mut self) {
+        let mut shape = self
+            .base()
+            .get_node_as::<CollisionShape2D>("CollisionShape2D");
         if self.is_closed {
-            let mut shape = self
-                .base()
-                .get_node_as::<CollisionShape2D>("CollisionShape2D");
             shape.set_deferred("disabled", &true.to_variant());
+            self.base_mut().set_process(true);
+        } else {
+            shape.set_deferred("disabled", &false.to_variant());
             self.base_mut().set_process(true);
         }
     }

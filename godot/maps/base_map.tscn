@@ -1,0 +1,17 @@
+[gd_scene format=3 uid="uid://d0yxvbpejsju5"]
+
+[node name="Map" type="Map"]
+
+[node name="Environment" type="Node" parent="."]
+
+[node name="EnvironmentTriggers" type="Node" parent="Environment"]
+
+[node name="TileMapLayers" type="Node" parent="."]
+
+[node name="Items" type="Node" parent="."]
+
+[node name="NavRegions" type="Node" parent="."]
+
+[node name="Enemies" type="Node" parent="."]
+
+[node name="PlayerSpawnPos" type="Marker2D" parent="."]

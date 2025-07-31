@@ -2,17 +2,19 @@
 
 [ext_resource type="Texture2D" uid="uid://b3w0a7wguiang" path="res://assets/environment/tiles/tilemap.png" id="1_kxely"]
 
-[sub_resource type="WorldBoundaryShape2D" id="WorldBoundaryShape2D_hgm2i"]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_kxely"]
+size = Vector2(272, 20)
 
-[node name="StaticBody2D" type="ClosingDoor"]
+[node name="SlidingDoor" type="ClosingDoor"]
 open_position = Vector2(9, -38)
 closed_position = Vector2(9, 52)
 collision_layer = 2
 collision_mask = 134
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(3.61989e-06, -0.999973)
 rotation = 1.5708
-shape = SubResource("WorldBoundaryShape2D_hgm2i")
+shape = SubResource("RectangleShape2D_kxely")
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
 rotation = 1.5708
