@@ -40,7 +40,7 @@ impl ICanvasLayer for InventoryMenu {
                     .paths
                     .player
                     .as_ref()
-                    .unwrap(),
+                    .expect("Expected player path from GlobalData"),
             )
             .try_get_node_as::<ItemComponent>("ItemComponent");
 

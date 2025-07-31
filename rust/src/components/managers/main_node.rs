@@ -47,13 +47,12 @@ impl INode for Main {
 impl Main {
     // Update world data when player path changes.
     fn on_player_entered_tree(&mut self, node: Gd<Node>) {
-        if let Ok(p) = node.try_cast::<MainCharacter>() {
-            let path = p.get_path();
+        if let Ok(player) = node.try_cast::<MainCharacter>() {
             constants::get_world_data()
                 .bind_mut()
                 .paths
                 .player
-                .replace(path.to_string());
+                .replace(player.get_path().to_string());
         }
     }
 

@@ -1,4 +1,3 @@
-mod arena_scene_manager;
-mod closing_door;
-mod environment_trigger;
+pub mod environment_trigger;
+pub mod map;
 pub mod wave_2;

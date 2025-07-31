@@ -7,7 +7,6 @@ pub struct GlobalData {
     base: Base<Object>,
 }
 
-// Or do this...
 #[derive(Default)]
 pub struct PathData {
     pub player: Option<String>,
