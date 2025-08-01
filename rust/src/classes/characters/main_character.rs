@@ -194,14 +194,13 @@ impl ICharacterBody2D for MainCharacter {
     fn unhandled_input(&mut self, input: Gd<godot::classes::InputEvent>) {
         if input.is_action_pressed("attack") {
             self.state.handle(&Event::AttackButton);
-            if self.state.new_state.as_descriminant() == csm::to_descriminant(&State::Attacking {})
-            {
+            if self.state.state().as_descriminant() == csm::to_descriminant(&State::Attacking {}) {
                 self.signals().animation_state_changed().emit();
             }
         }
         if input.is_action_pressed("jump") {
             self.state.handle(&Event::JumpButton);
-            if self.state.new_state.as_descriminant() == csm::to_descriminant(&State::Jumping {}) {
+            if self.state.state().as_descriminant() == csm::to_descriminant(&State::Jumping {}) {
                 self.signals().animation_state_changed().emit();
             }
         }
@@ -216,19 +215,19 @@ impl ICharacterBody2D for MainCharacter {
             )
         {
             self.state.handle(&Event::DodgeButton);
-            if self.state.new_state.as_descriminant() == csm::to_descriminant(&State::Dodging {}) {
+            if self.state.state().as_descriminant() == csm::to_descriminant(&State::Dodging {}) {
                 self.signals().animation_state_changed().emit();
             }
         }
         if input.is_action_pressed("heal") {
             self.state.handle(&Event::HealingButton);
-            if self.state.new_state.as_descriminant() == csm::to_descriminant(&State::Healing {}) {
+            if self.state.state().as_descriminant() == csm::to_descriminant(&State::Healing {}) {
                 self.signals().animation_state_changed().emit();
             }
         }
         if input.is_action_pressed("parry") {
             self.state.handle(&Event::ParryButton);
-            if self.state.new_state.as_descriminant() == csm::to_descriminant(&State::Parry {}) {
+            if self.state.state().as_descriminant() == csm::to_descriminant(&State::Parry {}) {
                 self.signals().animation_state_changed().emit();
             }
         }

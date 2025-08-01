@@ -1,7 +1,6 @@
 use godot::builtin::Vector2;
-use godot::obj::{Gd, Inherits, WithBaseField};
+use godot::obj::{Inherits, WithBaseField};
 
-use crate::classes::characters::main_character::MainCharacter;
 use crate::classes::components::speed_component::SpeedComponent;
 use crate::classes::components::timer_component::{self as timers, EnemyTimer};
 use crate::classes::enemies::patrol_component::PatrolComp;
