@@ -311,22 +311,23 @@ impl MainCharacter {
     }
 
     fn on_area_entered_hitbox(&mut self, area: Gd<Area2D>) {
-        if let Ok(h_box) = area.try_cast::<Hurtbox>() {
-            if !self.parried_attack(&h_box.clone().upcast::<Area2D>()) {
-                let damaging = DynGd::<Area2D, dyn Damaging>::from_godot(h_box.upcast::<Area2D>());
-                let target = self.to_gd().upcast::<Node2D>();
-                let guard = self.base_mut();
-                let damageable = DynGd::<Node2D, dyn Damageable>::from_godot(target);
-                damaging.dyn_bind().do_damage(damageable);
-                drop(guard);
-                let mut camera = self
-                    .base()
-                    .get_node_as::<ShakyPlayerCamera>("ShakyPlayerCamera");
-                camera
-                    .bind_mut()
-                    .add_trauma(TraumaLevel::from(damaging.dyn_bind().damage_amount()));
-                self.state.handle(&Event::Hurt);
-            }
+        if let Ok(h_box) = &area.try_cast::<Hurtbox>()
+            && !self.parried_attack(h_box)
+        {
+            let damaging =
+                DynGd::<Area2D, dyn Damaging>::from_godot(h_box.clone().upcast::<Area2D>());
+            let target = self.to_gd().upcast::<Node2D>();
+            let guard = self.base_mut();
+            let damageable = DynGd::<Node2D, dyn Damageable>::from_godot(target);
+            damaging.dyn_bind().do_damage(damageable);
+            drop(guard);
+            let mut camera = self
+                .base()
+                .get_node_as::<ShakyPlayerCamera>("ShakyPlayerCamera");
+            camera
+                .bind_mut()
+                .add_trauma(TraumaLevel::from(damaging.dyn_bind().damage_amount()));
+            self.state.handle(&Event::Hurt);
         }
     }
 
@@ -601,7 +602,7 @@ impl MainCharacter {
         }
     }
 
-    fn parried_attack(&mut self, area: &Gd<Area2D>) -> bool {
+    fn parried_attack(&mut self, area: &Gd<Hurtbox>) -> bool {
         match self.state.state() {
             State::Parry {} => {
                 if self.timers.get(&PT::PerfectParry) > 0.0 {

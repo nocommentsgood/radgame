@@ -174,12 +174,12 @@ impl character_components::damageable::Damageable for TestEnemy {
 }
 
 impl Animatable for TestEnemy {
-    fn get_anim_player(&self) -> Gd<AnimationPlayer> {
-        self.animation_player.clone()
+    fn get_anim_player(&mut self) -> &mut Gd<AnimationPlayer> {
+        &mut self.animation_player
     }
 
-    fn get_direction(&self) -> PlatformerDirection {
-        self.direction.clone()
+    fn get_direction(&self) -> &PlatformerDirection {
+        &self.direction
     }
 
     fn update_direction(&mut self) {
@@ -204,8 +204,8 @@ impl EnemyCharacterStateMachineExt for TestEnemy {
         self.velocity = velocity;
     }
 
-    fn speeds(&self) -> SpeedComponent {
-        self.speeds.clone()
+    fn speeds(&self) -> &SpeedComponent {
+        &self.speeds
     }
 
     fn patrol_comp(&self) -> &PatrolComp {

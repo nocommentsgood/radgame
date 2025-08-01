@@ -24,7 +24,7 @@ where
     fn timers(&mut self) -> &mut timers::Timers;
     fn get_velocity(&self) -> Vector2;
     fn set_velocity(&mut self, velocity: Vector2);
-    fn speeds(&self) -> SpeedComponent;
+    fn speeds(&self) -> &SpeedComponent;
     fn patrol_comp(&self) -> &PatrolComp;
     fn get_player_pos(&self) -> Option<Vector2>;
 
@@ -147,7 +147,7 @@ where
     fn timers(&mut self) -> &mut timers::Timers;
     fn get_velocity(&self) -> Vector2;
     fn set_velocity(&mut self, velocity: Vector2);
-    fn speeds(&self) -> SpeedComponent;
+    fn speeds(&self) -> &SpeedComponent;
     fn patrol_comp(&self) -> &PatrolComp;
     fn get_player_pos(&self) -> Option<Vector2>;
 

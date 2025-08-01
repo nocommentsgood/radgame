@@ -214,12 +214,12 @@ impl character_components::has_hitbox::HasEnemyHitbox for ProjectileEnemy {}
 impl character_components::moveable::MoveableEntity for ProjectileEnemy {}
 
 impl character_components::animatable::Animatable for ProjectileEnemy {
-    fn get_anim_player(&self) -> Gd<godot::classes::AnimationPlayer> {
-        self.animation_player.clone()
+    fn get_anim_player(&mut self) -> &mut Gd<godot::classes::AnimationPlayer> {
+        &mut self.animation_player
     }
 
-    fn get_direction(&self) -> crate::components::state_machines::movements::PlatformerDirection {
-        self.direction.clone()
+    fn get_direction(&self) -> &crate::components::state_machines::movements::PlatformerDirection {
+        &self.direction
     }
 
     fn update_direction(&mut self) {
@@ -241,8 +241,8 @@ impl character_components::enemy_state_ext::EnemyEntityStateMachineExt for Proje
         self.velocity = velocity;
     }
 
-    fn speeds(&self) -> crate::classes::components::speed_component::SpeedComponent {
-        self.speeds.clone()
+    fn speeds(&self) -> &crate::classes::components::speed_component::SpeedComponent {
+        &self.speeds
     }
 
     fn patrol_comp(&self) -> &PatrolComp {
