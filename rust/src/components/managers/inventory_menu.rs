@@ -7,6 +7,7 @@ use godot::{
 };
 
 use crate::classes::characters::main_character::MainCharacter;
+use crate::utils::constants;
 
 use super::item_component::ItemComponent;
 
@@ -25,21 +26,23 @@ struct InventoryMenu {
     equipped_item_grid: OnEditor<Gd<GridContainer>>,
 
     item_comp: Option<Gd<ItemComponent>>,
-
     base: Base<CanvasLayer>,
 }
 
 #[godot_api]
 impl ICanvasLayer for InventoryMenu {
     fn ready(&mut self) {
-        let data = self
-            .base()
-            .get_node_as::<super::world_data_autoload::WorldData>("/root/WorldDataSingleton");
         self.item_comp = self
             .base()
-            .get_node_as::<MainCharacter>(&*data.bind().player_path)
+            .get_node_as::<MainCharacter>(
+                constants::get_world_data()
+                    .bind()
+                    .paths
+                    .player
+                    .as_ref()
+                    .expect("Expected player path from GlobalData"),
+            )
             .try_get_node_as::<ItemComponent>("ItemComponent");
-        drop(data);
 
         self.item_desc.set_text("");
         self.base_mut().set_visible(false);
@@ -74,7 +77,7 @@ impl ICanvasLayer for InventoryMenu {
         } else if event.is_action_pressed("inventory") && self.base().is_visible() {
             self.base_mut().set_visible(false);
         } else if event.is_action_pressed("equip") && self.base().is_visible() {
-            // TODO: Used for testing. Remove later.
+            //             // TODO: Used for testing. Remove later.
             println!("Testing equipping relic. Remove me.");
             self.on_relic_activated(0);
         }

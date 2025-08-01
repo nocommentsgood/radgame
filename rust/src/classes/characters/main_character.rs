@@ -80,6 +80,9 @@ pub struct MainCharacter {
     #[var]
     #[init(node = "LedgeSensor")]
     ledge_sensor: OnReady<Gd<RayCast2D>>,
+
+    #[init(node = "ShakyPlayerCamera")]
+    pub camera: OnReady<Gd<ShakyPlayerCamera>>,
 }
 
 #[godot_api]

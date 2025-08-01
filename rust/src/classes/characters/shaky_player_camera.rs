@@ -112,23 +112,4 @@ impl ShakyPlayerCamera {
         self.base_mut()
             .set_offset(o + Vector2::new(offset_x, offset_y));
     }
-
-    // Leaving this, in the event I decide to use Godot's FastNoiseLite implementation over the
-    // Rust crate.
-    #[allow(dead_code, unused_variables)]
-    fn godot_shake(&mut self) {
-        //     let amount = self.trauma.powf(2.0);
-        //     let offset_x = self.amp
-        //         * amount
-        //         * self
-        //             .noise
-        //             .get_noise_2d(self.noise.get_seed() as f32, self.noise_y);
-        //     let offset_y = self.amp
-        //         * amount
-        //         * self
-        //             .noise
-        //             .get_noise_2d(self.noise.get_seed() as f32 * 2.0, self.noise_y);
-        //
-        //     self.base_mut().set_offset(Vector2::new(offset_x, offset_y));
-    }
 }
