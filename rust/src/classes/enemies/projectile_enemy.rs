@@ -74,7 +74,7 @@ impl INode2D for ProjectileEnemy {
             .connect_other(&self.to_gd(), Self::on_velocity_computed);
         self.patrol_comp.left_target = self.left_target;
         self.patrol_comp.right_target = self.right_target;
-        self.projectile_scene.init(load("res://projectile.tscn"));
+        self.projectile_scene.init(load("uid://bh5oo6002wig6"));
         self.speeds = SpeedComponent::new(40.0, 40.0, 80.0);
         self.connect_aggro_area_signal();
         self.connect_hitbox_signal();

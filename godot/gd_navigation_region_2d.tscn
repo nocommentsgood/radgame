@@ -1,0 +1,59 @@
+[gd_scene load_steps=5 format=3 uid="uid://mcjeq0tnqb00"]
+
+[ext_resource type="Texture2D" uid="uid://c350iit4lopo8" path="res://assets/icon.svg" id="2_afipt"]
+
+[sub_resource type="NavigationPolygon" id="NavigationPolygon_w5ntj"]
+vertices = PackedVector2Array(-169.289, -385.547, 45.3516, -554.344, 109.328, -524.641, -145.391, -316.148, -237.648, -315.344, -77.9688, -25.8984, 131.25, -4.28906, -105.18, 329.672, -347.43, 303.109, -216.227, 737.477, -396.922, 703.883)
+polygons = Array[PackedInt32Array]([PackedInt32Array(0, 1, 2, 3, 4), PackedInt32Array(5, 4, 3, 6), PackedInt32Array(5, 6, 7, 8), PackedInt32Array(8, 7, 9, 10)])
+outlines = Array[PackedVector2Array]([PackedVector2Array(-176, -393, -250, -317, -90, -27, -357, 299, -408, 712, -209, 749, -96, 334, 144, -5, -131, -315, 128, -527, 44, -566)])
+
+[sub_resource type="GDScript" id="GDScript_2422m"]
+script/source = "extends CharacterBody2D
+
+var movement_speed: float = 200.0
+var movement_target_position: Vector2 = Vector2(-176.0,260.0)
+
+@onready var navigation_agent: NavigationAgent2D = $NavigationAgent2D
+
+func _ready():
+	navigation_agent.path_desired_distance = 4.0
+	navigation_agent.target_desired_distance = 4.0
+
+	actor_setup.call_deferred()
+
+func actor_setup():
+	await get_tree().physics_frame
+
+	set_movement_target(movement_target_position)
+
+func set_movement_target(movement_target: Vector2):
+	navigation_agent.target_position = movement_target
+
+func _physics_process(delta):
+	if navigation_agent.is_navigation_finished():
+		return
+
+	var current_agent_position: Vector2 = global_position
+	var next_path_position: Vector2 = navigation_agent.get_next_path_position()
+
+	velocity = current_agent_position.direction_to(next_path_position) * movement_speed
+	move_and_slide()
+"
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_2c0ij"]
+size = Vector2(130, 132)
+
+[node name="NavigationRegion2D" type="NavigationRegion2D"]
+position = Vector2(378, 102)
+navigation_polygon = SubResource("NavigationPolygon_w5ntj")
+
+[node name="NavEnemy" type="CharacterBody2D" parent="."]
+script = SubResource("GDScript_2422m")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="NavEnemy"]
+shape = SubResource("RectangleShape2D_2c0ij")
+
+[node name="Sprite2D" type="Sprite2D" parent="NavEnemy"]
+texture = ExtResource("2_afipt")
+
+[node name="NavigationAgent2D" type="NavigationAgent2D" parent="NavEnemy"]
