@@ -40,11 +40,15 @@ impl INode for Map {
             .base()
             .get_node_as::<Marker2D>("PlayerSpawnPos")
             .get_global_position();
-        self.base()
-            .get_node_as::<MapTransition>("Environment/MapTransition")
-            .signals()
-            .transition_maps()
-            .connect_other(&self.to_gd(), Self::on_map_transition_req);
+
+        let map_trans = self
+            .base()
+            .try_get_node_as::<MapTransition>("Environment/MapTransition");
+        if let Some(map) = map_trans {
+            map.signals()
+                .transition_maps()
+                .connect_other(&self.to_gd(), Self::on_map_transition_req);
+        }
 
         let layers = self
             .base()

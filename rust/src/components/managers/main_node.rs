@@ -65,16 +65,16 @@ impl Main {
     fn on_transition_map_request(&mut self, next_map: Gd<PackedScene>) {
         let mut world = self.base().get_node_as::<Node>("World");
         let next = next_map.instantiate();
+        let mut cur_map = self.map.clone();
 
         if let Some(scene) = next
             && let Ok(map) = scene.try_cast::<Map>()
         {
             let value = map.clone();
             world.apply_deferred(move |world| {
-                let mut map = world.get_node_as::<Map>("Map");
                 world.add_child(&value);
-                world.remove_child(&map);
-                map.queue_free();
+                world.remove_child(&cur_map);
+                cur_map.queue_free();
             });
 
             let mut player = self.base().get_node_as::<MainCharacter>(
@@ -85,13 +85,15 @@ impl Main {
                     .as_ref()
                     .unwrap(),
             );
-            let m = map.clone();
+            let new_map = map.clone();
             let timer = self.base().get_tree().unwrap().create_timer(0.1).unwrap();
             godot::task::spawn(async move {
-                m.signals().ready().to_future().await;
-                let pos = m.bind().player_spawn_pos;
+                new_map.signals().ready().to_future().await;
+                let pos = new_map.bind().player_spawn_pos;
+
+                // BUG: After moving the player the player will float until movement input. I think
+                // manually stepping the physics server would fix this. See Godot issue #76462
                 player.set_position(pos);
-                player.set_physics_process(false);
 
                 // Wait for camera to move to player's position.
                 // Additional scope used to prevent double borrow of player.
@@ -105,8 +107,11 @@ impl Main {
                     camera.set_drag_horizontal_enabled(true);
                     camera.set_position_smoothing_enabled(true);
                 }
-                player.set_physics_process(true);
             });
+
+            map.signals()
+                .propigate_map_trans()
+                .connect_other(&self.to_gd(), Self::on_transition_map_request);
             *self.map = map;
         }
     }

@@ -179,7 +179,9 @@ impl TriggerableEnvObject for ClosingDoor {
 #[class(init, base = Node)]
 pub struct MapTransition {
     #[export]
-    next_map: OnEditor<Gd<PackedScene>>,
+    #[init(sentinel = StringName::from(c""))]
+    next_map_scene: OnEditor<StringName>,
+
     base: Base<Node>,
 }
 
@@ -192,7 +194,7 @@ impl MapTransition {
 #[godot_dyn]
 impl TriggerableEnvObject for MapTransition {
     fn on_activated(&mut self) {
-        let next = self.next_map.clone();
+        let next = load(self.next_map_scene.arg());
         self.signals().transition_maps().emit(&next);
     }
 }

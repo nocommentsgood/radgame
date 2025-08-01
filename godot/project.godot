@@ -17,7 +17,7 @@ config/icon="res://icon.svg"
 
 [autoload]
 
-PlayerStatsUIHandler="*res://autoloads/singleton_player_stats_ui_handler.tscn"
+PlayerStatsUIHandler="res://autoloads/singleton_player_stats_ui_handler.tscn"
 
 [display]
 
