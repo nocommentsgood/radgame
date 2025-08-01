@@ -123,14 +123,6 @@ impl GameItem {
         self.base_mut().queue_free();
     }
 
-    pub fn new_from_fn(item: Item, location: Vector2i) -> Gd<Self> {
-        Gd::from_init_fn(|base| Self {
-            item,
-            location,
-            base,
-        })
-    }
-
     fn on_area_entered(&mut self, area: Gd<Area2D>) {
         if let Ok(_area) = area.try_cast::<EntityHitbox>() {
             let this = self.to_gd();

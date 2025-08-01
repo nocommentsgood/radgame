@@ -6,15 +6,12 @@ use crate::classes::enemies::projectile::Projectile;
 use crate::traits::components::character_components::moveable::MoveableEntity;
 use crate::{
     classes::{
-        characters::{
-            character_stats::{StatVal, Stats},
-            main_character::MainCharacter,
-        },
+        characters::character_stats::{StatVal, Stats},
         components::speed_component::SpeedComponent,
     },
     components::state_machines::{
         enemy_state_machine::{self, *},
-        movements::PlatformerDirection,
+        movements::Direction,
     },
     traits::components::character_components::{
         self, animatable::Animatable, character_resources::CharacterResources,
@@ -38,12 +35,11 @@ pub struct ProjectileEnemy {
     velocity: Vector2,
     shoot_cooldown: Time,
     speeds: SpeedComponent,
-    direction: PlatformerDirection,
+    direction: Direction,
     stats: HashMap<Stats, StatVal>,
     state: statig::blocking::StateMachine<EnemyStateMachine>,
     timers: Timers,
     patrol_comp: PatrolComp,
-    nav_agent_vel: Vector2,
     player_pos: Option<Vector2>,
     base: Base<Node2D>,
 
@@ -218,13 +214,13 @@ impl character_components::animatable::Animatable for ProjectileEnemy {
         &mut self.animation_player
     }
 
-    fn get_direction(&self) -> &crate::components::state_machines::movements::PlatformerDirection {
+    fn get_direction(&self) -> &crate::components::state_machines::movements::Direction {
         &self.direction
     }
 
     fn update_direction(&mut self) {
         if !self.velocity.x.is_zero_approx() {
-            self.direction = PlatformerDirection::from_platformer_velocity(&self.velocity);
+            self.direction = Direction::from_vel(&self.velocity);
         }
     }
 }

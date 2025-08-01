@@ -1,8 +1,5 @@
-use godot::obj::Gd;
 use statig::Response::Handled;
 use statig::{Response, state_machine};
-
-use crate::classes::characters::main_character::MainCharacter;
 
 #[derive(Default, Debug, Clone)]
 pub struct EnemyStateMachine {
@@ -37,17 +34,6 @@ impl std::fmt::Display for State {
 impl State {
     pub fn as_discriminant(&self) -> std::mem::Discriminant<Self> {
         std::mem::discriminant(self)
-    }
-}
-
-pub fn to_discriminant(state: &State) -> std::mem::Discriminant<State> {
-    match state {
-        State::Patrol {} => std::mem::discriminant(&State::Patrol {}),
-        State::Idle {} => std::mem::discriminant(&State::Idle {}),
-        State::ChasePlayer {} => std::mem::discriminant(&State::ChasePlayer {}),
-        State::Attack {} => std::mem::discriminant(&State::Attack {}),
-        State::Attack2 {} => std::mem::discriminant(&State::Attack2 {}),
-        State::Falling {} => std::mem::discriminant(&State::Falling {}),
     }
 }
 

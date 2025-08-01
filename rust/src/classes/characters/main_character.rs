@@ -22,10 +22,7 @@ use crate::{
         managers::{
             input_hanlder::InputHandler, item::StatModifier, item_component::ItemComponent,
         },
-        state_machines::{
-            character_state_machine::{self, *},
-            movements::PlatformerDirection,
-        },
+        state_machines::{character_state_machine::State, movements::Direction},
     },
     traits::components::character_components::{
         character_resources::CharacterResources, damageable::Damageable, damaging::Damaging,
@@ -45,14 +42,14 @@ const TERMINAL_VELOCITY: f32 = 200.0;
 #[derive(GodotClass)]
 #[class(init, base=CharacterBody2D)]
 pub struct MainCharacter {
-    direction: PlatformerDirection,
+    direction: Direction,
     velocity: Vector2,
     prev_velocity: Vector2,
     active_velocity: Vector2,
     hit_enemy: bool,
     can_attack_chain: bool,
     timers: Timers,
-    state: statig::blocking::StateMachine<CharacterStateMachine>,
+    state: statig::blocking::StateMachine<csm::CharacterStateMachine>,
     stats: HashMap<Stats, StatVal>,
     base: Base<CharacterBody2D>,
 
@@ -209,10 +206,8 @@ impl ICharacterBody2D for MainCharacter {
             self.state.handle(&Event::ActionReleasedEarly);
         }
         if input.is_action_pressed("dodge")
-            && dbg!(self.get_dodging_cooldown_timer().get_time_left() <= 0.0)
-            && dbg!(
-                self.timers.get(&PT::DodgeAnimation) == self.timers.get_init(&PT::DodgeAnimation)
-            )
+            && self.get_dodging_cooldown_timer().get_time_left() <= 0.0
+            && self.timers.get(&PT::DodgeAnimation) == self.timers.get_init(&PT::DodgeAnimation)
         {
             self.state.handle(&Event::DodgeButton);
             if self.state.state().as_descriminant() == csm::to_descriminant(&State::Dodging {}) {
@@ -301,7 +296,6 @@ impl MainCharacter {
     // `area_entered()` signal of the `Hurtbox` would emit twice.
     fn on_area_entered_hurtbox(&mut self, area: Gd<Area2D>) {
         if let Ok(_hurtbox) = area.try_cast::<EntityHitbox>() {
-            dbg!("can attack chain");
             self.hit_enemy = true;
             self.base()
                 .get_node_as::<godot::classes::CollisionShape2D>("Hurtbox/HurtboxShape")
@@ -666,7 +660,7 @@ impl MainCharacter {
 
     fn update_direction(&mut self) {
         if !self.velocity.x.is_zero_approx() {
-            self.direction = PlatformerDirection::from_platformer_velocity(&self.velocity);
+            self.direction = Direction::from_vel(&self.velocity);
 
             if self.velocity.x.is_sign_positive() {
                 let mut camera = self

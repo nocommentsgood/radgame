@@ -14,7 +14,7 @@ use crate::{
     },
     components::state_machines::{
         enemy_state_machine::{self, *},
-        movements::PlatformerDirection,
+        movements::Direction,
     },
     traits::components::character_components::{
         self, animatable::Animatable, character_resources::CharacterResources,
@@ -28,7 +28,7 @@ type ET = EnemyTimer;
 #[derive(GodotClass)]
 #[class(init, base=CharacterBody2D)]
 pub struct TestEnemy {
-    direction: PlatformerDirection,
+    direction: Direction,
     velocity: Vector2,
     timers: Timers,
     speeds: SpeedComponent,
@@ -178,13 +178,13 @@ impl Animatable for TestEnemy {
         &mut self.animation_player
     }
 
-    fn get_direction(&self) -> &PlatformerDirection {
+    fn get_direction(&self) -> &Direction {
         &self.direction
     }
 
     fn update_direction(&mut self) {
         if !self.velocity.x.is_zero_approx() {
-            self.direction = PlatformerDirection::from_platformer_velocity(&self.velocity);
+            self.direction = Direction::from_vel(&self.velocity);
         }
     }
 }

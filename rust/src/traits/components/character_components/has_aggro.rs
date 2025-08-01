@@ -17,14 +17,13 @@ where
     fn set_player_pos(&mut self, pos: Option<godot::builtin::Vector2>);
 
     fn on_aggro_area_entered(&mut self, area: Gd<Area2D>) {
-        if area.is_in_group("player") {
-            if let Some(player) = area.get_parent() {
-                if let Ok(player) = player.try_cast::<MainCharacter>() {
-                    self.set_player_pos(Some(player.get_global_position()));
-                    self.sm_mut()
-                        .handle(&enemy_state_machine::EnemyEvent::FoundPlayer {})
-                }
-            }
+        if area.is_in_group("player")
+            && let Some(player) = area.get_parent()
+            && let Ok(player) = player.try_cast::<MainCharacter>()
+        {
+            self.set_player_pos(Some(player.get_global_position()));
+            self.sm_mut()
+                .handle(&enemy_state_machine::EnemyEvent::FoundPlayer {})
         }
     }
 
