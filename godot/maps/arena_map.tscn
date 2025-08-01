@@ -1,10 +1,10 @@
 [gd_scene load_steps=11 format=4 uid="uid://b05ix3h8osl2g"]
 
 [ext_resource type="PackedScene" uid="uid://d0yxvbpejsju5" path="res://maps/base_map.tscn" id="1_7rrgt"]
-[ext_resource type="PackedScene" uid="uid://cb2l6ctn5uru8" path="res://sliding_door.tscn" id="2_x81nw"]
+[ext_resource type="PackedScene" uid="uid://cb2l6ctn5uru8" path="res://world/sliding_door.tscn" id="2_x81nw"]
 [ext_resource type="Texture2D" uid="uid://b3w0a7wguiang" path="res://assets/environment/tiles/tilemap.png" id="3_a3yby"]
-[ext_resource type="PackedScene" uid="uid://601tmpn60stx" path="res://environment_trigger.tscn" id="3_ycexy"]
-[ext_resource type="PackedScene" uid="uid://dt2v4rmlmrw0" path="res://game_item.tscn" id="4_ycexy"]
+[ext_resource type="PackedScene" uid="uid://601tmpn60stx" path="res://utils/environment_trigger.tscn" id="3_ycexy"]
+[ext_resource type="PackedScene" uid="uid://dt2v4rmlmrw0" path="res://world/game_item.tscn" id="4_ycexy"]
 [ext_resource type="PackedScene" uid="uid://bcae4wnfye0do" path="res://entities/enemies/projectile_enemy.tscn" id="5_x81nw"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_j7vp5"]
