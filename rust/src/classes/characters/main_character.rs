@@ -35,9 +35,10 @@ use crate::{
 
 use super::character_stats::{StatVal, Stats, Stats::*};
 use crate::classes::components::timer_component::{PlayerTimer, Timers};
+use crate::components::state_machines::character_state_machine as csm;
 
 type PT = PlayerTimer;
-type Event = crate::components::state_machines::character_state_machine::Event;
+type Event = csm::Event;
 const GRAVITY: f32 = 1100.0;
 const TERMINAL_VELOCITY: f32 = 200.0;
 
@@ -193,17 +194,14 @@ impl ICharacterBody2D for MainCharacter {
     fn unhandled_input(&mut self, input: Gd<godot::classes::InputEvent>) {
         if input.is_action_pressed("attack") {
             self.state.handle(&Event::AttackButton);
-            if self.state.new_state.as_descriminant()
-                == character_state_machine::to_descriminant(&State::Attacking {})
+            if self.state.new_state.as_descriminant() == csm::to_descriminant(&State::Attacking {})
             {
                 self.signals().animation_state_changed().emit();
             }
         }
         if input.is_action_pressed("jump") {
             self.state.handle(&Event::JumpButton);
-            if self.state.new_state.as_descriminant()
-                == character_state_machine::to_descriminant(&State::Jumping {})
-            {
+            if self.state.new_state.as_descriminant() == csm::to_descriminant(&State::Jumping {}) {
                 self.signals().animation_state_changed().emit();
             }
         }
@@ -218,25 +216,19 @@ impl ICharacterBody2D for MainCharacter {
             )
         {
             self.state.handle(&Event::DodgeButton);
-            if self.state.new_state.as_descriminant()
-                == character_state_machine::to_descriminant(&State::Dodging {})
-            {
+            if self.state.new_state.as_descriminant() == csm::to_descriminant(&State::Dodging {}) {
                 self.signals().animation_state_changed().emit();
             }
         }
         if input.is_action_pressed("heal") {
             self.state.handle(&Event::HealingButton);
-            if self.state.new_state.as_descriminant()
-                == character_state_machine::to_descriminant(&State::Healing {})
-            {
+            if self.state.new_state.as_descriminant() == csm::to_descriminant(&State::Healing {}) {
                 self.signals().animation_state_changed().emit();
             }
         }
         if input.is_action_pressed("parry") {
             self.state.handle(&Event::ParryButton);
-            if self.state.new_state.as_descriminant()
-                == character_state_machine::to_descriminant(&State::Parry {})
-            {
+            if self.state.new_state.as_descriminant() == csm::to_descriminant(&State::Parry {}) {
                 self.signals().animation_state_changed().emit();
             }
         }
@@ -248,8 +240,7 @@ impl ICharacterBody2D for MainCharacter {
 
         // If we are in the moving state, update the animation each time the velocity changes.
         // Without this, the animation takes too long to update.
-        if self.state.state().as_descriminant()
-            == character_state_machine::to_descriminant(&State::Moving {})
+        if self.state.state().as_descriminant() == csm::to_descriminant(&State::Moving {})
             && self.prev_velocity.x != self.velocity.x
         {
             self.prev_velocity.x = self.velocity.x;
@@ -270,18 +261,18 @@ impl ICharacterBody2D for MainCharacter {
 
         let prev_state = self.state.state().as_descriminant();
         match self.state.state() {
-            character_state_machine::State::Attacking {} => self.attack(),
-            character_state_machine::State::Attack2 {} => self.attack_2(),
-            character_state_machine::State::Parry {} => self.parry(),
-            character_state_machine::State::Idle {} => self.idle(),
-            character_state_machine::State::Dodging {} => self.dodge(),
-            character_state_machine::State::Jumping {} => self.jump(),
-            character_state_machine::State::Falling {} => self.fall(),
-            character_state_machine::State::Moving {} => self.move_character(),
-            character_state_machine::State::Healing {} => self.heal(),
-            character_state_machine::State::Grappling {} => self.grapple(),
-            character_state_machine::State::Hurt {} => self.hurt(),
-            character_state_machine::State::AirAttack {} => self.air_attack(),
+            csm::State::Attacking {} => self.attack(),
+            csm::State::Attack2 {} => self.attack_2(),
+            csm::State::Parry {} => self.parry(),
+            csm::State::Idle {} => self.idle(),
+            csm::State::Dodging {} => self.dodge(),
+            csm::State::Jumping {} => self.jump(),
+            csm::State::Falling {} => self.fall(),
+            csm::State::Moving {} => self.move_character(),
+            csm::State::Healing {} => self.heal(),
+            csm::State::Grappling {} => self.grapple(),
+            csm::State::Hurt {} => self.hurt(),
+            csm::State::AirAttack {} => self.air_attack(),
         }
         self.state.handle(&event);
         let new_state = self.state.state().as_descriminant();
