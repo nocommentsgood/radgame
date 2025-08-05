@@ -1,4 +1,5 @@
 #[derive(Debug)]
+#[allow(unused)]
 pub enum CollisionLayers {
     LayerOne = 1,
     FloorWall = 2,

@@ -1,8 +1,7 @@
 // TODO: This could probably be broken up into modules
 
+use super::global_data_singleton::GlobalData;
 use godot::obj::Gd;
-
-use crate::components::managers::global_data_singleton::GlobalData;
 
 // Player ====================================================
 // Player child nodes
