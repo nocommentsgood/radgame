@@ -14,6 +14,20 @@ pub enum Stats {
     AttackingSpeed,
 }
 
+pub trait EntityResources {
+    fn get_health(&self) -> u32;
+
+    fn set_health(&mut self, amount: u32);
+
+    fn get_energy(&self) -> u32;
+
+    fn set_energy(&mut self, amount: u32);
+
+    fn get_mana(&self) -> u32;
+
+    fn set_mana(&mut self, amount: u32);
+}
+
 pub struct StatVal(pub u32, Option<u32>);
 
 impl StatVal {
@@ -66,18 +80,4 @@ impl StatModifier {
 pub enum ModifierKind {
     Flat(u32),
     Percent(f32),
-}
-
-pub trait EntityResources {
-    fn get_health(&self) -> u32;
-
-    fn set_health(&mut self, amount: u32);
-
-    fn get_energy(&self) -> u32;
-
-    fn set_energy(&mut self, amount: u32);
-
-    fn get_mana(&self) -> u32;
-
-    fn set_mana(&mut self, amount: u32);
 }

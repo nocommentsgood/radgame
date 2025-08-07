@@ -1,10 +1,10 @@
 use godot::{
-    builtin::{Vector2, real},
+    builtin::Vector2,
     classes::{CharacterBody2D, Node2D},
-    obj::{Gd, Inherits, WithBaseField},
+    obj::{Inherits, WithBaseField},
 };
 
-use super::{enemies::animatable::Animatable, player::main_character::MainCharacter};
+use super::enemies::animatable::Animatable;
 
 #[derive(Default, Debug, Clone, PartialEq)]
 pub enum Direction {
@@ -31,21 +31,11 @@ impl Direction {
     }
 }
 
-pub trait PlayerMoveable {
-    fn get_movement_animation(&mut self) -> String;
-
-    fn move_main_character(mut main: Gd<MainCharacter>, velocity: Vector2) {
-        main.set_velocity(velocity);
-        // main.bind_mut().set_velocity(velocity);
-        main.move_and_slide();
-    }
-}
-
 pub trait MoveableCharacter: Animatable
 where
     Self: WithBaseField<Base = CharacterBody2D>,
 {
-    fn slide(&mut self, velocity: &Vector2, speed: &real) {
+    fn slide(&mut self, velocity: &Vector2, speed: &f32) {
         self.update_animation();
         self.base_mut().set_velocity(*velocity * *speed);
         self.base_mut().move_and_slide();
@@ -57,7 +47,7 @@ where
     Self: Inherits<Node2D> + WithBaseField<Base: Inherits<Node2D>>,
 {
     fn move_to(&mut self, target: &Vector2, use_physics_delta: bool) {
-        self.update_animation();
+        // self.update_animation();
         let delta = if use_physics_delta {
             self.base().upcast_ref().get_physics_process_delta_time()
         } else {
@@ -73,17 +63,17 @@ where
 
 #[derive(Default, Debug, Clone)]
 pub struct SpeedComponent {
-    pub attack: real,
-    pub patrol: real,
-    pub aggro: real,
+    pub attack: f32,
+    pub patrol: f32,
+    pub aggro: f32,
 }
 
 impl SpeedComponent {
-    pub fn new(attack: real, patrol: real, aggro: real) -> Self {
+    pub fn new(attack: u32, patrol: u32, aggro: u32) -> Self {
         Self {
-            attack,
-            patrol,
-            aggro,
+            attack: attack as f32,
+            patrol: patrol as f32,
+            aggro: aggro as f32,
         }
     }
 }

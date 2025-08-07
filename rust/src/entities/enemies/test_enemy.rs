@@ -1,3 +1,6 @@
+use std::collections::HashMap;
+
+use bevy_time::{Timer, TimerMode};
 use godot::{
     classes::{AnimationPlayer, CharacterBody2D, ICharacterBody2D},
     obj::WithBaseField,
@@ -17,7 +20,7 @@ use crate::entities::{
     entity_stats::EntityResources,
     movements::MoveableCharacter,
     movements::{Direction, SpeedComponent},
-    time::{EnemyTimer, Time, Timers},
+    time::EnemyTimer,
 };
 
 type ET = EnemyTimer;
@@ -27,7 +30,7 @@ type ET = EnemyTimer;
 pub struct TestEnemy {
     direction: Direction,
     velocity: Vector2,
-    timers: Timers,
+    timers: HashMap<EnemyTimer, Timer>,
     speeds: SpeedComponent,
     state: statig::blocking::StateMachine<EnemyStateMachine>,
     base: Base<CharacterBody2D>,
@@ -56,13 +59,26 @@ impl ICharacterBody2D for TestEnemy {
     fn ready(&mut self) {
         self.patrol_comp.left_target = self.left_target;
         self.patrol_comp.right_target = self.right_target;
-        self.speeds = SpeedComponent::new(40.0, 40.0, 80.0);
+        self.speeds = SpeedComponent::new(40, 40, 80);
         self.connect_signals();
-        self.timers.0.push(Time::new(1.8));
-        self.timers.0.push(Time::new(2.0));
-        self.timers.0.push(Time::new(2.7));
-        self.timers.0.push(Time::new(2.0));
-        self.timers.0.push(Time::new(4.0));
+
+        self.timers.insert(
+            ET::AttackAnimation,
+            Timer::from_seconds(1.8, TimerMode::Once),
+        );
+        self.timers.insert(
+            ET::AttackCooldown,
+            Timer::from_seconds(2.0, TimerMode::Once),
+        );
+        self.timers.insert(
+            ET::AttackChainCooldown,
+            Timer::from_seconds(2.7, TimerMode::Once),
+        );
+        self.timers
+            .insert(ET::Idle, Timer::from_seconds(2.7, TimerMode::Once));
+        self.timers
+            .insert(ET::Patrol, Timer::from_seconds(3.0, TimerMode::Once));
+
         self.hurtbox_mut().bind_mut().attack_damage = 10;
     }
 
@@ -79,7 +95,7 @@ impl ICharacterBody2D for TestEnemy {
             State::Falling {} => self.fall(),
         }
 
-        self.update_timers();
+        // self.update_timers();
     }
 }
 
@@ -98,18 +114,18 @@ impl TestEnemy {
     }
 
     // Leaving this somewhat open ended in case more timers are added later
-    fn update_timers(&mut self) {
-        let delta = self.base().get_physics_process_delta_time() as f32;
-        let ac = &ET::AttackCooldown;
-
-        // Update attack cooldown timer
-        let attack_cooldown = self.timers.get(ac);
-        if attack_cooldown < self.timers.get_init(ac) && attack_cooldown > 0.0 {
-            self.timers.set(ac, attack_cooldown - delta);
-        } else if attack_cooldown <= 0.0 {
-            self.timers.reset(ac);
-        }
-    }
+    // fn update_timers(&mut self) {
+    //     let delta = self.base().get_physics_process_delta_time() as f32;
+    //     let ac = &ET::AttackChainCooldown;
+    //
+    //     // Update attack cooldown timer
+    //     let attack_cooldown = self.timers.get(ac);
+    //     if attack_cooldown < self.timers.get_init(ac) && attack_cooldown > 0.0 {
+    //         self.timers.set(ac, attack_cooldown - delta);
+    //     } else if attack_cooldown <= 0.0 {
+    //         self.timers.reset(ac);
+    //     }
+    // }
 }
 
 #[godot_dyn]
@@ -182,7 +198,7 @@ impl Animatable for TestEnemy {
 impl MoveableCharacter for TestEnemy {}
 
 impl EnemyCharacterStateMachineExt for TestEnemy {
-    fn timers(&mut self) -> &mut Timers {
+    fn timers(&mut self) -> &mut HashMap<EnemyTimer, Timer> {
         &mut self.timers
     }
 

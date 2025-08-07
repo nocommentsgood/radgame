@@ -1,8 +1,9 @@
+use std::time::Duration;
+
+use bevy_time::{Timer, TimerMode};
 use godot::prelude::*;
 
-use crate::entities::hurtbox::Hurtbox;
-use crate::entities::time::Time;
-use crate::utils::collision_layers;
+use crate::{entities::hurtbox::Hurtbox, utils::collision_layers};
 
 #[derive(GodotClass)]
 #[class(init, base=Node2D)]
@@ -12,7 +13,7 @@ pub struct Projectile {
     pub hurtbox: OnReady<Gd<Hurtbox>>,
     start_pos: Vector2,
     pub speed: real,
-    timeout: Time,
+    timeout: Timer,
     base: Base<Node2D>,
 }
 
@@ -21,7 +22,7 @@ impl INode2D for Projectile {
     fn ready(&mut self) {
         self.speed = 500.0;
         self.start_pos = self.base().get_position();
-        self.timeout = Time::new(3.0);
+        self.timeout = Timer::new(Duration::from_secs_f32(3.0), TimerMode::Once);
     }
 
     fn process(&mut self, delta: f64) {
@@ -60,10 +61,10 @@ impl Projectile {
     }
 
     fn tick(&mut self) {
-        let delta = self.base().get_process_delta_time() as f32;
-        self.timeout.0 -= delta;
+        let delta = Duration::from_secs_f32(self.base().get_process_delta_time() as f32);
+        self.timeout.tick(delta);
 
-        if self.timeout.0 <= 0.0 {
+        if self.timeout.finished() {
             self.base_mut().queue_free();
         }
     }
