@@ -1,9 +1,9 @@
-use std::{collections::HashMap, time::Duration};
+use std::collections::HashMap;
 
 use super::{
     animatable::Animatable,
     enemy_state_ext::EnemyEntityStateMachineExt,
-    enemy_state_machine::{EnemyEvent, EnemyStateMachine, State},
+    enemy_state_machine::{EnemyStateMachine, State},
     has_enemy_sensors::HasEnemySensors,
     has_state::HasState,
     patrol_component::PatrolComp,
@@ -13,12 +13,13 @@ use crate::entities::{
     damage::Damageable,
     entity_stats::{EntityResources, StatVal, Stats},
     hurtbox::Hurtbox,
-    movements::MoveableEntity,
-    movements::{Direction, SpeedComponent},
+    movements::{Direction, Move, Moveable, MoveableEntity, SpeedComponent},
     time::EnemyTimer,
 };
-use bevy_time::{Timer, TimerMode};
-use godot::{classes::AnimationPlayer, prelude::*};
+use godot::{
+    classes::{AnimationPlayer, Timer},
+    prelude::*,
+};
 
 type ET = EnemyTimer;
 const BULLET_SPEED: real = 500.0;
@@ -27,13 +28,13 @@ const BULLET_SPEED: real = 500.0;
 #[class(init, base=Node2D)]
 pub struct ProjectileEnemy {
     velocity: Vector2,
-    shoot_cooldown: Timer,
     speeds: SpeedComponent,
     chain_attack_count: u32,
     direction: Direction,
     stats: HashMap<Stats, StatVal>,
     state: statig::blocking::StateMachine<EnemyStateMachine>,
-    timers: HashMap<EnemyTimer, bevy_time::Timer>,
+    #[init(val = HashMap::with_capacity(4))]
+    timers: HashMap<EnemyTimer, Gd<Timer>>,
     patrol_comp: PatrolComp,
     player_pos: Option<Vector2>,
     base: Base<Node2D>,
@@ -59,37 +60,47 @@ pub struct ProjectileEnemy {
 #[godot_api]
 impl INode2D for ProjectileEnemy {
     fn ready(&mut self) {
-        let this = self.to_gd();
         self.nav_agent
             .signals()
             .velocity_computed()
             .connect_other(&self.to_gd(), Self::on_velocity_computed);
+
         self.patrol_comp.left_target = self.left_target;
         self.patrol_comp.right_target = self.right_target;
         self.projectile_scene.init(load("uid://bh5oo6002wig6"));
-        self.signals()
-            .animation_state_changed()
-            .connect_other(&this, Self::on_animation_state_changed);
+
+        self.timers
+            .insert(ET::AttackAnimation, godot::classes::Timer::new_alloc());
+        self.timers
+            .insert(ET::AttackCooldown, godot::classes::Timer::new_alloc());
+        self.timers
+            .insert(ET::AttackChainCooldown, godot::classes::Timer::new_alloc());
+        self.timers
+            .insert(ET::Idle, godot::classes::Timer::new_alloc());
+        self.timers
+            .insert(ET::Patrol, godot::classes::Timer::new_alloc());
+
+        self.timers
+            .get_mut(&ET::AttackAnimation)
+            .unwrap()
+            .set_wait_time(0.7);
+        self.timers
+            .get_mut(&ET::AttackCooldown)
+            .unwrap()
+            .set_wait_time(5.0);
+        self.timers
+            .get_mut(&ET::AttackChainCooldown)
+            .unwrap()
+            .set_wait_time(0.4);
+        self.timers.get_mut(&ET::Idle).unwrap().set_wait_time(1.5);
+
+        let mut ts = self.timers.clone();
+        ts.values_mut().for_each(|timer| {
+            timer.set_one_shot(true);
+            self.base_mut().add_child(&timer.clone());
+        });
+
         self.connect_signals();
-
-        self.timers.insert(
-            ET::AttackAnimation,
-            Timer::from_seconds(0.7, TimerMode::Repeating),
-        );
-        self.timers.insert(
-            ET::AttackCooldown,
-            Timer::from_seconds(0.5, TimerMode::Repeating),
-        );
-        self.timers.insert(
-            ET::AttackChainCooldown,
-            Timer::from_seconds(1.5, TimerMode::Repeating),
-        );
-        self.timers
-            .insert(ET::Idle, Timer::from_seconds(3.0, TimerMode::Repeating));
-        self.timers
-            .insert(ET::Patrol, Timer::from_seconds(2.5, TimerMode::Repeating));
-
-        self.shoot_cooldown = Timer::new(Duration::from_secs_f32(0.5), TimerMode::Repeating);
 
         self.stats.insert(Stats::Health, StatVal::new(20));
         self.stats.insert(Stats::MaxHealth, StatVal::new(20));
@@ -102,17 +113,15 @@ impl INode2D for ProjectileEnemy {
         self.speeds = SpeedComponent::new(
             self.stats[&Stats::AttackingSpeed].0,
             self.stats[&Stats::RunningSpeed].0,
-            40,
-        )
+            80,
+        );
+
+        self.idle();
+        self.animation_player.play_ex().name("idle_east").done();
     }
 
-    fn physics_process(&mut self, _delta: f64) {
-        let prev_state = self.state.state().as_discriminant();
+    fn process(&mut self, _delta: f64) {
         match self.state.state() {
-            State::Idle {} => self.idle(),
-            State::Attack2 {} => {
-                self.chain_attack();
-            }
             State::ChasePlayer {} => {
                 if let Some(p) = self.get_player_pos() {
                     self.nav_agent.set_target_position(p);
@@ -120,14 +129,8 @@ impl INode2D for ProjectileEnemy {
                 self.chase_player()
             }
             State::Patrol {} => self.patrol(),
-            State::Falling {} => (),
-            State::Attack {} => self.attack(),
-        }
-
-        // Only update animation player when state has changed.
-        let new_state = self.state.state().as_discriminant();
-        if prev_state != new_state {
-            self.signals().animation_state_changed().emit();
+            State::Attack2 {} => self.track_player(),
+            _ => (),
         }
 
         // dbg!(self.state.state());
@@ -136,18 +139,15 @@ impl INode2D for ProjectileEnemy {
 
 #[godot_api]
 impl ProjectileEnemy {
-    #[signal]
-    fn animation_state_changed();
-
-    fn on_animation_state_changed(&mut self) {
-        self.update_animation();
-    }
-
     fn on_velocity_computed(&mut self, safe_vel: Vector2) {
-        if self.state.state().as_discriminant() == (State::ChasePlayer {}).as_discriminant() {
-            self.move_to(&safe_vel, true);
+        if self.state.state().as_discriminant() == (State::ChasePlayer {}).as_discriminant()
+            && safe_vel.length() > 0.0
+        {
+            self.set_velocity(safe_vel);
+            self.slide();
         }
     }
+
     fn shoot_projectile(&mut self, target: Vector2) {
         let position = self.base().get_global_position();
         let target = position.direction_to(target).normalized_or_zero();
@@ -218,10 +218,26 @@ impl HasEnemySensors for ProjectileEnemy {
     }
 }
 
+impl Moveable for ProjectileEnemy {
+    fn get_velocity(&self) -> Vector2 {
+        self.velocity
+    }
+
+    fn set_velocity(&mut self, velocity: Vector2) {
+        self.velocity = velocity;
+    }
+}
+
 impl MoveableEntity for ProjectileEnemy {}
 
+impl Move for ProjectileEnemy {
+    fn slide(&mut self) {
+        self.node_slide(false);
+    }
+}
+
 impl Animatable for ProjectileEnemy {
-    fn get_anim_player(&mut self) -> &mut Gd<godot::classes::AnimationPlayer> {
+    fn anim_player_mut(&mut self) -> &mut Gd<godot::classes::AnimationPlayer> {
         &mut self.animation_player
     }
 
@@ -237,15 +253,14 @@ impl Animatable for ProjectileEnemy {
 }
 
 impl EnemyEntityStateMachineExt for ProjectileEnemy {
-    fn timers(&mut self) -> &mut HashMap<EnemyTimer, Timer> {
+    fn get_chain_attack_count(&self) -> u32 {
+        self.chain_attack_count
+    }
+    fn set_chain_attack_count(&mut self, amount: u32) {
+        self.chain_attack_count = amount;
+    }
+    fn timers(&mut self) -> &mut HashMap<EnemyTimer, Gd<godot::classes::Timer>> {
         &mut self.timers
-    }
-    fn get_velocity(&self) -> Vector2 {
-        self.velocity
-    }
-
-    fn set_velocity(&mut self, velocity: Vector2) {
-        self.velocity = velocity;
     }
 
     fn speeds(&self) -> &SpeedComponent {
@@ -256,97 +271,23 @@ impl EnemyEntityStateMachineExt for ProjectileEnemy {
         &self.patrol_comp
     }
 
-    fn attack(&mut self) {
-        let delta = Duration::from_secs_f32(self.base().get_process_delta_time() as f32);
-
-        if self.timers.get(&ET::AttackCooldown).unwrap().elapsed_secs() == 0.0
-            && let Some(target) = self.get_player_pos()
-        {
-            self.shoot_projectile(target);
-        }
-
-        self.timers
-            .get_mut(&ET::AttackCooldown)
-            .unwrap()
-            .tick(delta);
-
-        if self
-            .timers
-            .get(&ET::AttackCooldown)
-            .unwrap()
-            .just_finished()
-        {
-            self.timers.get_mut(&ET::AttackCooldown).unwrap().reset();
-            self.state.handle(&EnemyEvent::TimerElapsed);
-        }
-    }
-
-    fn chain_attack(&mut self) {
-        let delta = Duration::from_secs_f32(self.base().get_process_delta_time() as f32);
-        // dbg!(delta);
-        // dbg!(self.base().get_process_delta_time());
-        self.track_player();
-        self.shoot_cooldown.tick(delta);
-
-        self.timers
-            .get_mut(&ET::AttackChainCooldown)
-            .unwrap()
-            .tick(delta);
-
-        if self.shoot_cooldown.just_finished() {
-            println!("Timer finished");
-        }
-        if self.shoot_cooldown.just_finished()
-            && let Some(target) = self.get_player_pos()
-        {
-            println!("Timer finished and have target");
-            self.shoot_projectile(target);
-            self.chain_attack_count += 1;
-
-            self.shoot_cooldown.reset();
-        }
-
-        if self.chain_attack_count >= 3
-            || self
-                .timers
-                .get(&ET::AttackChainCooldown)
-                .unwrap()
-                .finished()
-        // if self
-        //     .timers
-        //     .get(&ET::AttackChainCooldown)
-        //     .unwrap()
-        //     .finished()
-        {
-            // self.timers.get_mut(&ET::AttackCooldown).unwrap().reset();
-            self.shoot_cooldown.reset();
-            self.chain_attack_count = 0;
-            self.timers
-                .get_mut(&ET::AttackChainCooldown)
-                .unwrap()
-                .reset();
-            self.state.handle(&EnemyEvent::TimerElapsed);
-        }
-    }
-
-    fn chase_player(&mut self) {
-        let next = self.nav_agent.get_next_path_position();
-        let v = self.base().get_global_position().direction_to(next) * self.speeds().aggro;
-        self.track_player();
-        self.nav_agent.set_velocity(v);
-
-        let ac = &ET::AttackCooldown;
-        let delta = Duration::from_secs_f32(self.base().get_process_delta_time() as f32);
-        let time = self.timers().get(ac);
-        if self.attack_area().has_overlapping_areas()
-            && self.timers.get(ac).unwrap().elapsed_secs() == 0.0
-        {
-            self.timers.get_mut(ac).unwrap().tick(delta);
-            self.state.handle(&EnemyEvent::InAttackRange);
-        }
-    }
-
     fn get_player_pos(&self) -> Option<Vector2> {
         self.player_pos
+    }
+
+    fn actual_attack(&mut self) {
+        if let Some(target) = self.get_player_pos() {
+            self.shoot_projectile(target);
+        }
+    }
+    fn on_sm_state_changed(&mut self) {
+        match self.sm().state() {
+            State::Attack {} => self.attack(),
+            State::Attack2 {} => self.chain_attack(),
+            State::Idle {} => self.idle(),
+            State::Patrol {} => (),
+            State::Falling {} => (),
+            State::ChasePlayer {} => (),
+        }
     }
 }

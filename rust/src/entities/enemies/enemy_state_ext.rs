@@ -1,226 +1,197 @@
 use std::collections::HashMap;
-use std::time::Duration;
 
-use bevy_time::Timer;
 use godot::{
     builtin::Vector2,
-    classes::Node2D,
-    obj::{Inherits, WithBaseField},
+    classes::{Area2D, CharacterBody2D, Node2D, Timer},
+    meta::FromGodot,
+    obj::{DynGd, Gd, Inherits, WithBaseField, WithUserSignals},
 };
 
 use super::enemy_state_machine::*;
 use super::patrol_component::PatrolComp;
 use crate::entities::{
-    enemies::has_enemy_sensors::HasEnemySensors,
-    entity_stats::EntityResources,
-    movements::{MoveableCharacter, MoveableEntity, SpeedComponent},
+    damage::{Damageable, Damaging},
+    enemies::{animatable::Animatable, has_enemy_sensors::HasEnemySensors},
+    movements::SpeedComponent,
+    player::main_character::MainCharacter,
     time::EnemyTimer,
 };
 
 type ET = EnemyTimer;
 
-// TODO: Find a way to conditionally implement traits? Possibly making it generic. Mostly for
-// MoveableCharacter versus MoveableEntity
-
-/// Implement on types that use an EnemyStateMachine
-/// For types without a base field of CharacterBody2D, see 'EnemyEntityStateMachineExt'.
-pub trait EnemyCharacterStateMachineExt:
-    HasEnemySensors + MoveableCharacter + EntityResources
+// TODO: Figure out how to register functions as signals in traits.
+pub trait EnemyEntityStateMachineExt:
+    HasEnemySensors + crate::entities::movements::Move + Animatable
 where
-    Self: Inherits<Node2D> + WithBaseField<Base: Inherits<godot::classes::CharacterBody2D>>,
+    Self: Inherits<Node2D> + WithBaseField<Base: Inherits<Node2D>> + WithUserSignals,
 {
-    fn timers(&mut self) -> &mut HashMap<EnemyTimer, Timer>;
-    fn get_velocity(&self) -> Vector2;
-    fn set_velocity(&mut self, velocity: Vector2);
+    fn timers(&mut self) -> &mut HashMap<EnemyTimer, Gd<Timer>>;
     fn speeds(&self) -> &SpeedComponent;
     fn patrol_comp(&self) -> &PatrolComp;
     fn get_player_pos(&self) -> Option<Vector2>;
-
-    fn attack(&mut self) {
-        let aa = &ET::AttackAnimation;
-        let delta = Duration::from_secs_f32(
-            self.base()
-                .upcast_ref::<Node2D>()
-                .get_physics_process_delta_time() as f32,
-        );
-        let velocity = self.get_velocity();
-        let speed = self.speeds().attack;
-        self.timers().get_mut(aa).unwrap().tick(delta);
-        self.slide(&velocity, &speed);
-
-        if self.timers().get(aa).unwrap().just_finished() {
-            self.timers().get_mut(aa).unwrap().reset();
-            self.sm_mut().handle(&EnemyEvent::TimerElapsed);
-        }
+    fn get_chain_attack_count(&self) -> u32;
+    fn set_chain_attack_count(&mut self, amount: u32);
+    fn actual_attack(&mut self);
+    fn connect_signals(&mut self) {
+        let this = self.to_gd();
+        self.timers()
+            .get_mut(&ET::AttackAnimation)
+            .unwrap()
+            .signals()
+            .timeout()
+            .connect_other(&this, Self::on_attack_animation_timeout);
+        self.timers()
+            .get_mut(&ET::AttackChainCooldown)
+            .unwrap()
+            .signals()
+            .timeout()
+            .connect_other(&this, Self::on_chain_attack_timeout);
+        self.timers()
+            .get_mut(&ET::Patrol)
+            .unwrap()
+            .signals()
+            .timeout()
+            .connect_other(&this, Self::on_patrol_timeout);
+        self.timers()
+            .get_mut(&ET::Idle)
+            .unwrap()
+            .signals()
+            .timeout()
+            .connect_other(&this, Self::on_idle_timeout);
+        self.aggro_area_mut()
+            .signals()
+            .area_entered()
+            .connect_other(&this, Self::on_aggro_area_entered);
+        self.aggro_area_mut()
+            .signals()
+            .area_exited()
+            .connect_other(&this, Self::on_aggro_area_exited);
+        self.hitbox_mut()
+            .signals()
+            .area_entered()
+            .connect_other(&this, Self::on_area_entered_hitbox);
     }
 
     fn fall(&mut self) {
-        let speed = self.speeds().patrol;
-        let velocity = Vector2::DOWN;
-        self.slide(&velocity, &speed);
-
-        if self.base().is_on_floor() {
-            self.sm_mut().handle(&EnemyEvent::OnFloor);
-        }
+        let velocity = Vector2::DOWN * self.speeds().aggro;
+        println!("Falling");
+        self.set_velocity(velocity);
+        self.slide();
     }
 
-    fn chain_attack(&mut self) {
-        let ac = &ET::AttackChainCooldown;
-        let delta = Duration::from_secs_f32(self.base().get_physics_process_delta_time() as f32);
-        let velocity = self.get_velocity();
-        let speed = self.speeds().attack;
-        self.timers().get_mut(ac).unwrap().tick(delta);
-        self.slide(&velocity, &speed);
-
-        if self.timers().get(ac).unwrap().just_finished() {
-            self.timers().get_mut(ac).unwrap().reset();
-            self.sm_mut().handle(&EnemyEvent::TimerElapsed);
-        }
+    // TODO: Change this when typed attacks are finished.
+    fn on_area_entered_hitbox(&mut self, area: Gd<Area2D>) {
+        let damaging = DynGd::<Area2D, dyn Damaging>::from_godot(area);
+        let target = self.to_gd().upcast::<Node2D>();
+        let _guard = self.base_mut();
+        let damageable = DynGd::<Node2D, dyn Damageable>::from_godot(target);
+        damaging.dyn_bind().do_damage(damageable);
     }
 
-    fn patrol(&mut self) {
-        let p = &ET::Patrol;
-        let speed = self.speeds().patrol;
-        let velocity = self.get_velocity();
-        let delta = Duration::from_secs_f32(self.base().get_physics_process_delta_time() as f32);
-
-        self.update_direction();
-        self.slide(&velocity, &speed);
-        self.timers().get_mut(p).unwrap().tick(delta);
-
-        if self.timers().get(p).unwrap().just_finished() {
-            self.timers().get_mut(p).unwrap().reset();
-            self.sm_mut().handle(&EnemyEvent::TimerElapsed);
-        }
-    }
-
-    fn idle(&mut self) {
-        let idle = &ET::Idle;
-        let delta = Duration::from_secs_f32(self.base().get_physics_process_delta_time() as f32);
-        let velocity = Vector2::ZERO;
-        self.slide(&velocity, &0.0);
-        self.timers().get_mut(idle).unwrap().tick(delta);
-
-        if self.timers().get(idle).unwrap().just_finished() {
-            self.timers().get_mut(idle).unwrap().reset();
-            let v = self
-                .patrol_comp()
-                .get_furthest_distance(self.base().get_position());
-            self.set_velocity(v);
-            self.sm_mut().handle(&EnemyEvent::TimerElapsed);
-        }
-    }
-
-    // TODO: Not sure why i was using a timer here...
-    fn chase_player(&mut self) {
-        // let ac = &ET::AttackChainCooldown;
-        // let delta = Duration::from_secs_f32(self.base().get_physics_process_delta_time() as f32);
-        let speed = self.speeds().aggro;
-        if let Some(player_position) = self.get_player_pos() {
-            let velocity = Vector2::new(
-                self.base().get_position().direction_to(player_position).x,
-                0.0,
-            );
-            self.set_velocity(velocity);
-            self.update_direction();
-            self.slide(&velocity, &speed);
-        }
-
-        if self.attack_area().has_overlapping_areas()
-        // && self.timers().get(ac).unwrap().elapsed_secs() == 0.0
+    fn on_aggro_area_entered(&mut self, area: Gd<Area2D>) {
+        if area.is_in_group("player")
+            && let Some(player) = area.get_parent()
+            && let Ok(player) = player.try_cast::<MainCharacter>()
         {
-            // self.timers().get_mut(ac).unwrap().tick(delta);
-            self.sm_mut().handle(&EnemyEvent::InAttackRange);
+            let speed = self.speeds().aggro;
+            self.set_player_pos(Some(player.get_global_position()));
+            let velocity = Vector2::new(
+                self.base()
+                    .upcast_ref::<Node2D>()
+                    .get_position()
+                    .direction_to(player.get_global_position())
+                    .x,
+                0.0,
+            ) * speed;
+            self.set_velocity(velocity);
+            self.update_animation();
+            self.transition_sm(&EnemyEvent::FoundPlayer);
         }
     }
-}
 
-pub trait EnemyEntityStateMachineExt: HasEnemySensors + MoveableEntity
-where
-    Self: Inherits<Node2D> + WithBaseField<Base: Inherits<Node2D>>,
-{
-    fn timers(&mut self) -> &mut HashMap<EnemyTimer, Timer>;
-    fn get_velocity(&self) -> Vector2;
-    fn set_velocity(&mut self, velocity: Vector2);
-    fn speeds(&self) -> &SpeedComponent;
-    fn patrol_comp(&self) -> &PatrolComp;
-    fn get_player_pos(&self) -> Option<Vector2>;
+    fn track_player(&mut self) {
+        let areas = self.aggro_area().get_overlapping_areas();
+        for area in areas.iter_shared() {
+            if area.is_in_group("player") {
+                let player = area.get_parent().unwrap().cast::<MainCharacter>();
+                self.set_player_pos(Some(player.get_global_position()));
+            }
+        }
+    }
+
+    fn on_aggro_area_exited(&mut self, area: Gd<Area2D>) {
+        if area.is_in_group("player") {
+            self.set_player_pos(None);
+            self.transition_sm(&EnemyEvent::LostPlayer);
+        }
+    }
 
     fn attack(&mut self) {
-        let aa = &ET::AttackAnimation;
-        let delta = Duration::from_secs_f32(
-            self.base().upcast_ref::<Node2D>().get_process_delta_time() as f32,
-        );
-        let speed = self.speeds().attack;
-        let velocity = self.get_velocity() * speed;
-        self.timers().get_mut(aa).unwrap().tick(delta);
-        self.move_to(&velocity, false);
+        println!("Normal attack");
+        self.timers().get_mut(&ET::AttackAnimation).unwrap().start();
+        self.timers().get_mut(&ET::AttackCooldown).unwrap().start();
+        self.track_player();
+        self.actual_attack();
+    }
 
-        if self.timers().get(aa).unwrap().just_finished() {
-            self.timers().get_mut(aa).unwrap().reset();
-            self.sm_mut().handle(&EnemyEvent::TimerElapsed);
-        }
+    fn on_attack_animation_timeout(&mut self) {
+        println!("Attack animation timeout");
+        self.transition_sm(&EnemyEvent::TimerElapsed);
     }
 
     fn chain_attack(&mut self) {
-        let ac = &ET::AttackChainCooldown;
-        let delta = Duration::from_secs_f32(
-            self.base().upcast_ref::<Node2D>().get_process_delta_time() as f32,
-        );
-        let speed = self.speeds().attack;
-        let velocity = self.get_velocity() * speed;
-        self.timers().get_mut(ac).unwrap().tick(delta);
-        self.move_to(&velocity, false);
+        println!("Chain attack");
+        self.actual_attack();
+        self.timers()
+            .get_mut(&ET::AttackChainCooldown)
+            .unwrap()
+            .start();
+    }
 
-        if self.timers().get(ac).unwrap().just_finished() {
-            self.timers().get_mut(ac).unwrap().reset();
-            self.sm_mut().handle(&EnemyEvent::TimerElapsed);
+    fn on_chain_attack_timeout(&mut self) {
+        println!("Chain Attack timeout");
+        if self.get_chain_attack_count() >= 2 {
+            self.set_chain_attack_count(0);
+            self.timers().get_mut(&ET::AttackCooldown).unwrap().start();
+            self.transition_sm(&EnemyEvent::TimerElapsed);
+        } else {
+            self.set_chain_attack_count(self.get_chain_attack_count() + 1);
+            self.chain_attack();
         }
     }
 
+    /// Run in `process()`
     fn patrol(&mut self) {
-        let p = &ET::Patrol;
-        let speed = self.speeds().patrol;
-        let velocity = self.get_velocity() * speed;
-        let delta = Duration::from_secs_f32(
-            self.base().upcast_ref::<Node2D>().get_process_delta_time() as f32,
-        );
-
-        self.update_direction();
-        self.move_to(&velocity, false);
-        self.timers().get_mut(p).unwrap().tick(delta);
-
-        if self.timers().get(p).unwrap().just_finished() {
-            self.timers().get_mut(p).unwrap().reset();
-            self.sm_mut().handle(&EnemyEvent::TimerElapsed);
+        if self.timers().get(&ET::Patrol).unwrap().is_stopped() {
+            self.timers().get_mut(&ET::Patrol).unwrap().start();
         }
+
+        self.slide();
+    }
+
+    fn on_patrol_timeout(&mut self) {
+        println!("Patrol timer timeout");
+        self.transition_sm(&EnemyEvent::TimerElapsed);
     }
 
     fn idle(&mut self) {
-        let idle = &ET::Idle;
-        let velocity = Vector2::ZERO;
-        let delta = Duration::from_secs_f32(
-            self.base().upcast_ref::<Node2D>().get_process_delta_time() as f32,
-        );
-
-        self.timers().get_mut(idle).unwrap().tick(delta);
-        self.move_to(&velocity, false);
-
-        if self.timers().get(idle).unwrap().just_finished() {
-            self.timers().get_mut(idle).unwrap().reset();
-            let v = self
-                .patrol_comp()
-                .get_furthest_distance(self.base().upcast_ref::<Node2D>().get_position());
-            self.set_velocity(v);
-            self.sm_mut().handle(&EnemyEvent::TimerElapsed);
-        }
+        println!("starting idle timer");
+        self.timers().get_mut(&ET::Idle).unwrap().start();
     }
 
-    // TODO: Not sure why i was using a timer here...
+    fn on_idle_timeout(&mut self) {
+        println!("Idle timer timeout");
+        let v = self
+            .patrol_comp()
+            .get_furthest_distance(self.base().upcast_ref::<Node2D>().get_position());
+        self.set_velocity(v * self.speeds().aggro);
+        self.transition_sm(&EnemyEvent::TimerElapsed);
+    }
+
+    /// Run in `process()`
     fn chase_player(&mut self) {
-        // let ac = &ET::AttackChainCooldown;
-        // let delta = self.base().upcast_ref::<Node2D>().get_process_delta_time() as f32;
         let speed = self.speeds().aggro;
+        self.track_player();
 
         if let Some(p) = self.get_player_pos() {
             let velocity = Vector2::new(
@@ -230,17 +201,37 @@ where
                     .direction_to(p)
                     .x,
                 0.0,
-            ) * speed;
-            self.set_velocity(velocity);
-            self.update_direction();
-            self.move_to(&velocity, false);
+            );
+            self.set_velocity(velocity.normalized_or_zero() * speed);
+            self.slide();
         }
 
         if self.attack_area().has_overlapping_areas()
-        // && self.timers().get(ac).unwrap().elapsed_secs() == 0.0
+            && self.timers()[&ET::AttackCooldown].get_time_left() == 0.0
         {
-            // self.timers().get_mut(ac).unwrap().tick(delta);
-            self.sm_mut().handle(&EnemyEvent::InAttackRange);
+            self.transition_sm(&EnemyEvent::InAttackRange);
+        }
+    }
+
+    fn transition_sm(&mut self, event: &EnemyEvent) {
+        let cur = self.sm().state().as_discriminant();
+        self.sm_mut().handle(event);
+        let new = self.sm().state().as_discriminant();
+
+        if cur != new {
+            self.update_animation();
+            self.on_sm_state_changed();
+        }
+    }
+
+    fn on_sm_state_changed(&mut self) {
+        match self.sm().state() {
+            State::Attack {} => self.attack(),
+            State::Attack2 {} => self.chain_attack(),
+            State::Idle {} => self.idle(),
+            State::Patrol {} => self.patrol(),
+            State::Falling {} => self.fall(),
+            State::ChasePlayer {} => self.chase_player(),
         }
     }
 }

@@ -1,15 +1,14 @@
 use std::collections::HashMap;
 
-use bevy_time::{Timer, TimerMode};
 use godot::{
-    classes::{AnimationPlayer, CharacterBody2D, ICharacterBody2D},
+    classes::{AnimationPlayer, CharacterBody2D, ICharacterBody2D, Timer},
     obj::WithBaseField,
     prelude::*,
 };
 
 use super::{
     animatable::Animatable,
-    enemy_state_ext::EnemyCharacterStateMachineExt,
+    enemy_state_ext::EnemyEntityStateMachineExt,
     enemy_state_machine::{EnemyEvent, EnemyStateMachine, State},
     has_enemy_sensors::HasEnemySensors,
     has_state::HasState,
@@ -18,8 +17,7 @@ use super::{
 use crate::entities::{
     damage::Damageable,
     entity_stats::EntityResources,
-    movements::MoveableCharacter,
-    movements::{Direction, SpeedComponent},
+    movements::{Direction, Move, Moveable, MoveableBody, SpeedComponent},
     time::EnemyTimer,
 };
 
@@ -28,9 +26,11 @@ type ET = EnemyTimer;
 #[derive(GodotClass)]
 #[class(init, base=CharacterBody2D)]
 pub struct TestEnemy {
+    previous_velocity: Vector2,
+    chain_attack_count: u32,
     direction: Direction,
     velocity: Vector2,
-    timers: HashMap<EnemyTimer, Timer>,
+    timers: HashMap<EnemyTimer, Gd<Timer>>,
     speeds: SpeedComponent,
     state: statig::blocking::StateMachine<EnemyStateMachine>,
     base: Base<CharacterBody2D>,
@@ -60,40 +60,60 @@ impl ICharacterBody2D for TestEnemy {
         self.patrol_comp.left_target = self.left_target;
         self.patrol_comp.right_target = self.right_target;
         self.speeds = SpeedComponent::new(40, 40, 80);
+
+        self.timers
+            .insert(ET::AttackAnimation, godot::classes::Timer::new_alloc());
+        self.timers
+            .insert(ET::AttackCooldown, godot::classes::Timer::new_alloc());
+        self.timers
+            .insert(ET::AttackChainCooldown, godot::classes::Timer::new_alloc());
+        self.timers
+            .insert(ET::Idle, godot::classes::Timer::new_alloc());
+        self.timers
+            .insert(ET::Patrol, godot::classes::Timer::new_alloc());
+
+        self.timers
+            .get_mut(&ET::AttackAnimation)
+            .unwrap()
+            .set_wait_time(1.7);
+        self.timers
+            .get_mut(&ET::AttackCooldown)
+            .unwrap()
+            .set_wait_time(2.0);
+        self.timers
+            .get_mut(&ET::AttackChainCooldown)
+            .unwrap()
+            .set_wait_time(2.7);
+        self.timers.get_mut(&ET::Idle).unwrap().set_wait_time(1.5);
+
+        let mut ts = self.timers.clone();
+        ts.values_mut().for_each(|timer| {
+            timer.set_one_shot(true);
+            self.base_mut().add_child(&timer.clone());
+        });
+
         self.connect_signals();
-
-        self.timers.insert(
-            ET::AttackAnimation,
-            Timer::from_seconds(1.8, TimerMode::Once),
-        );
-        self.timers.insert(
-            ET::AttackCooldown,
-            Timer::from_seconds(2.0, TimerMode::Once),
-        );
-        self.timers.insert(
-            ET::AttackChainCooldown,
-            Timer::from_seconds(2.7, TimerMode::Once),
-        );
-        self.timers
-            .insert(ET::Idle, Timer::from_seconds(2.7, TimerMode::Once));
-        self.timers
-            .insert(ET::Patrol, Timer::from_seconds(3.0, TimerMode::Once));
-
         self.hurtbox_mut().bind_mut().attack_damage = 10;
+        self.idle();
+        self.animation_player.play_ex().name("idle_east").done();
     }
 
     fn physics_process(&mut self, _delta: f64) {
+        if self.previous_velocity.x != self.get_velocity().x {
+            println!("Updating animation");
+            self.previous_velocity = self.get_velocity();
+            self.update_animation();
+        }
         self.check_floor();
-        // dbg!(&self.state.state());
-
         match self.state.state() {
-            State::Idle {} => self.idle(),
+            State::Falling {} => self.fall(),
+            // TODO: Add navigationagent.
             State::ChasePlayer {} => self.chase_player(),
             State::Patrol {} => self.patrol(),
-            State::Attack {} => self.attack(),
-            State::Attack2 {} => self.chain_attack(),
-            State::Falling {} => self.fall(),
+            State::Attack2 {} => self.track_player(),
+            _ => (),
         }
+        // dbg!(&self.state.state());
 
         // self.update_timers();
     }
@@ -104,28 +124,11 @@ impl TestEnemy {
     #[signal]
     pub fn test_enemy_died();
 
-    #[signal]
-    fn can_attack_player();
-
     fn check_floor(&mut self) {
         if !self.base().is_on_floor() {
-            self.state.handle(&EnemyEvent::FailedFloorCheck);
+            self.transition_sm(&EnemyEvent::FailedFloorCheck);
         }
     }
-
-    // Leaving this somewhat open ended in case more timers are added later
-    // fn update_timers(&mut self) {
-    //     let delta = self.base().get_physics_process_delta_time() as f32;
-    //     let ac = &ET::AttackChainCooldown;
-    //
-    //     // Update attack cooldown timer
-    //     let attack_cooldown = self.timers.get(ac);
-    //     if attack_cooldown < self.timers.get_init(ac) && attack_cooldown > 0.0 {
-    //         self.timers.set(ac, attack_cooldown - delta);
-    //     } else if attack_cooldown <= 0.0 {
-    //         self.timers.reset(ac);
-    //     }
-    // }
 }
 
 #[godot_dyn]
@@ -180,7 +183,7 @@ impl Damageable for TestEnemy {
 }
 
 impl Animatable for TestEnemy {
-    fn get_anim_player(&mut self) -> &mut Gd<AnimationPlayer> {
+    fn anim_player_mut(&mut self) -> &mut Gd<AnimationPlayer> {
         &mut self.animation_player
     }
 
@@ -195,19 +198,31 @@ impl Animatable for TestEnemy {
     }
 }
 
-impl MoveableCharacter for TestEnemy {}
-
-impl EnemyCharacterStateMachineExt for TestEnemy {
-    fn timers(&mut self) -> &mut HashMap<EnemyTimer, Timer> {
-        &mut self.timers
-    }
-
+impl Moveable for TestEnemy {
     fn get_velocity(&self) -> Vector2 {
         self.velocity
     }
 
     fn set_velocity(&mut self, velocity: Vector2) {
         self.velocity = velocity;
+    }
+}
+
+impl MoveableBody for TestEnemy {
+    fn notify_on_floor(&mut self) {
+        self.transition_sm(&EnemyEvent::OnFloor);
+    }
+}
+
+impl Move for TestEnemy {
+    fn slide(&mut self) {
+        self.phy_slide()
+    }
+}
+
+impl EnemyEntityStateMachineExt for TestEnemy {
+    fn timers(&mut self) -> &mut HashMap<EnemyTimer, Gd<Timer>> {
+        &mut self.timers
     }
 
     fn speeds(&self) -> &SpeedComponent {
@@ -220,5 +235,24 @@ impl EnemyCharacterStateMachineExt for TestEnemy {
 
     fn get_player_pos(&self) -> Option<Vector2> {
         self.player_pos
+    }
+
+    fn get_chain_attack_count(&self) -> u32 {
+        self.chain_attack_count
+    }
+
+    fn set_chain_attack_count(&mut self, amount: u32) {
+        self.chain_attack_count = amount;
+    }
+
+    fn actual_attack(&mut self) {
+        // if let Some(p) = self.get_player_pos() {
+        //     let pos = self.base().get_position();
+        //     let dir = Direction::from_vel(&pos.direction_to(p));
+        //     match dir {
+        //         Direction::East => self.animation_player.play_ex().name("attack_east").done(),
+        //         Direction::West => self.animation_player.play_ex().name("attack_west").done(),
+        //     }
+        // }
     }
 }
