@@ -1,0 +1,293 @@
+use std::collections::HashMap;
+
+use super::{
+    animatable::Animatable,
+    enemy_state_ext::EnemyEntityStateMachineExt,
+    enemy_state_machine::{EnemyStateMachine, State},
+    has_enemy_sensors::HasEnemySensors,
+    has_state::HasState,
+    patrol_component::PatrolComp,
+    projectile::Projectile,
+};
+use crate::entities::{
+    damage::Damageable,
+    entity_stats::{EntityResources, StatVal, Stats},
+    hurtbox::Hurtbox,
+    movements::{Direction, Move, Moveable, MoveableEntity, SpeedComponent},
+    time::EnemyTimer,
+};
+use godot::{
+    classes::{AnimationPlayer, Timer},
+    prelude::*,
+};
+
+type ET = EnemyTimer;
+const BULLET_SPEED: real = 500.0;
+
+#[derive(GodotClass)]
+#[class(init, base=Node2D)]
+pub struct ProjectileEnemy {
+    velocity: Vector2,
+    speeds: SpeedComponent,
+    chain_attack_count: u32,
+    direction: Direction,
+    stats: HashMap<Stats, StatVal>,
+    state: statig::blocking::StateMachine<EnemyStateMachine>,
+    #[init(val = HashMap::with_capacity(4))]
+    timers: HashMap<EnemyTimer, Gd<Timer>>,
+    patrol_comp: PatrolComp,
+    player_pos: Option<Vector2>,
+    base: Base<Node2D>,
+
+    #[init(val = OnReady::manual())]
+    projectile_scene: OnReady<Gd<PackedScene>>,
+
+    #[export]
+    #[export_subgroup(name = "PatrolComponent")]
+    left_target: Vector2,
+
+    #[export]
+    #[export_subgroup(name = "PatrolComponent")]
+    right_target: Vector2,
+
+    #[init(node = "NavigationAgent2D")]
+    nav_agent: OnReady<Gd<godot::classes::NavigationAgent2D>>,
+
+    #[init(node = "AnimationPlayer")]
+    animation_player: OnReady<Gd<AnimationPlayer>>,
+}
+
+#[godot_api]
+impl INode2D for ProjectileEnemy {
+    fn ready(&mut self) {
+        self.nav_agent
+            .signals()
+            .velocity_computed()
+            .connect_other(&self.to_gd(), Self::on_velocity_computed);
+
+        self.patrol_comp.left_target = self.left_target;
+        self.patrol_comp.right_target = self.right_target;
+        self.projectile_scene.init(load("uid://bh5oo6002wig6"));
+
+        self.timers
+            .insert(ET::AttackAnimation, godot::classes::Timer::new_alloc());
+        self.timers
+            .insert(ET::AttackCooldown, godot::classes::Timer::new_alloc());
+        self.timers
+            .insert(ET::AttackChainCooldown, godot::classes::Timer::new_alloc());
+        self.timers
+            .insert(ET::Idle, godot::classes::Timer::new_alloc());
+        self.timers
+            .insert(ET::Patrol, godot::classes::Timer::new_alloc());
+
+        self.timers
+            .get_mut(&ET::AttackAnimation)
+            .unwrap()
+            .set_wait_time(0.7);
+        self.timers
+            .get_mut(&ET::AttackCooldown)
+            .unwrap()
+            .set_wait_time(5.0);
+        self.timers
+            .get_mut(&ET::AttackChainCooldown)
+            .unwrap()
+            .set_wait_time(0.4);
+        self.timers.get_mut(&ET::Idle).unwrap().set_wait_time(1.5);
+
+        let mut ts = self.timers.clone();
+        ts.values_mut().for_each(|timer| {
+            timer.set_one_shot(true);
+            self.base_mut().add_child(&timer.clone());
+        });
+
+        self.connect_signals();
+
+        self.stats.insert(Stats::Health, StatVal::new(20));
+        self.stats.insert(Stats::MaxHealth, StatVal::new(20));
+        self.stats.insert(Stats::AttackDamage, StatVal::new(10));
+        self.stats.insert(Stats::RunningSpeed, StatVal::new(150));
+        self.stats.insert(Stats::JumpingSpeed, StatVal::new(300));
+        self.stats.insert(Stats::DodgingSpeed, StatVal::new(250));
+        self.stats.insert(Stats::AttackingSpeed, StatVal::new(10));
+
+        self.speeds = SpeedComponent::new(
+            self.stats[&Stats::AttackingSpeed].0,
+            self.stats[&Stats::RunningSpeed].0,
+            80,
+        );
+
+        self.idle();
+        self.animation_player.play_ex().name("idle_east").done();
+    }
+
+    fn process(&mut self, _delta: f64) {
+        match self.state.state() {
+            State::ChasePlayer {} => {
+                if let Some(p) = self.get_player_pos() {
+                    self.nav_agent.set_target_position(p);
+                }
+                self.chase_player()
+            }
+            State::Patrol {} => self.patrol(),
+            State::Attack2 {} => self.track_player(),
+            _ => (),
+        }
+
+        // dbg!(self.state.state());
+    }
+}
+
+#[godot_api]
+impl ProjectileEnemy {
+    fn on_velocity_computed(&mut self, safe_vel: Vector2) {
+        if self.state.state().as_discriminant() == (State::ChasePlayer {}).as_discriminant()
+            && safe_vel.length() > 0.0
+        {
+            self.set_velocity(safe_vel);
+            self.slide();
+        }
+    }
+
+    fn shoot_projectile(&mut self, target: Vector2) {
+        let position = self.base().get_global_position();
+        let target = position.direction_to(target).normalized_or_zero();
+        let mut inst = self.projectile_scene.instantiate_as::<Projectile>();
+        inst.set_global_position(position);
+        let mut hurtbox = inst.get_node_as::<Hurtbox>("Hurtbox");
+        inst.bind_mut().velocity = target * BULLET_SPEED;
+        hurtbox.set_collision_layer_value(
+            crate::utils::collision_layers::CollisionLayers::EnemyHurtbox as i32,
+            true,
+        );
+        hurtbox.set_collision_mask_value(
+            crate::utils::collision_layers::CollisionLayers::PlayerHurtbox as i32,
+            true,
+        );
+        hurtbox.bind_mut().attack_damage = 20;
+        self.base_mut().add_sibling(&inst);
+    }
+}
+
+#[godot_dyn]
+impl EntityResources for ProjectileEnemy {
+    fn get_health(&self) -> u32 {
+        self.stats.get(&Stats::Health).unwrap().0
+    }
+
+    fn set_health(&mut self, amount: u32) {
+        self.stats.get_mut(&Stats::Health).unwrap().0 = amount;
+    }
+
+    fn get_energy(&self) -> u32 {
+        self.stats.get(&Stats::Energy).unwrap().0
+    }
+
+    fn set_energy(&mut self, amount: u32) {
+        self.stats.get_mut(&Stats::Energy).unwrap().0 = amount;
+    }
+
+    fn get_mana(&self) -> u32 {
+        self.stats.get(&Stats::Mana).unwrap().0
+    }
+
+    fn set_mana(&mut self, amount: u32) {
+        self.stats.get_mut(&Stats::Energy).unwrap().0 = amount;
+    }
+}
+
+#[godot_dyn]
+impl Damageable for ProjectileEnemy {
+    fn destroy(&mut self) {
+        self.base_mut().queue_free();
+    }
+}
+
+impl HasState for ProjectileEnemy {
+    fn sm_mut(&mut self) -> &mut statig::prelude::StateMachine<EnemyStateMachine> {
+        &mut self.state
+    }
+
+    fn sm(&self) -> &statig::prelude::StateMachine<EnemyStateMachine> {
+        &self.state
+    }
+}
+
+impl HasEnemySensors for ProjectileEnemy {
+    fn set_player_pos(&mut self, pos: Option<godot::builtin::Vector2>) {
+        self.player_pos = pos;
+    }
+}
+
+impl Moveable for ProjectileEnemy {
+    fn get_velocity(&self) -> Vector2 {
+        self.velocity
+    }
+
+    fn set_velocity(&mut self, velocity: Vector2) {
+        self.velocity = velocity;
+    }
+}
+
+impl MoveableEntity for ProjectileEnemy {}
+
+impl Move for ProjectileEnemy {
+    fn slide(&mut self) {
+        self.node_slide(false);
+    }
+}
+
+impl Animatable for ProjectileEnemy {
+    fn anim_player_mut(&mut self) -> &mut Gd<godot::classes::AnimationPlayer> {
+        &mut self.animation_player
+    }
+
+    fn get_direction(&self) -> &Direction {
+        &self.direction
+    }
+
+    fn update_direction(&mut self) {
+        if !self.velocity.x.is_zero_approx() {
+            self.direction = Direction::from_vel(&self.velocity);
+        }
+    }
+}
+
+impl EnemyEntityStateMachineExt for ProjectileEnemy {
+    fn get_chain_attack_count(&self) -> u32 {
+        self.chain_attack_count
+    }
+    fn set_chain_attack_count(&mut self, amount: u32) {
+        self.chain_attack_count = amount;
+    }
+    fn timers(&mut self) -> &mut HashMap<EnemyTimer, Gd<godot::classes::Timer>> {
+        &mut self.timers
+    }
+
+    fn speeds(&self) -> &SpeedComponent {
+        &self.speeds
+    }
+
+    fn patrol_comp(&self) -> &PatrolComp {
+        &self.patrol_comp
+    }
+
+    fn get_player_pos(&self) -> Option<Vector2> {
+        self.player_pos
+    }
+
+    fn actual_attack(&mut self) {
+        if let Some(target) = self.get_player_pos() {
+            self.shoot_projectile(target);
+        }
+    }
+    fn on_sm_state_changed(&mut self) {
+        match self.sm().state() {
+            State::Attack {} => self.attack(),
+            State::Attack2 {} => self.chain_attack(),
+            State::Idle {} => self.idle(),
+            State::Patrol {} => (),
+            State::Falling {} => (),
+            State::ChasePlayer {} => (),
+        }
+    }
+}

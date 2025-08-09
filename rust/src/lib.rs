@@ -1,19 +1,10 @@
 use godot::{classes::Engine, prelude::*};
+use utils::global_data_singleton::GlobalData;
 
-use crate::components::managers::global_data_singleton::GlobalData;
-
-mod traits;
-pub mod utils;
-mod classes {
-    pub mod characters;
-    pub mod components;
-    pub mod enemies;
-    pub mod scenes;
-}
-mod components {
-    pub mod managers;
-    pub mod state_machines;
-}
+mod entities;
+mod ui;
+mod utils;
+mod world;
 
 struct MyExtension;
 
