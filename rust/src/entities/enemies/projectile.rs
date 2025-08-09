@@ -1,7 +1,9 @@
 use std::time::Duration;
 
-use bevy_time::{Timer, TimerMode};
-use godot::prelude::*;
+use godot::{
+    classes::{Node2D, Timer, class_macros::registry::class},
+    prelude::*,
+};
 
 use crate::{entities::hurtbox::Hurtbox, utils::collision_layers};
 
@@ -13,7 +15,8 @@ pub struct Projectile {
     pub hurtbox: OnReady<Gd<Hurtbox>>,
     start_pos: Vector2,
     pub speed: real,
-    timeout: Timer,
+    #[init(val = OnReady::manual())]
+    timer: OnReady<Gd<Timer>>,
     base: Base<Node2D>,
 }
 
@@ -22,11 +25,19 @@ impl INode2D for Projectile {
     fn ready(&mut self) {
         self.speed = 500.0;
         self.start_pos = self.base().get_position();
-        self.timeout = Timer::new(Duration::from_secs_f32(3.0), TimerMode::Once);
+        let mut timer = Timer::new_alloc();
+        timer.set_wait_time(2.0);
+        self.base_mut().add_child(&timer);
+        self.timer.init(timer);
+
+        self.timer
+            .signals()
+            .timeout()
+            .connect_other(&self.to_gd(), Self::on_timer_timeout);
+        self.timer.start();
     }
 
     fn process(&mut self, delta: f64) {
-        self.tick();
         let velocity = self.velocity;
         let position = self.base().get_position();
         self.base_mut()
@@ -39,8 +50,12 @@ impl Projectile {
     #[signal]
     fn contacted_player();
 
+    fn on_timer_timeout(&mut self) {
+        self.base_mut().queue_free();
+    }
+
     pub fn on_parried(&mut self) {
-        self.timeout.reset();
+        self.timer.start();
         let cur_pos = self.base().get_position();
         self.velocity = cur_pos.direction_to(self.start_pos) * self.speed;
 
@@ -58,14 +73,5 @@ impl Projectile {
             true,
         );
         area.set_collision_mask_value(collision_layers::CollisionLayers::EnemyHitbox as i32, true);
-    }
-
-    fn tick(&mut self) {
-        let delta = Duration::from_secs_f32(self.base().get_process_delta_time() as f32);
-        self.timeout.tick(delta);
-
-        if self.timeout.finished() {
-            self.base_mut().queue_free();
-        }
     }
 }
