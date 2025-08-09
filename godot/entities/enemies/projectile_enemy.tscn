@@ -1,18 +1,23 @@
-[gd_scene load_steps=16 format=3 uid="uid://bcae4wnfye0do"]
+[gd_scene load_steps=19 format=3 uid="uid://bcae4wnfye0do"]
 
-[ext_resource type="PackedScene" uid="uid://ktv3myqxd2dt" path="res://entities/enemies/enemy_sensors.tscn" id="2_wkbwq"]
 [ext_resource type="Texture2D" uid="uid://bluq4jmeunkg7" path="res://assets/entities/samurai/IDLE.png" id="2_ws556"]
 [ext_resource type="Texture2D" uid="uid://dtumlhkn3n0to" path="res://assets/entities/samurai/RUN.png" id="3_ws556"]
 [ext_resource type="Texture2D" uid="uid://dmi2l7gc2cobb" path="res://assets/entities/samurai/ATTACK 1.png" id="4_nthab"]
 
-[sub_resource type="CircleShape2D" id="CircleShape2D_ws556"]
-radius = 196.023
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_1p0qd"]
+size = Vector2(20, 43)
 
-[sub_resource type="CircleShape2D" id="CircleShape2D_nthab"]
-radius = 334.0
+[sub_resource type="CircleShape2D" id="CircleShape2D_0hcks"]
+radius = 162.003
 
-[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_sk66u"]
-height = 44.0
+[sub_resource type="CircleShape2D" id="CircleShape2D_p0ckh"]
+radius = 162.003
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_isb6e"]
+radius = 210.06
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_0n8mu"]
+size = Vector2(20, 42)
 
 [sub_resource type="Animation" id="Animation_ws556"]
 length = 0.001
@@ -80,6 +85,7 @@ tracks/4/keys = {
 [sub_resource type="Animation" id="Animation_1dkjp"]
 resource_name = "attack_east"
 length = 0.7
+loop_mode = 1
 step = 0.1
 tracks/0/type = "value"
 tracks/0/imported = false
@@ -145,6 +151,139 @@ tracks/4/keys = {
 [sub_resource type="Animation" id="Animation_2skm1"]
 resource_name = "attack_west"
 length = 0.7
+loop_mode = 1
+step = 0.1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite2D:texture")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [ExtResource("4_nthab")]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Sprite2D:flip_h")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [true]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("Sprite2D:hframes")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [7]
+}
+tracks/3/type = "value"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("Sprite2D:vframes")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [1]
+}
+tracks/4/type = "value"
+tracks/4/imported = false
+tracks/4/enabled = true
+tracks/4/path = NodePath("Sprite2D:frame")
+tracks/4/interp = 1
+tracks/4/loop_wrap = true
+tracks/4/keys = {
+"times": PackedFloat32Array(0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1),
+"update": 1,
+"values": [0, 1, 2, 3, 4, 5, 6]
+}
+
+[sub_resource type="Animation" id="Animation_0hcks"]
+resource_name = "chain_attack_east"
+length = 0.7
+loop_mode = 1
+step = 0.1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite2D:texture")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [ExtResource("4_nthab")]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Sprite2D:flip_h")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [false]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("Sprite2D:hframes")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [7]
+}
+tracks/3/type = "value"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("Sprite2D:vframes")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [1]
+}
+tracks/4/type = "value"
+tracks/4/imported = false
+tracks/4/enabled = true
+tracks/4/path = NodePath("Sprite2D:frame")
+tracks/4/interp = 1
+tracks/4/loop_wrap = true
+tracks/4/keys = {
+"times": PackedFloat32Array(0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1),
+"update": 1,
+"values": [0, 1, 2, 3, 4, 5, 6]
+}
+
+[sub_resource type="Animation" id="Animation_p0ckh"]
+resource_name = "chain_attack_west"
+length = 0.7
+loop_mode = 1
 step = 0.1
 tracks/0/type = "value"
 tracks/0/imported = false
@@ -210,6 +349,7 @@ tracks/4/keys = {
 [sub_resource type="Animation" id="Animation_wkbwq"]
 resource_name = "idle_east"
 length = 0.5
+loop_mode = 1
 step = 0.1
 tracks/0/type = "value"
 tracks/0/imported = false
@@ -275,6 +415,7 @@ tracks/4/keys = {
 [sub_resource type="Animation" id="Animation_nthab"]
 resource_name = "idle_west"
 length = 0.5
+loop_mode = 1
 step = 0.1
 tracks/0/type = "value"
 tracks/0/imported = false
@@ -474,6 +615,8 @@ _data = {
 &"RESET": SubResource("Animation_ws556"),
 &"attack_east": SubResource("Animation_1dkjp"),
 &"attack_west": SubResource("Animation_2skm1"),
+&"chain_attack_east": SubResource("Animation_0hcks"),
+&"chain_attack_west": SubResource("Animation_p0ckh"),
 &"idle_east": SubResource("Animation_wkbwq"),
 &"idle_west": SubResource("Animation_nthab"),
 &"patrol_east": SubResource("Animation_sk66u"),
@@ -487,26 +630,59 @@ position = Vector2(0, -13)
 texture = ExtResource("2_ws556")
 hframes = 9
 
-[node name="EnemySensors" parent="." instance=ExtResource("2_wkbwq")]
+[node name="EnemySensors" type="Node2D" parent="."]
 
-[node name="AttackArea" parent="EnemySensors" index="1"]
-monitorable = false
+[node name="Hurtboxes" type="Hurtbox" parent="EnemySensors" groups=["enemy_parryable_attack"]]
+collision_layer = 32
+collision_mask = 4
 
-[node name="AttackShapeEast" parent="EnemySensors/AttackArea" index="0"]
-position = Vector2(0, 0)
-shape = SubResource("CircleShape2D_ws556")
-
-[node name="AttackShapeWest" parent="EnemySensors/AttackArea" index="1"]
+[node name="EastHurtbox" type="CollisionShape2D" parent="EnemySensors/Hurtboxes"]
+position = Vector2(23, 0)
+shape = SubResource("RectangleShape2D_1p0qd")
 disabled = true
+debug_color = Color(0.604981, 0.262522, 0.00391755, 0.42)
 
-[node name="AggroShape" parent="EnemySensors/AggroArea" index="0"]
-shape = SubResource("CircleShape2D_nthab")
+[node name="WestHurtbox" type="CollisionShape2D" parent="EnemySensors/Hurtboxes"]
+position = Vector2(-21, 0)
+shape = SubResource("RectangleShape2D_1p0qd")
+disabled = true
+debug_color = Color(0.452949, 0.595386, 0, 0.42)
 
-[node name="Hitbox" parent="EnemySensors" index="3"]
-visible = false
+[node name="AttackArea" type="Area2D" parent="EnemySensors"]
+collision_layer = 0
+collision_mask = 4
 
-[node name="CollisionShape2D" parent="EnemySensors/Hitbox" index="0"]
-shape = SubResource("CapsuleShape2D_sk66u")
+[node name="AttackShapeEast" type="CollisionShape2D" parent="EnemySensors/AttackArea"]
+shape = SubResource("CircleShape2D_0hcks")
+debug_color = Color(0.808802, 0.15934, 0.920065, 0.42)
+
+[node name="AttackShapeWest" type="CollisionShape2D" parent="EnemySensors/AttackArea"]
+shape = SubResource("CircleShape2D_p0ckh")
+debug_color = Color(0.808802, 0.15934, 0.920065, 0.42)
+
+[node name="AggroArea" type="Area2D" parent="EnemySensors"]
+collision_layer = 0
+collision_mask = 4
+
+[node name="AggroShape" type="CollisionShape2D" parent="EnemySensors/AggroArea"]
+shape = SubResource("CircleShape2D_isb6e")
+debug_color = Color(0.998547, 0, 0.139145, 0.42)
+
+[node name="Hitbox" type="EntityHitbox" parent="EnemySensors"]
+collision_layer = 8
+collision_mask = 16
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="EnemySensors/Hitbox"]
+shape = SubResource("RectangleShape2D_0n8mu")
+debug_color = Color(0.717091, 0.4817, 0, 0.42)
+
+[node name="LeftGroundCast" type="RayCast2D" parent="EnemySensors"]
+target_position = Vector2(-21, 30)
+collision_mask = 2
+
+[node name="RightGroundCast" type="RayCast2D" parent="EnemySensors"]
+target_position = Vector2(23, 30)
+collision_mask = 2
 
 [node name="AnimationPlayer" type="AnimationPlayer" parent="."]
 libraries = {
@@ -521,5 +697,3 @@ radius = 17.21
 time_horizon_obstacles = 1.01
 debug_use_custom = true
 debug_path_custom_line_width = 2.0
-
-[editable path="EnemySensors"]

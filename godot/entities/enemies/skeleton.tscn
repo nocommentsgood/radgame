@@ -1,0 +1,17 @@
+[gd_scene load_steps=4 format=3 uid="uid://xoiw3rj5ufq6"]
+
+[ext_resource type="PackedScene" uid="uid://0u16axindb63" path="res://entities/enemies/base_enemy.tscn" id="1_as1re"]
+[ext_resource type="Texture2D" uid="uid://qmnjkuoc0efy" path="res://assets/fyrox-2d/characters/Skeleton enemy/Skeleton enemy.png" id="2_68p4h"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_ehfc0"]
+size = Vector2(20, 32)
+
+[node name="BaseEnemy" instance=ExtResource("1_as1re")]
+
+[node name="CollisionShape2D" parent="." index="0"]
+shape = SubResource("RectangleShape2D_ehfc0")
+
+[node name="Sprite2D" parent="." index="1"]
+texture = ExtResource("2_68p4h")
+hframes = 13
+vframes = 5
