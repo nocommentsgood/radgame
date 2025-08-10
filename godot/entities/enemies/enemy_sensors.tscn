@@ -15,7 +15,7 @@ size = Vector2(20, 42)
 [node name="EnemySensors" type="Node2D"]
 visible = false
 
-[node name="Hurtboxes" type="Hurtbox" parent="." groups=["enemy_parryable_attack"]]
+[node name="Hurtboxes" type="Area2D" parent="." groups=["enemy_parryable_attack"]]
 collision_layer = 32
 collision_mask = 4
 
@@ -53,7 +53,7 @@ collision_mask = 4
 shape = SubResource("RectangleShape2D_j0yqt")
 debug_color = Color(0.998547, 0, 0.139145, 0.42)
 
-[node name="Hitbox" type="EntityHitbox" parent="."]
+[node name="Hitbox" type="Area2D" parent="."]
 collision_layer = 8
 collision_mask = 16
 

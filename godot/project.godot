@@ -23,7 +23,6 @@ PlayerStatsUIHandler="res://autoloads/singleton_player_stats_ui_handler.tscn"
 
 window/size/viewport_width=640
 window/size/viewport_height=360
-window/size/mode=3
 window/size/initial_position_type=2
 window/size/initial_screen=1
 window/size/window_width_override=1920

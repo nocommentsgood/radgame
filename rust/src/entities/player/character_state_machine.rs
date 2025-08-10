@@ -1,7 +1,9 @@
 use statig::blocking::*;
 
 #[derive(Default, Debug, Clone)]
-pub struct CharacterStateMachine;
+pub struct CharacterStateMachine {
+    pub can_dodge: bool,
+}
 
 impl std::fmt::Display for State {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -192,5 +194,10 @@ impl CharacterStateMachine {
             Event::TimerElapsed => Response::Transition(State::idle()),
             _ => Handled,
         }
+    }
+
+    #[action]
+    fn enter_dodging(&mut self) {
+        self.can_dodge = false;
     }
 }

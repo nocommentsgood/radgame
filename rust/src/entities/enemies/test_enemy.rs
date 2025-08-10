@@ -100,7 +100,6 @@ impl ICharacterBody2D for TestEnemy {
 
     fn physics_process(&mut self, _delta: f64) {
         if self.previous_velocity.x != self.get_velocity().x {
-            println!("Updating animation");
             self.previous_velocity = self.get_velocity();
             self.update_animation();
         }
