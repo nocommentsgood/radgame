@@ -13,7 +13,7 @@ use godot::{
 
 use crate::{
     entities::{
-        damage::{Damageable, Damaging},
+        damage::{AttackData, Damageable, Damaging, TestDamaging},
         enemies::projectile::Projectile,
         entity_hitbox::EntityHitbox,
         entity_stats::{EntityResources, StatModifier, StatVal, Stats},
@@ -321,6 +321,8 @@ impl ICharacterBody2D for MainCharacter {
     }
 }
 
+impl TestDamaging for Gd<MainCharacter> {}
+
 #[godot_api]
 impl MainCharacter {
     #[signal]
@@ -338,12 +340,27 @@ impl MainCharacter {
     // Had to resort to enabling and disabling the collision shape manually, otherwise the
     // `area_entered()` signal of the `Hurtbox` would emit twice.
     fn on_area_entered_hurtbox(&mut self, area: Gd<Area2D>) {
-        if let Ok(_hurtbox) = area.try_cast::<EntityHitbox>() {
-            self.hit_enemy = true;
-            self.base()
-                .get_node_as::<godot::classes::CollisionShape2D>("Hurtbox/HurtboxShape")
-                .set_deferred("disabled", &true.to_variant());
+        if let Ok(mut hurtbox) = area.try_cast::<EntityHitbox>() {
+            let this = &mut self.to_gd();
+            let anim_player = &mut self.animation_player;
+            let mut timer = godot::classes::Timer::new_alloc();
+            let mut d = AttackData::new(
+                "something",
+                10,
+                &mut hurtbox,
+                this,
+                "attack_east",
+                anim_player,
+                &mut timer,
+            );
+
+            crate::entities::damage::test_damage(&mut d);
         }
+        //     self.hit_enemy = true;
+        //     self.base()
+        //         .get_node_as::<godot::classes::CollisionShape2D>("Hurtbox/HurtboxShape")
+        //         .set_deferred("disabled", &true.to_variant());
+        // }
     }
 
     fn on_area_entered_hitbox(&mut self, area: Gd<Area2D>) {

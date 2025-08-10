@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=4 uid="uid://c3iixjrk3ypgs"]
+[gd_scene load_steps=12 format=4 uid="uid://c3iixjrk3ypgs"]
 
 [ext_resource type="PackedScene" uid="uid://d0yxvbpejsju5" path="res://maps/base_map.tscn" id="1_b71ab"]
 [ext_resource type="Texture2D" uid="uid://b3w0a7wguiang" path="res://assets/environment/tiles/tilemap.png" id="2_pwco0"]
@@ -6,6 +6,7 @@
 [ext_resource type="PackedScene" uid="uid://dt2v4rmlmrw0" path="res://world/game_item.tscn" id="3_pwco0"]
 [ext_resource type="PackedScene" uid="uid://cb2l6ctn5uru8" path="res://world/sliding_door.tscn" id="4_42yok"]
 [ext_resource type="PackedScene" uid="uid://dmnvgp7j5vtfe" path="res://entities/enemies/test_enemy.tscn" id="7_6b7mj"]
+[ext_resource type="PackedScene" uid="uid://cfbrt6vkya0f3" path="res://mock_enemy.tscn" id="7_pbr4s"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_pbr4s"]
 texture = ExtResource("2_pwco0")
@@ -292,6 +293,9 @@ navigation_layers = 4
 left_target = Vector2(654, 0)
 right_target = Vector2(950, 0)
 position = Vector2(797, 77)
+
+[node name="MockEnemy" parent="Enemies" index="1" instance=ExtResource("7_pbr4s")]
+position = Vector2(1801, 41)
 
 [node name="PlayerSpawnPos" parent="." index="5"]
 position = Vector2(229, 37)
