@@ -61,6 +61,37 @@ pub trait TestDamageSystem {
     }
 }
 
+#[derive(GodotClass)]
+#[class(base = Node2D, init)]
+struct MockEnemy {
+    #[init(node = "AnimationPlayer")]
+    anim_player: OnReady<Gd<AnimationPlayer>>,
+    #[init(node = "Timer")]
+    timer: OnReady<Gd<Timer>>,
+    #[init(val = 20)]
+    health: u32,
+    base: Base<Node2D>,
+}
+
+impl HasHealth for Gd<MockEnemy> {
+    fn get_health(&self) -> u32 {
+        self.bind().health
+    }
+
+    fn set_health(&mut self, amount: u32) {
+        self.bind_mut().health = amount;
+    }
+}
+
+// fn test_deal_damage();
+
+pub fn test_damage(data: &mut AttackData) {
+    data.anim_player.play_ex().name(data.animation).done();
+    data.timer.start();
+    data.attacking_unit
+        .deal_damage(data.damage, data.defending_unit);
+}
+
 pub struct AttackData<'a> {
     attack_name: &'a str,
     damage: u32,
@@ -93,37 +124,6 @@ impl<'a> AttackData<'a> {
     }
 }
 
-#[derive(GodotClass)]
-#[class(base = Node2D, init)]
-struct MockEnemy {
-    #[init(node = "AnimationPlayer")]
-    anim_player: OnReady<Gd<AnimationPlayer>>,
-    #[init(node = "Timer")]
-    timer: OnReady<Gd<Timer>>,
-    #[init(val = 20)]
-    health: u32,
-    base: Base<Node2D>,
-}
-
-impl HasHealth for Gd<MockEnemy> {
-    fn get_health(&self) -> u32 {
-        self.bind().health
-    }
-
-    fn set_health(&mut self, amount: u32) {
-        self.bind_mut().health = amount;
-    }
-}
-
-// fn test_deal_damage();
-
-pub fn test_damage(data: &mut AttackData) {
-    data.anim_player.play_ex().name(data.animation).done();
-    data.timer.start();
-    data.attacking_unit
-        .deal_damage(data.damage, data.defending_unit);
-}
-
 pub struct AttackSequence<'a> {
     count: usize,
     data: &'a mut [&'a mut AttackData<'a>],
@@ -143,15 +143,16 @@ impl<'a> AttackSequence<'a> {
 
     pub fn execute(&mut self) {
         let count = self.count;
-        // let sequence_frame = &self.data[count];
         self.data[count].timer.start();
-
-        let time = self.data[count].timer.clone();
-        // time.signals().timeout().connect(|| self.on_timer_timeout());
         test_damage(self.data[count]);
+        if self.data[count].timer.get_time_left() == 0.0 {
+            println!("Timer timeout");
+            self.on_timer_timeout();
+        }
     }
 
     fn on_timer_timeout(&mut self) {
+        println!("On timer timeout");
         self.count += 1;
         if self.count <= self.data.len() {
             self.execute();
