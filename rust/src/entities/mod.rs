@@ -5,4 +5,4 @@ pub mod entity_stats;
 mod hurtbox;
 mod movements;
 pub mod player;
-mod time;
+pub mod time;

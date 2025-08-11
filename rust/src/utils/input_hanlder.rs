@@ -1,82 +1,113 @@
-use std::collections::HashMap;
-
-use godot::{builtin::Vector2, classes::Input, obj::Gd};
+use godot::{
+    classes::{Input, InputEvent, Timer},
+    obj::{Gd, WithBaseField, WithUserSignals},
+};
 
 use crate::entities::{
     entity_stats::{StatVal, Stats},
-    player::character_state_machine::State,
+    player::{character_state_machine::Event, main_character::MainCharacter},
+    time::PlayerTimer,
 };
 
-const GRAVITY: f32 = 200.0;
-const TERMINAL_VELOCITY: f32 = -200.0;
-type Event = crate::entities::player::character_state_machine::Event;
+type PT = PlayerTimer;
 
 #[derive(Default, Clone)]
 pub struct InputHandler;
 
 impl InputHandler {
-    pub fn get_vel_and_event(input: &Gd<Input>) -> (Event, f32) {
-        let mut velocity = Vector2::ZERO;
+    pub fn handle_input(input: &Gd<Input>) -> Inputs {
         if input.is_action_pressed("east") {
-            velocity += Vector2::RIGHT;
-        }
-        if input.is_action_pressed("west") {
-            velocity += Vector2::LEFT;
-        }
-
-        if velocity.length() > 0.0 {
-            (Event::Wasd, velocity.normalized().x)
+            Inputs(Some(MoveButton::Right), None)
+        } else if input.is_action_pressed("west") {
+            Inputs(Some(MoveButton::Left), None)
         } else {
-            (Event::None, velocity.normalized_or_zero().x)
-        }
-    }
-    pub fn get_movement(input: &Gd<Input>, mut velocity: Vector2) -> Vector2 {
-        if input.is_action_pressed("east") {
-            velocity += Vector2::RIGHT;
-        }
-        if input.is_action_pressed("west") {
-            velocity += Vector2::LEFT;
-        }
-        velocity
-    }
-    pub fn get_vel_and_something(
-        state: &State,
-        stats: &HashMap<Stats, StatVal>,
-        mut velocity: Vector2,
-    ) -> (Event, Vector2) {
-        match state {
-            State::Falling {} => {
-                if velocity.y >= TERMINAL_VELOCITY {
-                    velocity.y += GRAVITY
-                }
-            }
-            State::Jumping {} => {
-                velocity.y = Vector2::UP.y * stats.get(&Stats::JumpingSpeed).unwrap().0 as f32
-            }
-            State::Dodging {} => {
-                velocity.x *= stats.get(&Stats::DodgingSpeed).unwrap().0 as f32;
-            }
-            State::Moving {} => {
-                velocity.x *= stats.get(&Stats::RunningSpeed).unwrap().0 as f32;
-            }
-            _ => (),
-        }
-
-        if velocity.x != 0.0 {
-            (Event::Wasd, velocity)
-        } else {
-            (Event::None, velocity)
+            Inputs(None, None)
         }
     }
 
-    pub fn get_vel(input: &Gd<Input>) -> Vector2 {
-        let mut velocity = Vector2::ZERO;
-        if input.is_action_pressed("east") {
-            velocity += Vector2::RIGHT;
+    pub fn handle_unhandled(event: &Gd<InputEvent>, entity: &mut MainCharacter) {
+        let timer_ok = |timer: Option<&Gd<Timer>>| timer.is_some_and(|t| t.get_time_left() == 0.0);
+
+        if event.is_action_pressed("attack") && timer_ok(entity.timers.get(&PT::AttackAnimation)) {
+            entity.timers.get_mut(&PT::AttackAnimation).unwrap().start();
+            entity.transition_sm(&Event::InputChanged(Inputs(
+                InputHandler::handle_input(&Input::singleton()).0,
+                Some(ModifierButton::Attack),
+            )));
         }
-        if input.is_action_pressed("west") {
-            velocity += Vector2::LEFT;
+        if event.is_action_pressed("jump") && entity.base().is_on_floor() {
+            entity.transition_sm(&Event::InputChanged(Inputs(
+                InputHandler::handle_input(&Input::singleton()).0,
+                Some(ModifierButton::Jump),
+            )));
         }
-        velocity
+        if event.is_action_pressed("dodge")
+            && timer_ok(entity.timers.get(&PT::DodgeAnimation))
+            && timer_ok(entity.timers.get(&PT::DodgeCooldown))
+        {
+            entity.timers.get_mut(&PT::DodgeAnimation).unwrap().start();
+            entity.transition_sm(&Event::InputChanged(Inputs(
+                InputHandler::handle_input(&Input::singleton()).0,
+                Some(ModifierButton::Dodge),
+            )));
+        }
+
+        if event.is_action_pressed("heal")
+            && timer_ok(entity.timers.get(&PT::HealingAnimation))
+            && timer_ok(entity.timers.get(&PT::HealingCooldown))
+        {
+            entity
+                .timers
+                .get_mut(&PT::HealingAnimation)
+                .unwrap()
+                .start();
+            entity.transition_sm(&Event::InputChanged(Inputs(
+                InputHandler::handle_input(&Input::singleton()).0,
+                Some(ModifierButton::Heal),
+            )));
+            let get_stat = |stat: Option<&StatVal>| stat.unwrap().0;
+            let cur = get_stat(entity.stats.get(&Stats::Health));
+            let max = get_stat(entity.stats.get(&Stats::MaxHealth));
+            let amount = get_stat(entity.stats.get(&Stats::HealAmount));
+
+            if cur < max {
+                entity.stats.get_mut(&Stats::Health).unwrap().0 += amount;
+                let new = get_stat(entity.stats.get(&Stats::Health));
+                entity
+                    .signals()
+                    .player_health_changed()
+                    .emit(cur, new, amount);
+            }
+        }
+
+        if event.is_action_pressed("parry") && timer_ok(entity.timers.get(&PT::ParryAnimation)) {
+            entity.timers.get_mut(&PT::ParryAnimation).unwrap().start();
+            entity.timers.get_mut(&PT::PerfectParry).unwrap().start();
+            entity.transition_sm(&Event::InputChanged(Inputs(
+                InputHandler::handle_input(&Input::singleton()).0,
+                Some(ModifierButton::Parry),
+            )));
+        }
     }
 }
+
+/// Horizontal movement.
+#[derive(Clone, PartialEq, Eq, Debug, Copy)]
+pub enum MoveButton {
+    Left,
+    Right,
+}
+
+/// Action buttons pressed by the player.
+#[derive(Clone, PartialEq, Eq, Debug, Copy)]
+pub enum ModifierButton {
+    Dodge,
+    Jump,
+    Attack,
+    Heal,
+    Parry,
+}
+
+/// Represents player input actions.
+#[derive(Default, Clone, PartialEq, Eq, Debug, Copy)]
+pub struct Inputs(pub Option<MoveButton>, pub Option<ModifierButton>);

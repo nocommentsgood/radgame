@@ -44,6 +44,13 @@ impl Direction {
             Direction::East
         }
     }
+
+    pub fn to_vel(&self) -> Vector2 {
+        match self {
+            Direction::East => Vector2::RIGHT,
+            Direction::West => Vector2::LEFT,
+        }
+    }
 }
 
 pub trait Moveable {

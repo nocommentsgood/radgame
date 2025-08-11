@@ -281,6 +281,8 @@ navigation_polygon = SubResource("NavigationPolygon_pbr4s")
 navigation_layers = 4
 
 [node name="TestEnemy" parent="Enemies" index="0" instance=ExtResource("7_6b7mj")]
+left_target = Vector2(695, 0)
+right_target = Vector2(878, 0)
 position = Vector2(797, 77)
 
 [node name="MockEnemy" parent="Enemies" index="1" instance=ExtResource("7_pbr4s")]
