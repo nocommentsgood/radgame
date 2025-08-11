@@ -25,7 +25,7 @@ use crate::{
         },
         time::PlayerTimer,
     },
-    utils::input_hanlder::InputHandler,
+    utils::input_hanlder::{InputHandler, Movement},
 };
 
 type State = csm::State;
@@ -38,14 +38,15 @@ const TERMINAL_VELOCITY: f32 = 200.0;
 #[class(init, base=CharacterBody2D)]
 pub struct MainCharacter {
     direction: Direction,
-    velocity: Vector2,
+    pub velocity: Vector2,
     prev_velocity: Vector2,
     active_velocity: Vector2,
     hit_enemy: bool,
     can_attack_chain: bool,
-    timers: HashMap<PlayerTimer, Gd<Timer>>,
-    state: StateMachine<csm::CharacterStateMachine>,
-    stats: HashMap<Stats, StatVal>,
+    inputs: InputHandler,
+    pub timers: HashMap<PlayerTimer, Gd<Timer>>,
+    pub state: StateMachine<csm::CharacterStateMachine>,
+    pub stats: HashMap<Stats, StatVal>,
     base: Base<CharacterBody2D>,
 
     #[export]
@@ -63,9 +64,6 @@ pub struct MainCharacter {
     #[init(node = "ItemComponent")]
     pub item_comp: OnReady<Gd<ItemComponent>>,
 
-    #[var]
-    #[init(node = "DodgingCooldownTimer")]
-    dodging_cooldown_timer: OnReady<Gd<godot::classes::Timer>>,
     #[var]
     #[init(node = "AnimationPlayer")]
     animation_player: OnReady<Gd<AnimationPlayer>>,
@@ -104,15 +102,6 @@ impl ICharacterBody2D for MainCharacter {
             .area_entered()
             .connect_other(&this, Self::on_area_entered_hurtbox);
 
-        self.signals()
-            .animation_state_changed()
-            .connect_self(Self::on_animation_state_changed);
-
-        self.get_dodging_cooldown_timer()
-            .signals()
-            .timeout()
-            .connect_other(&self.to_gd(), Self::on_dodge_animation_timeout);
-
         // TODO: Find how to get tracks for specific animations.
         // That way we can dynamically divide by scaling speed.
 
@@ -132,13 +121,11 @@ impl ICharacterBody2D for MainCharacter {
             .unwrap()
             .get_length();
 
-        let jumping_animation_length = 0.1;
-
         let healing_animation_length = self
             .get_animation_player()
             .get_animation("heal_east")
             .unwrap()
-            .get_length();
+            .get_length() as f64;
 
         let parry_animation_length = self
             .get_animation_player()
@@ -157,51 +144,83 @@ impl ICharacterBody2D for MainCharacter {
         self.stats.insert(Stats::HealAmount, StatVal::new(10));
         self.stats.insert(Stats::AttackDamage, StatVal::new(30));
         self.stats.insert(Stats::RunningSpeed, StatVal::new(150));
-        self.stats.insert(Stats::JumpingSpeed, StatVal::new(2000));
+        self.stats.insert(Stats::JumpingSpeed, StatVal::new(350));
         self.stats.insert(Stats::DodgingSpeed, StatVal::new(250));
         self.stats.insert(Stats::AttackingSpeed, StatVal::new(10));
 
-        self.timers
-            .insert(PlayerTimer::AttackChain, Timer::new_alloc());
+        let this = &self.to_gd();
+
+        // Attack chain
+        // let mut timer = Timer::new_alloc();
+        // timer.set_wait_time(attack_animation_length as f64);
+        // timer
+        //     .signals()
+        //     .timeout()
+        //     .connect_other(this, Self::on_attack_timeout);
+        // self.timers
+        //     .insert(PlayerTimer::AttackChain, Timer::new_alloc());
+
+        // Dodge animation
         let mut timer = Timer::new_alloc();
         timer.set_wait_time(dodge_animation_length as f64);
-        self.timers.insert(PlayerTimer::DodgeAnimation, timer);
-        self.timers
-            .insert(PlayerTimer::JumpingAnimation, Timer::new_alloc());
-        self.timers
-            .insert(PlayerTimer::AttackAnimation, Timer::new_alloc());
-        self.timers
-            .insert(PlayerTimer::AttackAnimation2, Timer::new_alloc());
-        self.timers
-            .insert(PlayerTimer::HealingAnimation, Timer::new_alloc());
-        self.timers
-            .insert(PlayerTimer::HurtAnimation, Timer::new_alloc());
-        self.timers
-            .insert(PlayerTimer::ParryAnimation, Timer::new_alloc());
-        self.timers.insert(PlayerTimer::Parry, Timer::new_alloc());
-        self.timers
-            .insert(PlayerTimer::PerfectParry, Timer::new_alloc());
-        self.timers.insert(PlayerTimer::Coyote, Timer::new_alloc());
-        self.timers.insert(PT::DodgeCooldown, Timer::new_alloc());
-
-        self.timers
-            .get_mut(&PT::DodgeCooldown)
-            .unwrap()
-            .set_wait_time(4.0);
-
-        let this = &self.to_gd();
-        self.timers
-            .get_mut(&PT::DodgeAnimation)
-            .unwrap()
+        timer
             .signals()
             .timeout()
             .connect_other(this, Self::on_dodge_animation_timeout);
-        // self.timers
-        //     .get_mut(&PT::JumpingAnimation)
-        //     .unwrap()
-        //     .signals()
-        //     .timeout()
-        //     .connect_other(this, Self::on_jumping_timeout);
+        self.timers.insert(PlayerTimer::DodgeAnimation, timer);
+
+        // Dodge cooldown
+        let mut timer = Timer::new_alloc();
+        timer.set_wait_time(2.5);
+        self.timers.insert(PT::DodgeCooldown, timer);
+
+        // TODO: Used?
+        self.timers
+            .insert(PlayerTimer::JumpingAnimation, Timer::new_alloc());
+
+        // Attack anim
+        let mut timer = Timer::new_alloc();
+        timer.set_wait_time(attack_animation_length as f64);
+        timer
+            .signals()
+            .timeout()
+            .connect_other(this, Self::on_attack_timeout);
+        self.timers.insert(PlayerTimer::AttackAnimation, timer);
+
+        // Healing Animation
+        let mut timer = Timer::new_alloc();
+        timer.set_wait_time(healing_animation_length);
+        timer
+            .signals()
+            .timeout()
+            .connect_other(&self.to_gd(), Self::on_healing_timeout);
+        self.timers.insert(PlayerTimer::HealingAnimation, timer);
+
+        let mut timer = Timer::new_alloc();
+        timer.set_wait_time(1.5);
+        self.timers.insert(PlayerTimer::HealingCooldown, timer);
+
+        // Parry animation
+        let mut timer = Timer::new_alloc();
+        timer.set_wait_time(parry_animation_length as f64);
+        timer
+            .signals()
+            .timeout()
+            .connect_other(this, Self::on_parry_timeout);
+        self.timers.insert(PlayerTimer::ParryAnimation, timer);
+
+        // Parry
+        let mut timer = Timer::new_alloc();
+        timer.set_wait_time(0.3);
+        self.timers.insert(PlayerTimer::Parry, Timer::new_alloc());
+
+        // Perfect parry
+        let mut timer = Timer::new_alloc();
+        timer.set_wait_time(0.15);
+        self.timers.insert(PlayerTimer::PerfectParry, timer);
+
+        self.timers.insert(PlayerTimer::Coyote, Timer::new_alloc());
+
         let mut pt = self.timers.clone();
         pt.values_mut().for_each(|timer| {
             timer.set_one_shot(true);
@@ -219,72 +238,110 @@ impl ICharacterBody2D for MainCharacter {
     // state by eagerly checking the state machine's next state, just before it changes state.
     // Otherwise, `physics_process` handles emitting the signal.
     fn unhandled_input(&mut self, input: Gd<godot::classes::InputEvent>) {
-        if input.is_action_pressed("attack") {
-            self.state.handle(&Event::AttackButton);
-            // if self.state.state().as_descriminant() == csm::to_descriminant(&State::Attacking {}) {
-            //     self.signals().animation_state_changed().emit();
-            // }
+        let timer_ok = |timer: Option<&Gd<Timer>>| timer.is_some_and(|t| t.get_time_left() == 0.0);
+
+        if input.is_action_pressed("attack") && timer_ok(self.timers.get(&PT::AttackAnimation)) {
+            self.timers.get_mut(&PT::AttackAnimation).unwrap().start();
+            self.transition_sm(&Event::AttackButton);
         }
         if input.is_action_pressed("jump") {
-            self.state.handle(&Event::JumpButton);
-            // if self.state.state().as_descriminant() == csm::to_descriminant(&State::Jumping {}) {
-            //     self.signals().animation_state_changed().emit();
-            // }
+            self.transition_sm(&Event::JumpButton);
         }
         if input.is_action_released("jump") {
-            self.state.handle(&Event::ActionReleasedEarly);
+            self.transition_sm(&Event::ActionReleasedEarly);
         }
 
         if input.is_action_pressed("dodge")
-            && self
-                .timers
-                .get(&PT::DodgeAnimation)
-                .unwrap()
-                .get_time_left()
-                == 0.0
-            && self.timers.get(&PT::DodgeCooldown).unwrap().get_time_left() == 0.0
+            && timer_ok(self.timers.get(&PT::DodgeAnimation))
+            && timer_ok(self.timers.get(&PT::DodgeCooldown))
         {
-            self.timers.get_mut(&PT::DodgeAnimation).unwrap().start();
-            self.state.handle(&Event::DodgeButton);
+            self.transition_sm(&Event::DodgeButton);
         }
 
-        if input.is_action_pressed("heal") {
-            self.state.handle(&Event::HealingButton);
-            if self.state.state().as_descriminant() == csm::to_descriminant(&State::Healing {}) {
-                self.signals().animation_state_changed().emit();
+        if input.is_action_pressed("heal")
+            && timer_ok(self.timers.get(&PT::HealingAnimation))
+            && timer_ok(self.timers.get(&PT::HealingCooldown))
+        {
+            self.timers.get_mut(&PT::HealingAnimation).unwrap().start();
+            self.transition_sm(&Event::HealingButton);
+            let get_stat = |stat: Option<&StatVal>| stat.unwrap().0;
+            let cur = get_stat(self.stats.get(&Stats::Health));
+            let max = get_stat(self.stats.get(&Stats::MaxHealth));
+            let amount = get_stat(self.stats.get(&Stats::HealAmount));
+            if cur < max {
+                self.stats.get_mut(&Stats::Health).unwrap().0 += amount;
+                let new = get_stat(self.stats.get(&Stats::Health));
+                self.signals()
+                    .player_health_changed()
+                    .emit(cur, new, amount);
             }
         }
-        if input.is_action_pressed("parry") {
-            self.state.handle(&Event::ParryButton);
-            if self.state.state().as_descriminant() == csm::to_descriminant(&State::Parry {}) {
-                self.signals().animation_state_changed().emit();
-            }
+
+        if input.is_action_pressed("parry") && timer_ok(self.timers.get(&PT::ParryAnimation)) {
+            self.timers.get_mut(&PT::ParryAnimation).unwrap().start();
+            self.timers.get_mut(&PT::PerfectParry).unwrap().start();
+            self.transition_sm(&Event::ParryButton);
         }
     }
 
     fn physics_process(&mut self, delta: f32) {
-        let event: Event;
-        let v: Vector2;
-        self.velocity = InputHandler::get_movement(&Input::singleton(), self.velocity);
-        (event, v) =
-            InputHandler::get_vel_and_something(self.state.state(), &self.stats, self.velocity);
-        self.state.handle(&event);
-        self.velocity = v;
-        self.base_mut().set_velocity(v);
-        self.base_mut().move_and_slide();
+        let prev_x_vel = self.velocity.x;
+        let event = InputHandler::set_vel_get_event(
+            &Input::singleton(),
+            self.state.state(),
+            &self.stats,
+            &mut self.velocity,
+            &delta,
+        );
+        let input = InputHandler::get_velocity(&Input::singleton());
+        let movement = Movement::from_vel(input);
+        let v = self.velocity;
+        let new_x_vel = self.velocity.x;
+
+        // Update animation direction on velocity change when not dodging.
+        if prev_x_vel != new_x_vel
+            && self.state.state().as_descriminant() != csm::to_descriminant(&State::Dodging {})
+        {
+            self.update_animation();
+        }
 
         if !self.base().is_on_floor() {
-            self.state.handle(&Event::FailedFloorCheck);
+            // self.transition_sm(&Event::FailedFloorCheck);
+            if self.velocity.y <= TERMINAL_VELOCITY {
+                self.velocity.y += GRAVITY * delta;
+            }
+            self.velocity.x *= self.stats.get(&Stats::RunningSpeed).unwrap().0 as f32;
         }
 
-        let prev_state = self.state.state().as_descriminant();
-        match self.state.state() {
-            // csm::State::Idle {} => self.idle(),
-            csm::State::Jumping {} => self.jump(),
-            csm::State::Falling {} => self.fall(),
-            csm::State::Moving {} => self.move_character(),
-            _ => (),
+        if self.base().is_on_floor() {
+            self.velocity.y = 0.0;
         }
+
+        match self.state.state() {
+            // csm::State::Falling {} => {
+            //     if velocity.y <= TERMINAL_VELOCITY {
+            //         velocity.y += GRAVITY * delta;
+            //     }
+            //     velocity.x *= stats.get(&Stats::RunningSpeed).unwrap().0 as f32;
+            //     self.base_mut().set_velocity(v);
+            //     self.base_mut().move_and_slide();
+            //     if self.base().is_on_floor() {
+            //         if self.velocity.x > 0.0 {
+            //             self.transition_sm(&Event::OnFloor);
+            //         } else {
+            //             self.transition_sm(&Event::MovingToIdle);
+            //         }
+            //     }
+            // }
+            csm::State::Dodging {} => self.dodge(),
+            _ => {
+                self.base_mut().set_velocity(v);
+                self.base_mut().move_and_slide();
+            }
+        }
+
+        // TODO: See if I can get rid of these constant calls to transition.
+        self.transition_sm(&event);
         // dbg!(self.state.state());
     }
 }
@@ -348,23 +405,52 @@ impl MainCharacter {
             camera
                 .bind_mut()
                 .add_trauma(TraumaLevel::from(damaging.dyn_bind().damage_amount()));
-            self.state.handle(&Event::Hurt);
+            self.transition_sm(&Event::Hurt);
         }
     }
 
-    fn on_dodge_animation_timeout(&mut self) {
-        println!("Dodge animation timeout");
+    fn on_parry_timeout(&mut self) {
+        self.transition_sm(&Event::TimerElapsed);
+    }
+
+    fn on_attack_timeout(&mut self) {
         if self.velocity.x == 0.0 {
-            self.state.handle(&Event::MovingToIdle);
+            self.transition_sm(&Event::MovingToIdle);
         } else {
-            self.state.handle(&Event::TimerElapsed);
+            self.transition_sm(&Event::TimerElapsed);
+        }
+    }
+
+    fn on_healing_timeout(&mut self) {
+        self.timers.get_mut(&PT::HealingCooldown).unwrap().start();
+        self.transition_sm(&Event::TimerElapsed);
+    }
+
+    fn on_dodge_animation_timeout(&mut self) {
+        if self.velocity.x == 0.0 {
+            self.transition_sm(&Event::MovingToIdle);
+        } else {
+            self.transition_sm(&Event::TimerElapsed);
         }
         self.timers.get_mut(&PT::DodgeCooldown).unwrap().start();
     }
 
-    fn move_character(&mut self) {
-        if self.velocity.x == 0.0 {
-            self.state.handle(&Event::None);
+    fn dodge(&mut self) {
+        if self
+            .timers
+            .get(&PT::DodgeAnimation)
+            .unwrap()
+            .get_time_left()
+            == 0.0
+        {
+            let dir = Direction::from_vel(&self.velocity);
+            let mut velocity = dir.to_vel();
+            velocity.x *= self.stats.get(&Stats::DodgingSpeed).unwrap().0 as f32;
+            self.timers.get_mut(&PT::DodgeAnimation).unwrap().start();
+            self.base_mut().set_velocity(velocity);
+            self.base_mut().move_and_slide();
+        } else {
+            self.base_mut().move_and_slide();
         }
     }
 
@@ -499,130 +585,64 @@ impl MainCharacter {
         self.base_mut().set_process_unhandled_input(true);
     }
 
-    fn idle(&mut self) {
-        // self.active_velocity = Vector2::ZERO;
-        if self.velocity.x != 0.0 {
-            self.state.handle(&Event::Wasd);
-        }
-    }
-
-    fn jump(&mut self) {
-        // TODO: Use jumping speed player stat.
-        self.velocity.y = Vector2::UP.y * self.temp_jump_speed;
-    }
-
-    fn heal(&mut self) {
-        // let current_health = self.stats.get(&Stats::Health).unwrap().0;
-        // let amount = self.stats.get(&Stats::HealAmount).unwrap().0;
-        // let max = self.stats.get(&Stats::MaxHealth).unwrap().0;
-        // let delta = Duration::from_secs_f32(self.base().get_physics_process_delta_time() as f32);
-        // self.velocity = Vector2::ZERO;
-        // let velocity = self.velocity;
-        //
-        // self.base_mut().set_velocity(velocity);
-        // self.timers
-        //     .get_mut(&PT::HealingAnimation)
-        //     .unwrap()
-        //     .tick(delta);
-        //
-        // if self.timers[&PT::HealingAnimation].just_finished() {
-        //     if current_health < max {
-        //         self.stats.get_mut(&Stats::Health).unwrap().0 += amount;
-        //         let new = self.stats.get(&Stats::Health).unwrap().0;
-        //         self.signals()
-        //             .player_health_changed()
-        //             .emit(current_health, new, amount);
-        //     }
-        //     self.timers.get_mut(&PT::HealingAnimation).unwrap().reset();
-        //     self.state.handle(&Event::TimerElapsed);
-        // }
-    }
-
-    fn fall(&mut self) {
-        if self.base().is_on_floor() {
-            if self.velocity.x > 0.0 {
-                self.state.handle(&Event::OnFloor);
-            } else {
-                self.state.handle(&Event::MovingToIdle);
-            }
-        }
-    }
-
-    fn parry(&mut self) {
-        // let delta = Duration::from_secs_f32(self.base().get_physics_process_delta_time() as f32);
-        // self.timers
-        //     .get_mut(&PT::ParryAnimation)
-        //     .unwrap()
-        //     .tick(delta);
-        // self.timers.get_mut(&PT::Parry).unwrap().tick(delta);
-        // self.timers.get_mut(&PT::PerfectParry).unwrap().tick(delta);
-        //
-        // if self.timers[&PT::ParryAnimation].just_finished() {
-        //     self.timers.get_mut(&PT::ParryAnimation).unwrap().reset();
-        //     self.timers.get_mut(&PT::Parry).unwrap().reset();
-        //     self.timers.get_mut(&PT::PerfectParry).unwrap().reset();
-        //     self.state.handle(&Event::TimerElapsed);
-        // }
-    }
-
     fn parried_attack(&mut self, area: &Gd<Hurtbox>) -> bool {
-        todo!()
-        // match self.state.state() {
-        //     State::Parry {} => {
-        //         if self.timers.get(&PT::PerfectParry).unwrap().remaining_secs() > 0.0 {
-        //             println!("\nPERFECT PARRY\n");
-        //             if area.is_in_group("enemy_projectile")
-        //                 && let Some(parent) = area.get_parent()
-        //                 && let Ok(mut projectile) = parent.try_cast::<Projectile>()
-        //             {
-        //                 projectile.bind_mut().on_parried();
-        //             }
-        //             self.signals().parried_attack().emit();
-        //             self.timers.get_mut(&PT::PerfectParry).unwrap().reset();
-        //             true
-        //         } else if self.timers[&PT::Parry].remaining_secs() > 0.0 {
-        //             println!("\nNORMAL PARRY\n");
-        //             if area.is_in_group("enemy_projectile")
-        //                 && let Some(parent) = area.get_parent()
-        //                 && let Ok(mut projectile) = parent.try_cast::<Projectile>()
-        //             {
-        //                 projectile.bind_mut().on_parried();
-        //             }
-        //             self.signals().parried_attack().emit();
-        //             self.timers.get_mut(&PT::Parry).unwrap().reset();
-        //             true
-        //         } else {
-        //             false
-        //         }
-        //     }
-        //     _ => false,
-        // }
+        match self.state.state() {
+            State::Parry {} => {
+                if self.timers.get(&PT::PerfectParry).unwrap().get_time_left() > 0.0 {
+                    println!("\nPERFECT PARRY\n");
+                    if area.is_in_group("enemy_projectile")
+                        && let Some(parent) = area.get_parent()
+                        && let Ok(mut projectile) = parent.try_cast::<Projectile>()
+                    {
+                        projectile.bind_mut().on_parried();
+                    }
+                    self.signals().parried_attack().emit();
+                    true
+                } else if self.timers.get(&PT::Parry).unwrap().get_time_left() > 0.0 {
+                    println!("\nNORMAL PARRY\n");
+                    if area.is_in_group("enemy_projectile")
+                        && let Some(parent) = area.get_parent()
+                        && let Ok(mut projectile) = parent.try_cast::<Projectile>()
+                    {
+                        projectile.bind_mut().on_parried();
+                    }
+                    self.signals().parried_attack().emit();
+                    true
+                } else {
+                    false
+                }
+            }
+            _ => false,
+        }
     }
 
-    fn on_animation_state_changed(&mut self) {
-        self.update_animation();
+    fn transition_sm(&mut self, event: &Event) {
+        let cur = self.state.state().as_descriminant();
+        self.state.handle(event);
+        let new = self.state.state().as_descriminant();
+
+        if cur != new {
+            self.update_animation();
+        }
     }
-
-    fn get_animation_name(&self) -> String {
-        let mut animation = self.state.state().to_string();
-        animation.push('_');
-        animation.push_str(self.direction.to_string().as_str());
-
-        animation
-    }
-
-    fn on_current_animation_changed(&mut self, name: String) {}
 
     fn update_animation(&mut self) {
         self.update_direction();
-        let prev_anim = self.animation_player.get_current_animation().to_string();
-        let next_anim = self.get_animation_name();
-        let state = next_anim.split_once("_");
-        if prev_anim != next_anim
-            && let Some(s) = state
-            && s.0 == self.state.state().to_string()
-        {
-            self.animation_player.play_ex().name(&next_anim).done();
+        println!("Vel in update anim: {}", self.velocity);
+        if self.velocity.y.is_sign_positive() && self.velocity.y != 0.0 {
+            self.animation_player
+                .play_ex()
+                .name(&format!("{}_{}", "falling", self.direction))
+                .done();
+        }
+        if self.velocity.y < 0.0 {
+            self.animation_player
+                .play_ex()
+                .name(&format!("{}_{}", "jumping", self.direction))
+                .done();
+        } else {
+            let anim = format!("{}_{}", self.state.state(), self.direction);
+            self.animation_player.play_ex().name(&anim).done();
             self.animation_player.advance(0.0);
         }
     }

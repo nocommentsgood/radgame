@@ -41,7 +41,7 @@ _data = {
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_m5ck1"]
 size = Vector2(115, 113)
 
-[node name="MockEnemy" type="Node2D"]
+[node name="MockEnemy" type="MockEnemy"]
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
 texture = ExtResource("1_m5ck1")

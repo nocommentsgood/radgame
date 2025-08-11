@@ -7,6 +7,7 @@ use super::has_state::HasState;
 use crate::entities::entity_hitbox::EntityHitbox;
 use crate::entities::hurtbox::Hurtbox;
 
+#[allow(unused)]
 pub trait HasEnemySensors: HasState
 where
     Self: Inherits<godot::classes::Node2D> + WithBaseField<Base: Inherits<godot::classes::Node>>,

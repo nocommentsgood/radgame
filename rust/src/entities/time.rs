@@ -1,8 +1,3 @@
-use godot::{
-    classes::{Timer, timer::TimerProcessCallback},
-    obj::{Gd, NewAlloc},
-};
-
 #[derive(Clone, Copy, Eq, PartialEq, Hash, Default)]
 pub enum EnemyTimer {
     AttackAnimation,
@@ -22,6 +17,7 @@ pub enum PlayerTimer {
     AttackAnimation,
     AttackAnimation2,
     HealingAnimation,
+    HealingCooldown,
     HurtAnimation,
     ParryAnimation,
     Parry,

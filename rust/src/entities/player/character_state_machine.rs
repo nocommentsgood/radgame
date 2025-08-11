@@ -66,7 +66,7 @@ pub enum Event {
     FailedFloorCheck,
     ActionReleasedEarly,
     TimerElapsed,
-    TimerInProgress,
+    ActionInterrupt,
     OnFloor,
     MovingToIdle,
     Hurt,
@@ -110,7 +110,7 @@ impl CharacterStateMachine {
         match event {
             Event::TimerElapsed => Response::Transition(State::moving()),
             Event::MovingToIdle => Response::Transition(State::idle()),
-            Event::TimerInProgress => Response::Transition(State::idle()),
+            Event::ActionInterrupt => Response::Transition(State::idle()),
             Event::FailedFloorCheck => Response::Transition(State::falling()),
             _ => Handled,
         }

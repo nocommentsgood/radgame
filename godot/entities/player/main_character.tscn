@@ -242,7 +242,6 @@ tracks/17/keys = {
 [sub_resource type="Animation" id="Animation_g3onn"]
 resource_name = "airattack_east"
 length = 0.2
-loop_mode = 1
 step = 0.01
 tracks/0/type = "value"
 tracks/0/imported = false
@@ -404,7 +403,6 @@ tracks/12/keys = {
 [sub_resource type="Animation" id="Animation_ec54m"]
 resource_name = "airattack_west"
 length = 0.2
-loop_mode = 1
 step = 0.01
 tracks/0/type = "value"
 tracks/0/imported = false
@@ -566,7 +564,6 @@ tracks/12/keys = {
 [sub_resource type="Animation" id="Animation_my085"]
 resource_name = "attack_east"
 length = 0.2
-loop_mode = 1
 step = 0.01
 tracks/0/type = "value"
 tracks/0/imported = false
@@ -728,7 +725,6 @@ tracks/12/keys = {
 [sub_resource type="Animation" id="Animation_62fq1"]
 resource_name = "attack_west"
 length = 0.2
-loop_mode = 1
 step = 0.01
 tracks/0/type = "value"
 tracks/0/imported = false
@@ -1579,7 +1575,6 @@ tracks/14/keys = {
 
 [sub_resource type="Animation" id="Animation_4fyk8"]
 resource_name = "falling_east"
-loop_mode = 1
 step = 0.1
 tracks/0/type = "value"
 tracks/0/imported = false
@@ -1752,7 +1747,6 @@ tracks/13/keys = {
 
 [sub_resource type="Animation" id="Animation_n5uwk"]
 resource_name = "falling_west"
-loop_mode = 1
 step = 0.1
 tracks/0/type = "value"
 tracks/0/imported = false
@@ -2757,6 +2751,7 @@ tracks/6/keys = {
 
 [sub_resource type="Animation" id="Animation_krt8q"]
 resource_name = "jumping_east"
+loop_mode = 1
 step = 0.1
 tracks/0/type = "value"
 tracks/0/imported = false
@@ -2930,6 +2925,7 @@ tracks/13/keys = {
 [sub_resource type="Animation" id="Animation_n1qle"]
 resource_name = "jumping_west"
 length = 1.5
+loop_mode = 1
 step = 0.1
 tracks/0/type = "value"
 tracks/0/imported = false
