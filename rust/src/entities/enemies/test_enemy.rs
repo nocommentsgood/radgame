@@ -57,6 +57,7 @@ pub struct TestEnemy {
 #[godot_api]
 impl ICharacterBody2D for TestEnemy {
     fn ready(&mut self) {
+        dbg!(self.sensors());
         self.patrol_comp.left_target = self.left_target;
         self.patrol_comp.right_target = self.right_target;
         self.speeds = SpeedComponent::new(40, 40, 80);
@@ -100,7 +101,6 @@ impl ICharacterBody2D for TestEnemy {
 
     fn physics_process(&mut self, _delta: f64) {
         if self.previous_velocity.x != self.get_velocity().x {
-            println!("Updating animation");
             self.previous_velocity = self.get_velocity();
             self.update_animation();
         }
