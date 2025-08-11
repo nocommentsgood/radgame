@@ -1053,7 +1053,7 @@ size = Vector2(325, 132)
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_0n8mu"]
 size = Vector2(20, 42)
 
-[node name="TestEnemy" type="TestEnemy" groups=["enemy"]]
+[node name="TestEnemy" type="CharacterBody2D" groups=["enemy"]]
 collision_layer = 2
 collision_mask = 2
 slide_on_ceiling = false

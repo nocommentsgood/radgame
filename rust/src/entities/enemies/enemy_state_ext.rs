@@ -74,7 +74,6 @@ where
 
     fn fall(&mut self) {
         let velocity = Vector2::DOWN * self.speeds().aggro;
-        println!("Falling");
         self.set_velocity(velocity);
         self.slide();
     }
@@ -127,7 +126,6 @@ where
     }
 
     fn attack(&mut self) {
-        println!("Normal attack");
         self.timers().get_mut(&ET::AttackAnimation).unwrap().start();
         self.timers().get_mut(&ET::AttackCooldown).unwrap().start();
         self.track_player();
@@ -135,12 +133,10 @@ where
     }
 
     fn on_attack_animation_timeout(&mut self) {
-        println!("Attack animation timeout");
         self.transition_sm(&EnemyEvent::TimerElapsed);
     }
 
     fn chain_attack(&mut self) {
-        println!("Chain attack");
         self.actual_attack();
         self.timers()
             .get_mut(&ET::AttackChainCooldown)
@@ -149,7 +145,6 @@ where
     }
 
     fn on_chain_attack_timeout(&mut self) {
-        println!("Chain Attack timeout");
         if self.get_chain_attack_count() >= 2 {
             self.set_chain_attack_count(0);
             self.timers().get_mut(&ET::AttackCooldown).unwrap().start();
@@ -170,17 +165,14 @@ where
     }
 
     fn on_patrol_timeout(&mut self) {
-        println!("Patrol timer timeout");
         self.transition_sm(&EnemyEvent::TimerElapsed);
     }
 
     fn idle(&mut self) {
-        println!("starting idle timer");
         self.timers().get_mut(&ET::Idle).unwrap().start();
     }
 
     fn on_idle_timeout(&mut self) {
-        println!("Idle timer timeout");
         let v = self
             .patrol_comp()
             .get_furthest_distance(self.base().upcast_ref::<Node2D>().get_position());

@@ -2,21 +2,6 @@
 
 [ext_resource type="Texture2D" uid="uid://c350iit4lopo8" path="res://assets/icon.svg" id="1_m5ck1"]
 
-[sub_resource type="Animation" id="Animation_m5ck1"]
-resource_name = "wow"
-tracks/0/type = "value"
-tracks/0/imported = false
-tracks/0/enabled = true
-tracks/0/path = NodePath("Sprite2D:scale")
-tracks/0/interp = 1
-tracks/0/loop_wrap = true
-tracks/0/keys = {
-"times": PackedFloat32Array(0, 0.2, 0.666667),
-"transitions": PackedFloat32Array(1, 1, 1),
-"update": 0,
-"values": [Vector2(1, 1), Vector2(0.8, 0.8), Vector2(0.5, 0.5)]
-}
-
 [sub_resource type="Animation" id="Animation_o5evs"]
 length = 0.001
 tracks/0/type = "value"
@@ -32,6 +17,21 @@ tracks/0/keys = {
 "values": [Vector2(1, 1)]
 }
 
+[sub_resource type="Animation" id="Animation_m5ck1"]
+resource_name = "wow"
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite2D:scale")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.2, 0.666667),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Vector2(1, 1), Vector2(0.8, 0.8), Vector2(0.5, 0.5)]
+}
+
 [sub_resource type="AnimationLibrary" id="AnimationLibrary_mxc58"]
 _data = {
 &"RESET": SubResource("Animation_o5evs"),
@@ -41,7 +41,7 @@ _data = {
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_m5ck1"]
 size = Vector2(115, 113)
 
-[node name="MockEnemy" type="MockEnemy"]
+[node name="MockEnemy" type="Node2D"]
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
 texture = ExtResource("1_m5ck1")
@@ -55,7 +55,7 @@ libraries = {
 wait_time = 2.0
 one_shot = true
 
-[node name="EntityHitbox" type="EntityHitbox" parent="."]
+[node name="EntityHitbox" type="Area2D" parent="."]
 collision_layer = 8
 collision_mask = 16
 

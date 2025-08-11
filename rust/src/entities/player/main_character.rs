@@ -23,7 +23,7 @@ use crate::{
             item_component::ItemComponent,
             shaky_player_camera::{ShakyPlayerCamera, TraumaLevel},
         },
-        time::{PlayerTimer, PlayerTimers},
+        time::PlayerTimer,
     },
     utils::input_hanlder::InputHandler,
 };
@@ -31,7 +31,7 @@ use crate::{
 type State = csm::State;
 type PT = PlayerTimer;
 type Event = csm::Event;
-const GRAVITY: f32 = 1100.0;
+const GRAVITY: f32 = 500.0;
 const TERMINAL_VELOCITY: f32 = 200.0;
 
 #[derive(GodotClass)]
@@ -43,7 +43,7 @@ pub struct MainCharacter {
     active_velocity: Vector2,
     hit_enemy: bool,
     can_attack_chain: bool,
-    timers: PlayerTimers,
+    timers: HashMap<PlayerTimer, Gd<Timer>>,
     state: StateMachine<csm::CharacterStateMachine>,
     stats: HashMap<Stats, StatVal>,
     base: Base<CharacterBody2D>,
@@ -111,7 +111,7 @@ impl ICharacterBody2D for MainCharacter {
         self.get_dodging_cooldown_timer()
             .signals()
             .timeout()
-            .connect_other(&self.to_gd(), Self::on_dodge_timer_timeout);
+            .connect_other(&self.to_gd(), Self::on_dodge_animation_timeout);
 
         // TODO: Find how to get tracks for specific animations.
         // That way we can dynamically divide by scaling speed.
@@ -157,24 +157,56 @@ impl ICharacterBody2D for MainCharacter {
         self.stats.insert(Stats::HealAmount, StatVal::new(10));
         self.stats.insert(Stats::AttackDamage, StatVal::new(30));
         self.stats.insert(Stats::RunningSpeed, StatVal::new(150));
-        self.stats.insert(Stats::JumpingSpeed, StatVal::new(280));
+        self.stats.insert(Stats::JumpingSpeed, StatVal::new(2000));
         self.stats.insert(Stats::DodgingSpeed, StatVal::new(250));
         self.stats.insert(Stats::AttackingSpeed, StatVal::new(10));
 
-        self.timers.add(0.6);
-        self.timers.add(dodge_animation_length);
-        self.timers.add(jumping_animation_length);
-        self.timers.add(attack_animation_length);
-        self.timers.add(attack_animation_length);
-        self.timers.add(healing_animation_length);
-        self.timers.add(parry_animation_length);
-        self.timers.add(0.3);
-        self.timers.add(0.15);
-        self.timers.add(1.0); // dodge cooldown
+        self.timers
+            .insert(PlayerTimer::AttackChain, Timer::new_alloc());
+        let mut timer = Timer::new_alloc();
+        timer.set_wait_time(dodge_animation_length as f64);
+        self.timers.insert(PlayerTimer::DodgeAnimation, timer);
+        self.timers
+            .insert(PlayerTimer::JumpingAnimation, Timer::new_alloc());
+        self.timers
+            .insert(PlayerTimer::AttackAnimation, Timer::new_alloc());
+        self.timers
+            .insert(PlayerTimer::AttackAnimation2, Timer::new_alloc());
+        self.timers
+            .insert(PlayerTimer::HealingAnimation, Timer::new_alloc());
+        self.timers
+            .insert(PlayerTimer::HurtAnimation, Timer::new_alloc());
+        self.timers
+            .insert(PlayerTimer::ParryAnimation, Timer::new_alloc());
+        self.timers.insert(PlayerTimer::Parry, Timer::new_alloc());
+        self.timers
+            .insert(PlayerTimer::PerfectParry, Timer::new_alloc());
+        self.timers.insert(PlayerTimer::Coyote, Timer::new_alloc());
+        self.timers.insert(PT::DodgeCooldown, Timer::new_alloc());
 
-        // self.timers.iter_mut().map(|timer| {
-        //     self.base_mut().add_child(&timer.clone());
-        // });
+        self.timers
+            .get_mut(&PT::DodgeCooldown)
+            .unwrap()
+            .set_wait_time(4.0);
+
+        let this = &self.to_gd();
+        self.timers
+            .get_mut(&PT::DodgeAnimation)
+            .unwrap()
+            .signals()
+            .timeout()
+            .connect_other(this, Self::on_dodge_animation_timeout);
+        // self.timers
+        //     .get_mut(&PT::JumpingAnimation)
+        //     .unwrap()
+        //     .signals()
+        //     .timeout()
+        //     .connect_other(this, Self::on_jumping_timeout);
+        let mut pt = self.timers.clone();
+        pt.values_mut().for_each(|timer| {
+            timer.set_one_shot(true);
+            self.base_mut().add_child(&timer.clone());
+        });
 
         let mut hurtbox = self.base().get_node_as::<Hurtbox>("Hurtbox");
         hurtbox.bind_mut().attack_damage = self.stats.get(&Stats::AttackDamage).unwrap().0;
@@ -189,7 +221,6 @@ impl ICharacterBody2D for MainCharacter {
     fn unhandled_input(&mut self, input: Gd<godot::classes::InputEvent>) {
         if input.is_action_pressed("attack") {
             self.state.handle(&Event::AttackButton);
-            // self.state.handle(&Event::AttackButton);
             // if self.state.state().as_descriminant() == csm::to_descriminant(&State::Attacking {}) {
             //     self.signals().animation_state_changed().emit();
             // }
@@ -203,16 +234,20 @@ impl ICharacterBody2D for MainCharacter {
         if input.is_action_released("jump") {
             self.state.handle(&Event::ActionReleasedEarly);
         }
-        // TODO: Timeout
-        if input.is_action_pressed("dodge") {
-            if self.timers.get(PT::DodgeCooldown).get_time_left() == 0.0 {
-                self.timers.get_mut(PT::DodgeAnimation).start();
-                self.state.handle(&Event::DodgeButton);
-            }
-            // if self.state.state().as_descriminant() == csm::to_descriminant(&State::Dodging {}) {
-            //     self.signals().animation_state_changed().emit();
-            // }
+
+        if input.is_action_pressed("dodge")
+            && self
+                .timers
+                .get(&PT::DodgeAnimation)
+                .unwrap()
+                .get_time_left()
+                == 0.0
+            && self.timers.get(&PT::DodgeCooldown).unwrap().get_time_left() == 0.0
+        {
+            self.timers.get_mut(&PT::DodgeAnimation).unwrap().start();
+            self.state.handle(&Event::DodgeButton);
         }
+
         if input.is_action_pressed("heal") {
             self.state.handle(&Event::HealingButton);
             if self.state.state().as_descriminant() == csm::to_descriminant(&State::Healing {}) {
@@ -230,12 +265,9 @@ impl ICharacterBody2D for MainCharacter {
     fn physics_process(&mut self, delta: f32) {
         let event: Event;
         let v: Vector2;
-        (event, v) = InputHandler::get_vel_and_something(
-            &Input::singleton(),
-            self.state.state(),
-            &self.stats,
-        );
-        dbg!(&event);
+        self.velocity = InputHandler::get_movement(&Input::singleton(), self.velocity);
+        (event, v) =
+            InputHandler::get_vel_and_something(self.state.state(), &self.stats, self.velocity);
         self.state.handle(&event);
         self.velocity = v;
         self.base_mut().set_velocity(v);
@@ -247,27 +279,13 @@ impl ICharacterBody2D for MainCharacter {
 
         let prev_state = self.state.state().as_descriminant();
         match self.state.state() {
-            //     csm::State::Attacking {} => self.attack(),
-            //     csm::State::Attack2 {} => self.attack_2(),
-            //     csm::State::Parry {} => self.parry(),
-            csm::State::Idle {} => self.idle(),
-            //     csm::State::Dodging {} => self.dodge(),
+            // csm::State::Idle {} => self.idle(),
             csm::State::Jumping {} => self.jump(),
             csm::State::Falling {} => self.fall(),
             csm::State::Moving {} => self.move_character(),
-            //     csm::State::Healing {} => self.heal(),
-            //     csm::State::Grappling {} => self.grapple(),
-            //     csm::State::Hurt {} => self.hurt(),
             _ => (),
         }
-        dbg!(&self.state.state());
         // dbg!(self.state.state());
-        let new_state = self.state.state().as_descriminant();
-
-        // If the state machine changed states, the animation needs to change as well.
-        if prev_state != new_state {
-            self.signals().animation_state_changed().emit();
-        }
     }
 }
 
@@ -334,50 +352,14 @@ impl MainCharacter {
         }
     }
 
-    fn detect_ledges(&mut self) {
-        if self.get_ledge_sensor().is_colliding() {
-            self.base_mut().set_velocity(Vector2::ZERO);
-            self.state.handle(&Event::GrabbedLedge);
-            if let Some(obj) = self.get_ledge_sensor().get_collider() {
-                let collision = obj.cast::<CollisionObject2D>();
-                let shape_id = self.get_ledge_sensor().get_collider_shape();
-                let owner = collision.shape_find_owner(shape_id);
-                let shape = collision.shape_owner_get_owner(owner);
-                let s = shape.unwrap().cast::<godot::classes::CollisionShape2D>();
-                dbg!(&s.get_shape().unwrap().get_rect());
-            }
-        }
-    }
-
-    // TODO: Ledge grappling is buggy.
-    fn grapple(&mut self) {
-        let input = Input::singleton();
-        self.base_mut().set_velocity(Vector2::ZERO);
-        self.update_animation();
-
-        if input.is_action_just_pressed("west") & self.get_ledge_sensor().is_colliding()
-            || input.is_action_just_pressed("east") & self.get_ledge_sensor().is_colliding()
-        {
-            self.state.handle(&Event::WasdJustPressed);
-        }
-    }
-
-    fn dodge(&mut self) {
+    fn on_dodge_animation_timeout(&mut self) {
+        println!("Dodge animation timeout");
         if self.velocity.x == 0.0 {
             self.state.handle(&Event::MovingToIdle);
         } else {
             self.state.handle(&Event::TimerElapsed);
         }
-    }
-
-    // TODO: Move this to animation player
-    fn on_dodge_timer_timeout(&mut self) {
-        if self.velocity.x == 0.0 {
-            self.state.handle(&Event::MovingToIdle);
-        } else {
-            self.state.handle(&Event::TimerElapsed);
-        }
-        self.timers.get_mut(PT::DodgeCooldown).start();
+        self.timers.get_mut(&PT::DodgeCooldown).unwrap().start();
     }
 
     fn move_character(&mut self) {
@@ -628,6 +610,8 @@ impl MainCharacter {
 
         animation
     }
+
+    fn on_current_animation_changed(&mut self, name: String) {}
 
     fn update_animation(&mut self) {
         self.update_direction();

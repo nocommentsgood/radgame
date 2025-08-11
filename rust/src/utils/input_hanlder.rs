@@ -7,8 +7,8 @@ use crate::entities::{
     player::character_state_machine::State,
 };
 
-const GRAVITY: f32 = 1100.0;
-const TERMINAL_VELOCITY: f32 = 200.0;
+const GRAVITY: f32 = 200.0;
+const TERMINAL_VELOCITY: f32 = -200.0;
 type Event = crate::entities::player::character_state_machine::Event;
 
 #[derive(Default, Clone)]
@@ -30,22 +30,23 @@ impl InputHandler {
             (Event::None, velocity.normalized_or_zero().x)
         }
     }
-    pub fn get_vel_and_something(
-        input: &Gd<Input>,
-        state: &State,
-        stats: &HashMap<Stats, StatVal>,
-    ) -> (Event, Vector2) {
-        let mut velocity = Vector2::ZERO;
+    pub fn get_movement(input: &Gd<Input>, mut velocity: Vector2) -> Vector2 {
         if input.is_action_pressed("east") {
             velocity += Vector2::RIGHT;
         }
         if input.is_action_pressed("west") {
             velocity += Vector2::LEFT;
         }
-
+        velocity
+    }
+    pub fn get_vel_and_something(
+        state: &State,
+        stats: &HashMap<Stats, StatVal>,
+        mut velocity: Vector2,
+    ) -> (Event, Vector2) {
         match state {
             State::Falling {} => {
-                if velocity.y <= TERMINAL_VELOCITY {
+                if velocity.y >= TERMINAL_VELOCITY {
                     velocity.y += GRAVITY
                 }
             }
