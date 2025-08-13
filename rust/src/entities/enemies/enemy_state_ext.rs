@@ -2,13 +2,12 @@ use std::collections::HashMap;
 
 use godot::{
     builtin::Vector2,
-    classes::{Area2D, CharacterBody2D, Node2D, Timer},
+    classes::{Area2D, Node2D, Timer},
     meta::FromGodot,
     obj::{DynGd, Gd, Inherits, WithBaseField, WithUserSignals},
 };
 
-use super::enemy_state_machine::*;
-use super::patrol_component::PatrolComp;
+use super::{enemy_state_machine::*, patrol_component::PatrolComp};
 use crate::entities::{
     damage::{Damageable, Damaging},
     enemies::{animatable::Animatable, has_enemy_sensors::HasEnemySensors},

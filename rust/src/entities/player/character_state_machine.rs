@@ -1,203 +1,661 @@
 use statig::blocking::*;
 
+use crate::utils::input_hanlder::{Inputs, ModifierButton, MoveButton};
+
 #[derive(Default, Debug, Clone)]
-pub struct CharacterStateMachine {
-    pub can_dodge: bool,
-}
+pub struct CharacterStateMachine;
 
 impl std::fmt::Display for State {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            State::Hurt {} => write!(f, "hurt"),
-            State::Attacking {} => write!(f, "attack"),
-            State::Attack2 {} => write!(f, "chainattack"),
-            State::Dodging {} => write!(f, "dodge"),
-            State::Idle {} => write!(f, "idle"),
-            State::Moving {} => write!(f, "run"),
-            State::Falling {} => write!(f, "falling"),
-            State::Jumping {} => write!(f, "jumping"),
-            State::Grappling {} => write!(f, "grapple"),
-            State::Healing {} => write!(f, "heal"),
-            State::Parry {} => write!(f, "parry"),
-            State::AirAttack {} => write!(f, "airattack"),
+            // Right variants
+            State::HurtRight {} => write!(f, "hurt_right"),
+            State::AttackingRight {} => write!(f, "attack_right"),
+            State::AttackRight2 {} => write!(f, "chainattack_right"),
+            State::DodgingRight {} => write!(f, "dodge_right"),
+            State::IdleRight {} => write!(f, "idle_right"),
+            State::MoveRight {} => write!(f, "run_right"),
+            State::FallingRight {} | State::MoveFallingRight {} => write!(f, "falling_right"),
+            State::JumpingRight {} => write!(f, "jumping_right"),
+            // State::GrapplingRight {} => write!(f, "grapple_right"),
+            State::HealingRight {} => write!(f, "heal_right"),
+            State::ParryRight {} => write!(f, "parry_right"),
+            State::AirAttackRight {} => write!(f, "airattack_right"),
+
+            // Left variants
+            State::HurtLeft {} => write!(f, "hurt_left"),
+            State::AttackingLeft {} => write!(f, "attack_left"),
+            State::AttackLeft2 {} => write!(f, "chainattack_left"),
+            State::DodgingLeft {} => write!(f, "dodge_left"),
+            State::IdleLeft {} => write!(f, "idle_left"),
+            State::MoveLeft {} => write!(f, "run_left"),
+            State::FallingLeft {} | State::MoveFallingLeft {} => write!(f, "falling_left"),
+            State::JumpingLeft {} => write!(f, "jumping_left"),
+            // State::GrapplingLeft {} => write!(f, "grapple_left"),
+            State::HealingLeft {} => write!(f, "heal_left"),
+            State::ParryLeft {} => write!(f, "parry_left"),
+            // State::AirAttackLeft {} => write!(f, "airattack_left"),
         }
     }
 }
 
 impl Default for State {
     fn default() -> Self {
-        State::Idle {}
-    }
-}
-
-impl State {
-    pub fn as_descriminant(&self) -> std::mem::Discriminant<Self> {
-        std::mem::discriminant(self)
-    }
-}
-
-pub fn to_descriminant(state: &State) -> std::mem::Discriminant<State> {
-    match state {
-        State::Hurt {} => std::mem::discriminant(&State::Hurt {}),
-        State::Jumping {} => std::mem::discriminant(&State::Jumping {}),
-        State::Moving {} => std::mem::discriminant(&State::Moving {}),
-        State::Grappling {} => std::mem::discriminant(&State::Grappling {}),
-        State::Dodging {} => std::mem::discriminant(&State::Dodging {}),
-        State::Attacking {} => std::mem::discriminant(&State::Attacking {}),
-        State::Healing {} => std::mem::discriminant(&State::Healing {}),
-        State::Attack2 {} => std::mem::discriminant(&State::Attack2 {}),
-        State::Falling {} => std::mem::discriminant(&State::Falling {}),
-        State::Parry {} => std::mem::discriminant(&State::Parry {}),
-        State::Idle {} => std::mem::discriminant(&State::Idle {}),
-        State::AirAttack {} => std::mem::discriminant(&State::AirAttack {}),
+        State::IdleRight {}
     }
 }
 
 #[derive(Debug, Default, PartialEq, Clone)]
 pub enum Event {
-    Wasd,
-    WasdJustPressed,
-    DodgeButton,
-    AttackButton,
-    JumpButton,
-    ParryButton,
-    GrabbedLedge,
-    HealingButton,
-    FailedFloorCheck,
-    ActionReleasedEarly,
-    TimerElapsed,
-    ActionInterrupt,
-    OnFloor,
-    MovingToIdle,
+    InputChanged(Inputs),
+    TimerElapsed(Inputs),
+    FailedFloorCheck(Inputs),
+    Landed(Inputs),
     Hurt,
     #[default]
     None,
 }
 
-#[state_machine(initial = "State::idle()", state(derive(Debug, Clone)))]
+#[state_machine(
+    initial = "State::idle_right()",
+    state(derive(Debug, Clone, PartialEq, Copy))
+)]
 impl CharacterStateMachine {
     #[state]
-    fn idle(&mut self, event: &Event) -> Response<State> {
+    fn idle_right(&mut self, event: &Event) -> Response<State> {
         match event {
-            Event::Wasd => Response::Transition(State::moving()),
-            Event::AttackButton => Response::Transition(State::attacking()),
-            Event::JumpButton => Response::Transition(State::jumping()),
-            Event::HealingButton => Response::Transition(State::healing()),
-            Event::ParryButton => Response::Transition(State::parry()),
-            Event::FailedFloorCheck => Response::Transition(State::falling()),
-            Event::Hurt => Response::Transition(State::hurt()),
-            _ => Handled,
-        }
-    }
-    #[state]
-    fn moving(&mut self, event: &Event) -> Response<State> {
-        match event {
-            Event::Wasd => Response::Transition(State::moving()),
-            Event::DodgeButton => Response::Transition(State::dodging()),
-            Event::AttackButton => Response::Transition(State::attacking()),
-            Event::ParryButton => Response::Transition(State::parry()),
-            Event::JumpButton => Response::Transition(State::jumping()),
-            Event::HealingButton => Response::Transition(State::healing()),
-            Event::FailedFloorCheck => Response::Transition(State::falling()),
-            Event::Hurt => Response::Transition(State::hurt()),
-            Event::None => Response::Transition(State::idle()),
-            _ => Handled,
-        }
-    }
+            Event::InputChanged(inputs) => match (&inputs.0, &inputs.1) {
+                // Moving
+                (Some(MoveButton::Left), None) => Response::Transition(State::move_left()),
+                (Some(MoveButton::Right), None) => Response::Transition(State::move_right()),
 
-    #[state]
-    fn dodging(&mut self, event: &Event) -> Response<State> {
-        match event {
-            Event::TimerElapsed => Response::Transition(State::moving()),
-            Event::MovingToIdle => Response::Transition(State::idle()),
-            Event::ActionInterrupt => Response::Transition(State::idle()),
-            Event::FailedFloorCheck => Response::Transition(State::falling()),
-            _ => Handled,
-        }
-    }
+                // Dodging
+                (Some(MoveButton::Left), Some(ModifierButton::Dodge)) => {
+                    Response::Transition(State::dodging_left())
+                }
+                (Some(MoveButton::Right), Some(ModifierButton::Dodge)) => {
+                    Response::Transition(State::dodging_right())
+                }
+                (None, Some(ModifierButton::Dodge)) => Response::Transition(State::dodging_right()),
 
-    #[state]
-    fn attacking(&mut self, event: &Event) -> Response<State> {
-        match event {
-            Event::AttackButton => Response::Transition(State::attack_2()),
-            Event::MovingToIdle => Response::Transition(State::idle()),
-            Event::TimerElapsed => Response::Transition(State::moving()),
-            Event::ParryButton => Response::Transition(State::parry()),
-            Event::Hurt => Response::Transition(State::hurt()),
-            _ => Handled,
-        }
-    }
+                // Jumping
+                (Some(MoveButton::Right), Some(ModifierButton::Jump)) => {
+                    Response::Transition(State::jumping_right())
+                }
+                (Some(MoveButton::Left), Some(ModifierButton::Jump)) => {
+                    Response::Transition(State::jumping_left())
+                }
+                (None, Some(ModifierButton::Jump)) => Response::Transition(State::jumping_right()),
 
-    #[state]
-    fn attack_2(&mut self, event: &Event) -> Response<State> {
-        match event {
-            Event::TimerElapsed => Response::Transition(State::idle()),
-            Event::FailedFloorCheck => Response::Transition(State::falling()),
-            Event::Hurt => Response::Transition(State::hurt()),
-            _ => Handled,
-        }
-    }
+                // Healing
+                (Some(MoveButton::Right), Some(ModifierButton::Heal)) => {
+                    Response::Transition(State::healing_right())
+                }
+                (Some(MoveButton::Left), Some(ModifierButton::Heal)) => {
+                    Response::Transition(State::healing_left())
+                }
+                (None, Some(ModifierButton::Heal)) => Response::Transition(State::healing_right()),
 
-    #[state]
-    fn hurt(&mut self, event: &Event) -> Response<State> {
-        match event {
-            Event::TimerElapsed => Response::Transition(State::idle()),
-            _ => Handled,
-        }
-    }
+                // Attacking
+                (Some(MoveButton::Right), Some(ModifierButton::Attack)) => {
+                    Response::Transition(State::attacking_right())
+                }
+                (Some(MoveButton::Left), Some(ModifierButton::Attack)) => {
+                    Response::Transition(State::attacking_left())
+                }
+                (None, Some(ModifierButton::Attack)) => {
+                    Response::Transition(State::attacking_right())
+                }
 
-    #[allow(unused_variables)]
-    #[state]
-    fn jumping(&mut self, event: &Event) -> Response<State> {
-        Response::Transition(State::falling())
-    }
+                // Parry
+                (Some(MoveButton::Right), Some(ModifierButton::Parry)) => {
+                    Response::Transition(State::parry_right())
+                }
+                (Some(MoveButton::Left), Some(ModifierButton::Parry)) => {
+                    Response::Transition(State::parry_left())
+                }
+                (None, Some(ModifierButton::Parry)) => Response::Transition(State::parry_right()),
+                _ => Handled,
+            },
 
-    #[state]
-    fn air_attack(&mut self, event: &Event) -> Response<State> {
-        match event {
-            Event::TimerElapsed => Response::Transition(State::falling()),
+            // Falling
+            Event::FailedFloorCheck(inputs) => match (&inputs.0, &inputs.1) {
+                (Some(MoveButton::Right), None) => {
+                    Response::Transition(State::move_falling_right())
+                }
+                (Some(MoveButton::Left), None) => Response::Transition(State::move_falling_left()),
+                (None, None) => Response::Transition(State::falling_right()),
+                _ => Response::Transition(State::falling_right()),
+            },
+
+            // Hurt
+            Event::Hurt => Response::Transition(State::hurt_right()),
             _ => Handled,
         }
     }
 
     #[state]
-    fn falling(&mut self, event: &Event) -> Response<State> {
+    fn idle_left(&mut self, event: &Event) -> Response<State> {
         match event {
-            Event::AttackButton => Response::Transition(State::air_attack()),
-            Event::MovingToIdle => Response::Transition(State::idle()),
-            Event::OnFloor => Response::Transition(State::moving()),
-            Event::GrabbedLedge => Response::Transition(State::grappling()),
+            Event::InputChanged(inputs) => match (&inputs.0, &inputs.1) {
+                // Moving
+                (Some(MoveButton::Left), None) => Response::Transition(State::move_left()),
+                (Some(MoveButton::Right), None) => Response::Transition(State::move_right()),
+
+                // Dodging
+                (Some(MoveButton::Left), Some(ModifierButton::Dodge)) => {
+                    Response::Transition(State::dodging_left())
+                }
+                (Some(MoveButton::Right), Some(ModifierButton::Dodge)) => {
+                    Response::Transition(State::dodging_right())
+                }
+                (None, Some(ModifierButton::Dodge)) => Response::Transition(State::dodging_left()),
+
+                // Jumping
+                (Some(MoveButton::Right), Some(ModifierButton::Jump)) => {
+                    Response::Transition(State::jumping_right())
+                }
+                (Some(MoveButton::Left), Some(ModifierButton::Jump)) => {
+                    Response::Transition(State::jumping_left())
+                }
+                (None, Some(ModifierButton::Jump)) => Response::Transition(State::jumping_left()),
+
+                // Healing
+                (Some(MoveButton::Right), Some(ModifierButton::Heal)) => {
+                    Response::Transition(State::healing_right())
+                }
+                (Some(MoveButton::Left), Some(ModifierButton::Heal)) => {
+                    Response::Transition(State::healing_left())
+                }
+                (None, Some(ModifierButton::Heal)) => Response::Transition(State::healing_left()),
+
+                // Attacking
+                (Some(MoveButton::Right), Some(ModifierButton::Attack)) => {
+                    Response::Transition(State::attacking_right())
+                }
+                (Some(MoveButton::Left), Some(ModifierButton::Attack)) => {
+                    Response::Transition(State::attacking_left())
+                }
+                (None, Some(ModifierButton::Attack)) => {
+                    Response::Transition(State::attacking_left())
+                }
+
+                // Parry
+                (Some(MoveButton::Right), Some(ModifierButton::Parry)) => {
+                    Response::Transition(State::parry_right())
+                }
+                (Some(MoveButton::Left), Some(ModifierButton::Parry)) => {
+                    Response::Transition(State::parry_left())
+                }
+                (None, Some(ModifierButton::Parry)) => Response::Transition(State::parry_left()),
+                _ => Handled,
+            },
+
+            // Falling
+            Event::FailedFloorCheck(inputs) => match (&inputs.0, &inputs.1) {
+                (Some(MoveButton::Right), None) => {
+                    Response::Transition(State::move_falling_right())
+                }
+                (Some(MoveButton::Left), None) => Response::Transition(State::move_falling_left()),
+                (None, None) => Response::Transition(State::falling_left()),
+                _ => Response::Transition(State::falling_left()),
+            },
+            // Hurt
+            Event::Hurt => Response::Transition(State::hurt_left()),
             _ => Handled,
         }
     }
 
     #[state]
-    fn grappling(&mut self, event: &Event) -> Response<State> {
+    fn move_right(&mut self, event: &Event) -> Response<State> {
         match event {
-            Event::WasdJustPressed => Response::Transition(State::falling()),
-            Event::JumpButton => Response::Transition(State::jumping()),
+            Event::InputChanged(input) => match (&input.0, &input.1) {
+                // Moving
+                (Some(MoveButton::Left), None) => Response::Transition(State::move_left()),
+
+                // Jumping
+                (Some(MoveButton::Right), Some(ModifierButton::Jump)) => {
+                    Response::Transition(State::jumping_right())
+                }
+                (Some(MoveButton::Left), Some(ModifierButton::Jump)) => {
+                    Response::Transition(State::jumping_left())
+                }
+                (None, Some(ModifierButton::Jump)) => Response::Transition(State::jumping_right()),
+
+                // Dodging
+                (Some(MoveButton::Left), Some(ModifierButton::Dodge)) => {
+                    Response::Transition(State::dodging_left())
+                }
+                (Some(MoveButton::Right), Some(ModifierButton::Dodge)) => {
+                    Response::Transition(State::dodging_right())
+                }
+                (None, Some(ModifierButton::Dodge)) => Response::Transition(State::dodging_right()),
+
+                // Healing
+                (Some(MoveButton::Right), Some(ModifierButton::Heal)) => {
+                    Response::Transition(State::healing_right())
+                }
+                (Some(MoveButton::Left), Some(ModifierButton::Heal)) => {
+                    Response::Transition(State::healing_left())
+                }
+                (None, Some(ModifierButton::Heal)) => Response::Transition(State::healing_right()),
+
+                // Attacking
+                (Some(MoveButton::Right), Some(ModifierButton::Attack)) => {
+                    Response::Transition(State::attacking_right())
+                }
+                (Some(MoveButton::Left), Some(ModifierButton::Attack)) => {
+                    Response::Transition(State::attacking_left())
+                }
+                (None, Some(ModifierButton::Attack)) => {
+                    Response::Transition(State::attacking_right())
+                }
+
+                // Parry
+                (Some(MoveButton::Right), Some(ModifierButton::Parry)) => {
+                    Response::Transition(State::parry_right())
+                }
+                (Some(MoveButton::Left), Some(ModifierButton::Parry)) => {
+                    Response::Transition(State::parry_left())
+                }
+                (None, Some(ModifierButton::Parry)) => Response::Transition(State::parry_right()),
+
+                // Idle
+                (None, None) => Response::Transition(State::idle_right()),
+                _ => Handled,
+            },
+
+            // Falling
+            Event::FailedFloorCheck(inputs) => match (&inputs.0, &inputs.1) {
+                (Some(MoveButton::Right), None) => {
+                    Response::Transition(State::move_falling_right())
+                }
+                (Some(MoveButton::Left), None) => Response::Transition(State::move_falling_left()),
+                (None, None) => Response::Transition(State::falling_right()),
+                _ => Response::Transition(State::falling_right()),
+            },
+
+            // Hurt
+            Event::Hurt => Response::Transition(State::hurt_right()),
             _ => Handled,
         }
     }
 
     #[state]
-    fn healing(&mut self, event: &Event) -> Response<State> {
+    fn move_left(&mut self, event: &Event) -> Response<State> {
         match event {
-            Event::TimerElapsed => Response::Transition(State::idle()),
+            Event::InputChanged(input) => match (&input.0, &input.1) {
+                // Moving
+                (Some(MoveButton::Right), None) => Response::Transition(State::move_right()),
+
+                // Jumping
+                (Some(MoveButton::Right), Some(ModifierButton::Jump)) => {
+                    Response::Transition(State::jumping_right())
+                }
+                (Some(MoveButton::Left), Some(ModifierButton::Jump)) => {
+                    Response::Transition(State::jumping_left())
+                }
+                (None, Some(ModifierButton::Jump)) => Response::Transition(State::jumping_left()),
+
+                // Dodging
+                (Some(MoveButton::Left), Some(ModifierButton::Dodge)) => {
+                    Response::Transition(State::dodging_left())
+                }
+                (Some(MoveButton::Right), Some(ModifierButton::Dodge)) => {
+                    Response::Transition(State::dodging_right())
+                }
+
+                // Healing
+                (Some(MoveButton::Right), Some(ModifierButton::Heal)) => {
+                    Response::Transition(State::healing_right())
+                }
+                (Some(MoveButton::Left), Some(ModifierButton::Heal)) => {
+                    Response::Transition(State::healing_left())
+                }
+                (None, Some(ModifierButton::Heal)) => Response::Transition(State::healing_left()),
+
+                // Attacking
+                (Some(MoveButton::Right), Some(ModifierButton::Attack)) => {
+                    Response::Transition(State::attacking_right())
+                }
+                (Some(MoveButton::Left), Some(ModifierButton::Attack)) => {
+                    Response::Transition(State::attacking_left())
+                }
+                (None, Some(ModifierButton::Attack)) => {
+                    Response::Transition(State::attacking_left())
+                }
+
+                // Parry
+                (Some(MoveButton::Right), Some(ModifierButton::Parry)) => {
+                    Response::Transition(State::parry_right())
+                }
+                (Some(MoveButton::Left), Some(ModifierButton::Parry)) => {
+                    Response::Transition(State::parry_left())
+                }
+                (None, Some(ModifierButton::Parry)) => Response::Transition(State::parry_left()),
+
+                // Idle
+                (None, None) => Response::Transition(State::idle_left()),
+                _ => Handled,
+            },
+
+            // Falling
+            Event::FailedFloorCheck(inputs) => match (&inputs.0, &inputs.1) {
+                (Some(MoveButton::Right), None) => {
+                    Response::Transition(State::move_falling_right())
+                }
+                (Some(MoveButton::Left), None) => Response::Transition(State::move_falling_left()),
+                (None, None) => Response::Transition(State::falling_left()),
+                _ => Response::Transition(State::falling_left()),
+            },
+            // Hurt
+            Event::Hurt => Response::Transition(State::hurt_left()),
             _ => Handled,
         }
     }
 
     #[state]
-    fn parry(&mut self, event: &Event) -> Response<State> {
+    fn dodging_right(&mut self, event: &Event) -> Response<State> {
         match event {
-            Event::TimerElapsed => Response::Transition(State::idle()),
+            Event::TimerElapsed(inputs) => match (&inputs.0, &inputs.1) {
+                (None, None) => Response::Transition(State::idle_right()),
+                (Some(MoveButton::Left), None) => Response::Transition(State::move_left()),
+                (Some(MoveButton::Right), None) => Response::Transition(State::move_right()),
+                _ => Handled,
+            },
+
+            // Dodging -> Falling
+            Event::FailedFloorCheck(inputs) => match (&inputs.0, &inputs.1) {
+                (Some(MoveButton::Right), None) => {
+                    Response::Transition(State::move_falling_right())
+                }
+                (Some(MoveButton::Left), None) => Response::Transition(State::move_falling_left()),
+                (None, None) => Response::Transition(State::falling_right()),
+                _ => Response::Transition(State::falling_right()),
+            },
             _ => Handled,
         }
     }
 
-    #[action]
-    fn enter_dodging(&mut self) {
-        self.can_dodge = false;
+    #[state]
+    fn dodging_left(&mut self, event: &Event) -> Response<State> {
+        match event {
+            Event::TimerElapsed(inputs) => match (&inputs.0, &inputs.1) {
+                (None, None) => Response::Transition(State::idle_left()),
+                (Some(MoveButton::Left), None) => Response::Transition(State::move_left()),
+                (Some(MoveButton::Right), None) => Response::Transition(State::move_right()),
+                _ => Handled,
+            },
+
+            // Dodging -> Falling
+            Event::FailedFloorCheck(inputs) => match (&inputs.0, &inputs.1) {
+                (Some(MoveButton::Right), None) => {
+                    Response::Transition(State::move_falling_right())
+                }
+                (Some(MoveButton::Left), None) => Response::Transition(State::move_falling_left()),
+                (None, None) => Response::Transition(State::falling_left()),
+                _ => Response::Transition(State::falling_left()),
+            },
+            _ => Handled,
+        }
+    }
+
+    #[state]
+    fn jumping_right(&mut self, event: &Event) -> Response<State> {
+        match event {
+            Event::InputChanged(inputs) => match (&inputs.0, &inputs.1) {
+                (Some(MoveButton::Left), _) => Response::Transition(State::jumping_left()),
+                _ => Handled,
+            },
+
+            // Falling
+            Event::FailedFloorCheck(inputs) => match (&inputs.0, &inputs.1) {
+                (Some(MoveButton::Right), None) => {
+                    Response::Transition(State::move_falling_right())
+                }
+                (Some(MoveButton::Left), None) => Response::Transition(State::move_falling_left()),
+                (None, None) => Response::Transition(State::falling_right()),
+                _ => Response::Transition(State::falling_right()),
+            },
+            _ => Handled,
+        }
+    }
+
+    #[state]
+    fn jumping_left(&mut self, event: &Event) -> Response<State> {
+        match event {
+            Event::InputChanged(inputs) => match (&inputs.0, &inputs.1) {
+                (Some(MoveButton::Right), _) => Response::Transition(State::jumping_right()),
+                _ => Handled,
+            },
+
+            // Falling
+            Event::FailedFloorCheck(inputs) => match (&inputs.0, &inputs.1) {
+                (Some(MoveButton::Right), None) => {
+                    Response::Transition(State::move_falling_right())
+                }
+                (Some(MoveButton::Left), None) => Response::Transition(State::move_falling_left()),
+                (None, None) => Response::Transition(State::falling_left()),
+                _ => Response::Transition(State::falling_left()),
+            },
+            _ => Handled,
+        }
+    }
+
+    /// Player is falling and providing an x axis value of 0.0.
+    #[state]
+    fn falling_right(&mut self, event: &Event) -> Response<State> {
+        match event {
+            Event::InputChanged(inputs) => match (&inputs.0, &inputs.1) {
+                // Still falling
+                (Some(MoveButton::Left), _) => Response::Transition(State::move_falling_left()),
+                (Some(MoveButton::Right), _) => Response::Transition(State::move_falling_right()),
+                _ => Handled,
+            },
+            Event::Landed(inputs) => match (&inputs.0, &inputs.1) {
+                (Some(MoveButton::Left), _) => Response::Transition(State::move_left()),
+                (Some(MoveButton::Right), _) => Response::Transition(State::move_right()),
+                (None, None) => Response::Transition(State::idle_right()),
+                _ => Handled,
+            },
+            _ => Handled,
+        }
+    }
+
+    /// Player is falling and providing an x axis value of 0.0.
+    #[state]
+    fn falling_left(&mut self, event: &Event) -> Response<State> {
+        match event {
+            Event::InputChanged(inputs) => match (&inputs.0, &inputs.1) {
+                // Still falling
+                (Some(MoveButton::Right), _) => Response::Transition(State::move_falling_right()),
+                (Some(MoveButton::Left), _) => Response::Transition(State::move_falling_left()),
+                _ => Handled,
+            },
+            Event::Landed(inputs) => match (&inputs.0, &inputs.1) {
+                (Some(MoveButton::Left), _) => Response::Transition(State::move_left()),
+                (Some(MoveButton::Right), _) => Response::Transition(State::move_right()),
+                (None, None) => Response::Transition(State::idle_left()),
+                _ => Handled,
+            },
+            _ => Handled,
+        }
+    }
+
+    /// Player is falling and providing positive x axis movement.
+    #[state]
+    fn move_falling_right(&mut self, event: &Event) -> Response<State> {
+        match event {
+            Event::InputChanged(inputs) => match (&inputs.0, &inputs.1) {
+                // Still falling
+                (Some(MoveButton::Left), None) => Response::Transition(State::move_falling_left()),
+                (None, None) => Response::Transition(State::falling_right()),
+                _ => Handled,
+            },
+            Event::Landed(inputs) => match (&inputs.0, &inputs.1) {
+                (Some(MoveButton::Left), None) => Response::Transition(State::move_left()),
+                (Some(MoveButton::Right), None) => Response::Transition(State::move_right()),
+                (None, None) => Response::Transition(State::idle_right()),
+                _ => Handled,
+            },
+            _ => Handled,
+        }
+    }
+
+    /// Player is falling and providing negative x axis movement.
+    #[state]
+    fn move_falling_left(&mut self, event: &Event) -> Response<State> {
+        match event {
+            Event::InputChanged(inputs) => match (&inputs.0, &inputs.1) {
+                // Still falling
+                (Some(MoveButton::Right), None) => {
+                    Response::Transition(State::move_falling_right())
+                }
+                (None, None) => Response::Transition(State::falling_left()),
+                _ => Handled,
+            },
+            Event::Landed(inputs) => match (&inputs.0, &inputs.1) {
+                (Some(MoveButton::Left), None) => Response::Transition(State::move_left()),
+                (Some(MoveButton::Right), None) => Response::Transition(State::move_right()),
+                (None, None) => Response::Transition(State::idle_left()),
+                _ => Handled,
+            },
+            _ => Handled,
+        }
+    }
+    #[state]
+    fn attacking_right(&mut self, event: &Event) -> Response<State> {
+        match event {
+            Event::TimerElapsed(inputs) => match (&inputs.0, &inputs.1) {
+                (Some(MoveButton::Right), None) => Response::Transition(State::move_right()),
+                (Some(MoveButton::Left), None) => Response::Transition(State::move_left()),
+                (None, None) => Response::Transition(State::idle_right()),
+                _ => Handled,
+            },
+
+            // Hurt
+            Event::Hurt => Response::Transition(State::hurt_right()),
+            _ => Handled,
+        }
+    }
+
+    #[state]
+    fn attacking_left(&mut self, event: &Event) -> Response<State> {
+        match event {
+            Event::TimerElapsed(inputs) => match (&inputs.0, &inputs.1) {
+                (Some(MoveButton::Right), None) => Response::Transition(State::move_right()),
+                (Some(MoveButton::Left), None) => Response::Transition(State::move_left()),
+                (None, None) => Response::Transition(State::idle_left()),
+                _ => Handled,
+            },
+            // Hurt
+            Event::Hurt => Response::Transition(State::hurt_left()),
+            _ => Handled,
+        }
+    }
+
+    #[state]
+    fn attack_right_2(&mut self, event: &Event) -> Response<State> {
+        todo!();
+        match event {
+            // Event::Hurt => Response::Transition(State::hurt()),
+            _ => Handled,
+        }
+    }
+
+    #[state]
+    fn attack_left_2(&mut self, event: &Event) -> Response<State> {
+        todo!();
+        match event {
+            // Event::Hurt => Response::Transition(State::hurt()),
+            _ => Handled,
+        }
+    }
+
+    #[state]
+    fn hurt_right(&mut self, event: &Event) -> Response<State> {
+        match event {
+            Event::TimerElapsed(input) => match (&input.0, &input.1) {
+                (Some(MoveButton::Left), None) => Response::Transition(State::move_left()),
+                (Some(MoveButton::Right), None) => Response::Transition(State::move_right()),
+                (None, None) => Response::Transition(State::idle_right()),
+                _ => Handled,
+            },
+            _ => Handled,
+        }
+    }
+
+    #[state]
+    fn hurt_left(&mut self, event: &Event) -> Response<State> {
+        match event {
+            Event::TimerElapsed(input) => match (&input.0, &input.1) {
+                (Some(MoveButton::Left), None) => Response::Transition(State::move_left()),
+                (Some(MoveButton::Right), None) => Response::Transition(State::move_right()),
+                (None, None) => Response::Transition(State::idle_left()),
+                _ => Handled,
+            },
+            _ => Handled,
+        }
+    }
+
+    #[state]
+    fn air_attack_right(&mut self, event: &Event) -> Response<State> {
+        todo!();
+        match event {
+            // Event::TimerElapsed => Response::Transition(State::falling()),
+            _ => Handled,
+        }
+    }
+
+    #[state]
+    fn healing_right(&mut self, event: &Event) -> Response<State> {
+        match event {
+            Event::TimerElapsed(inputs) => match (&inputs.0, &inputs.1) {
+                (Some(MoveButton::Left), None) => Response::Transition(State::move_left()),
+                (Some(MoveButton::Right), None) => Response::Transition(State::move_right()),
+                (None, None) => Response::Transition(State::idle_right()),
+                _ => Handled,
+            },
+            _ => Handled,
+        }
+    }
+
+    #[state]
+    fn healing_left(&mut self, event: &Event) -> Response<State> {
+        match event {
+            Event::TimerElapsed(inputs) => match (&inputs.0, &inputs.1) {
+                (Some(MoveButton::Left), None) => Response::Transition(State::move_left()),
+                (Some(MoveButton::Right), None) => Response::Transition(State::move_right()),
+                (None, None) => Response::Transition(State::idle_left()),
+                _ => Handled,
+            },
+            _ => Handled,
+        }
+    }
+
+    #[state]
+    fn parry_right(&mut self, event: &Event) -> Response<State> {
+        match event {
+            Event::TimerElapsed(inputs) => match (&inputs.0, &inputs.1) {
+                (Some(MoveButton::Left), None) => Response::Transition(State::move_left()),
+                (Some(MoveButton::Right), None) => Response::Transition(State::move_right()),
+                (None, None) => Response::Transition(State::idle_right()),
+                _ => Handled,
+            },
+            _ => Handled,
+        }
+    }
+
+    #[state]
+    fn parry_left(&mut self, event: &Event) -> Response<State> {
+        match event {
+            Event::TimerElapsed(inputs) => match (&inputs.0, &inputs.1) {
+                (Some(MoveButton::Left), None) => Response::Transition(State::move_left()),
+                (Some(MoveButton::Right), None) => Response::Transition(State::move_right()),
+                (None, None) => Response::Transition(State::idle_left()),
+                _ => Handled,
+            },
+            _ => Handled,
+        }
     }
 }
