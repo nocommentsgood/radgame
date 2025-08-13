@@ -57,6 +57,7 @@ pub struct TestEnemy {
 #[godot_api]
 impl ICharacterBody2D for TestEnemy {
     fn ready(&mut self) {
+        dbg!(self.sensors());
         self.patrol_comp.left_target = self.left_target;
         self.patrol_comp.right_target = self.right_target;
         self.speeds = SpeedComponent::new(40, 40, 80);

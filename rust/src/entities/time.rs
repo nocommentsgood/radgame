@@ -13,7 +13,7 @@ pub enum EnemyTimer {
 pub enum PlayerTimer {
     AttackChain,
     DodgeAnimation,
-    JumpingAnimation,
+    JumpingCooldown,
     AttackAnimation,
     AttackAnimation2,
     HealingAnimation,
