@@ -1,6 +1,6 @@
 use super::entity_stats::EntityResources;
 use godot::{
-    classes::{AnimationPlayer, Area2D, Node2D, Timer},
+    classes::{AnimationPlayer, Node2D, Timer},
     obj::{DynGd, Gd},
     prelude::*,
 };

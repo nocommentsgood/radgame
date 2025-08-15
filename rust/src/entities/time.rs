@@ -15,7 +15,7 @@ pub enum PlayerTimer {
     DodgeAnimation,
     JumpingCooldown,
     AttackAnimation,
-    AttackAnimation2,
+    Attack2Animation,
     HealingAnimation,
     HealingCooldown,
     HurtAnimation,

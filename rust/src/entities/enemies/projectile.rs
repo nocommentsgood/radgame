@@ -1,7 +1,5 @@
-use std::time::Duration;
-
 use godot::{
-    classes::{Node2D, Timer, class_macros::registry::class},
+    classes::{Node2D, Timer},
     prelude::*,
 };
 
