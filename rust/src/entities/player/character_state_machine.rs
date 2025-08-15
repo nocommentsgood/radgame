@@ -106,6 +106,15 @@ impl CharacterStateMachine {
                 (None, Some(ModifierButton::Attack)) => {
                     Response::Transition(State::attacking_right())
                 }
+
+                // Parry
+                (Some(MoveButton::Right), Some(ModifierButton::Parry)) => {
+                    Response::Transition(State::parry_right())
+                }
+                (Some(MoveButton::Left), Some(ModifierButton::Parry)) => {
+                    Response::Transition(State::parry_left())
+                }
+                (None, Some(ModifierButton::Parry)) => Response::Transition(State::parry_right()),
                 _ => Handled,
             },
 
@@ -170,6 +179,15 @@ impl CharacterStateMachine {
                 (None, Some(ModifierButton::Attack)) => {
                     Response::Transition(State::attacking_left())
                 }
+
+                // Parry
+                (Some(MoveButton::Right), Some(ModifierButton::Parry)) => {
+                    Response::Transition(State::parry_right())
+                }
+                (Some(MoveButton::Left), Some(ModifierButton::Parry)) => {
+                    Response::Transition(State::parry_left())
+                }
+                (None, Some(ModifierButton::Parry)) => Response::Transition(State::parry_left()),
                 _ => Handled,
             },
 
@@ -232,6 +250,15 @@ impl CharacterStateMachine {
                 (None, Some(ModifierButton::Attack)) => {
                     Response::Transition(State::attacking_right())
                 }
+
+                // Parry
+                (Some(MoveButton::Right), Some(ModifierButton::Parry)) => {
+                    Response::Transition(State::parry_right())
+                }
+                (Some(MoveButton::Left), Some(ModifierButton::Parry)) => {
+                    Response::Transition(State::parry_left())
+                }
+                (None, Some(ModifierButton::Parry)) => Response::Transition(State::parry_right()),
 
                 // Idle
                 (None, None) => Response::Transition(State::idle_right()),
@@ -297,6 +324,15 @@ impl CharacterStateMachine {
                 (None, Some(ModifierButton::Attack)) => {
                     Response::Transition(State::attacking_left())
                 }
+
+                // Parry
+                (Some(MoveButton::Right), Some(ModifierButton::Parry)) => {
+                    Response::Transition(State::parry_right())
+                }
+                (Some(MoveButton::Left), Some(ModifierButton::Parry)) => {
+                    Response::Transition(State::parry_left())
+                }
+                (None, Some(ModifierButton::Parry)) => Response::Transition(State::parry_left()),
 
                 // Idle
                 (None, None) => Response::Transition(State::idle_left()),
@@ -600,6 +636,12 @@ impl CharacterStateMachine {
     #[state]
     fn parry_right(&mut self, event: &Event) -> Response<State> {
         match event {
+            Event::TimerElapsed(inputs) => match (&inputs.0, &inputs.1) {
+                (Some(MoveButton::Left), None) => Response::Transition(State::move_left()),
+                (Some(MoveButton::Right), None) => Response::Transition(State::move_right()),
+                (None, None) => Response::Transition(State::idle_right()),
+                _ => Handled,
+            },
             _ => Handled,
         }
     }
@@ -607,6 +649,12 @@ impl CharacterStateMachine {
     #[state]
     fn parry_left(&mut self, event: &Event) -> Response<State> {
         match event {
+            Event::TimerElapsed(inputs) => match (&inputs.0, &inputs.1) {
+                (Some(MoveButton::Left), None) => Response::Transition(State::move_left()),
+                (Some(MoveButton::Right), None) => Response::Transition(State::move_right()),
+                (None, None) => Response::Transition(State::idle_left()),
+                _ => Handled,
+            },
             _ => Handled,
         }
     }
