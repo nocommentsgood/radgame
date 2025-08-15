@@ -1,9 +1,8 @@
-use std::{collections::HashMap, slice::SliceIndex, time::Duration};
+use std::collections::HashMap;
 
 use godot::{
     classes::{
-        AnimationPlayer, Area2D, CharacterBody2D, CollisionObject2D, ICharacterBody2D, Input,
-        RayCast2D, Timer,
+        AnimationPlayer, Area2D, CharacterBody2D, ICharacterBody2D, Input, RayCast2D, Timer,
     },
     obj::WithBaseField,
     prelude::*,
@@ -17,7 +16,6 @@ use crate::{
         entity_hitbox::EntityHitbox,
         entity_stats::{EntityResources, StatModifier, StatVal, Stats},
         hurtbox::Hurtbox,
-        movements::Direction,
         player::{
             character_state_machine as csm,
             item_component::ItemComponent,
@@ -25,7 +23,7 @@ use crate::{
         },
         time::PlayerTimer,
     },
-    utils::input_hanlder::{InputHandler, Inputs, ModifierButton},
+    utils::input_hanlder::{InputHandler, Inputs},
 };
 
 type State = csm::State;
@@ -145,16 +143,6 @@ impl ICharacterBody2D for MainCharacter {
         self.stats.insert(Stats::AttackingSpeed, StatVal::new(10));
 
         let this = &self.to_gd();
-
-        // Attack chain
-        // let mut timer = Timer::new_alloc();
-        // timer.set_wait_time(attack_animation_length as f64);
-        // timer
-        //     .signals()
-        //     .timeout()
-        //     .connect_other(this, Self::on_attack_timeout);
-        // self.timers
-        //     .insert(PlayerTimer::AttackChain, Timer::new_alloc());
 
         // Dodge animation
         let mut timer = Timer::new_alloc();
@@ -339,7 +327,6 @@ impl MainCharacter {
             csm::State::DodgingRight {} => {
                 self.velocity.x = stat(&self.stats, &Stats::DodgingSpeed) * Vector2::RIGHT.x;
             }
-            csm::State::AirAttackRight {} => todo!(),
             csm::State::MoveLeft {} => {
                 self.velocity.x = Vector2::LEFT.x * stat(&self.stats, &Stats::RunningSpeed)
             }
@@ -419,7 +406,12 @@ impl MainCharacter {
         }
     }
 
-    fn on_parry_timeout(&mut self) {}
+    fn on_parry_timeout(&mut self) {
+        self.transition_sm(&Event::TimerElapsed(Inputs(
+            InputHandler::handle_input(&Input::singleton()).0,
+            None,
+        )));
+    }
 
     fn on_attack_timeout(&mut self) {
         self.transition_sm(&Event::TimerElapsed(Inputs(
@@ -452,36 +444,35 @@ impl MainCharacter {
     }
 
     fn parried_attack(&mut self, area: &Gd<Hurtbox>) -> bool {
-        false
         // todo!();
-        // match self.state.state() {
-        //     State::Parry {} => {
-        //         if self.timers.get(&PT::PerfectParry).unwrap().get_time_left() > 0.0 {
-        //             println!("\nPERFECT PARRY\n");
-        //             if area.is_in_group("enemy_projectile")
-        //                 && let Some(parent) = area.get_parent()
-        //                 && let Ok(mut projectile) = parent.try_cast::<Projectile>()
-        //             {
-        //                 projectile.bind_mut().on_parried();
-        //             }
-        //             self.signals().parried_attack().emit();
-        //             true
-        //         } else if self.timers.get(&PT::Parry).unwrap().get_time_left() > 0.0 {
-        //             println!("\nNORMAL PARRY\n");
-        //             if area.is_in_group("enemy_projectile")
-        //                 && let Some(parent) = area.get_parent()
-        //                 && let Ok(mut projectile) = parent.try_cast::<Projectile>()
-        //             {
-        //                 projectile.bind_mut().on_parried();
-        //             }
-        //             self.signals().parried_attack().emit();
-        //             true
-        //         } else {
-        //             false
-        //         }
-        //     }
-        //     _ => false,
-        // }
+        match self.state.state() {
+            State::ParryLeft {} | State::ParryRight {} => {
+                if self.timers.get(&PT::PerfectParry).unwrap().get_time_left() > 0.0 {
+                    println!("\nPERFECT PARRY\n");
+                    if area.is_in_group("enemy_projectile")
+                        && let Some(parent) = area.get_parent()
+                        && let Ok(mut projectile) = parent.try_cast::<Projectile>()
+                    {
+                        projectile.bind_mut().on_parried();
+                    }
+                    self.signals().parried_attack().emit();
+                    true
+                } else if self.timers.get(&PT::Parry).unwrap().get_time_left() > 0.0 {
+                    println!("\nNORMAL PARRY\n");
+                    if area.is_in_group("enemy_projectile")
+                        && let Some(parent) = area.get_parent()
+                        && let Ok(mut projectile) = parent.try_cast::<Projectile>()
+                    {
+                        projectile.bind_mut().on_parried();
+                    }
+                    self.signals().parried_attack().emit();
+                    true
+                } else {
+                    false
+                }
+            }
+            _ => false,
+        }
     }
 
     pub fn transition_sm(&mut self, event: &Event) {
@@ -498,7 +489,6 @@ impl MainCharacter {
             .name(&format!("{}", self.state.state()))
             .done();
         self.animation_player.advance(0.0);
-        // }
     }
 
     fn update_camera(&mut self) {
