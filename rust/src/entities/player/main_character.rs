@@ -29,8 +29,8 @@ use crate::{
 type State = csm::State;
 type PT = PlayerTimer;
 type Event = csm::Event;
-const GRAVITY: f32 = 500.0;
-const TERMINAL_VELOCITY: f32 = 200.0;
+const GRAVITY: f32 = 1000.0;
+const TERMINAL_VELOCITY: f32 = 350.0;
 
 #[derive(GodotClass)]
 #[class(init, base=CharacterBody2D)]
@@ -75,19 +75,6 @@ impl ICharacterBody2D for MainCharacter {
     fn ready(&mut self) {
         let this = self.to_gd();
 
-        let hitbox = self.base().get_node_as::<Area2D>("Hitbox");
-        hitbox
-            .signals()
-            .area_entered()
-            .connect_other(&this, Self::on_area_entered_hitbox);
-
-        let mut hurtbox = self.base().get_node_as::<Hurtbox>("Hurtbox");
-        hurtbox.bind_mut().attack_damage = self.stats.get(&Stats::AttackDamage).unwrap().0;
-        hurtbox
-            .signals()
-            .area_entered()
-            .connect_other(&this, Self::on_area_entered_hurtbox);
-
         self.item_comp
             .signals()
             .new_modifier()
@@ -108,6 +95,18 @@ impl ICharacterBody2D for MainCharacter {
         self.stats.insert(Stats::AttackingSpeed, StatVal::new(10));
 
         self.init_timers();
+
+        let hitbox = self.base().get_node_as::<Area2D>("Hitbox");
+        hitbox
+            .signals()
+            .area_entered()
+            .connect_other(&this, Self::on_area_entered_hitbox);
+        let mut hurtbox = self.base().get_node_as::<Hurtbox>("Hurtbox");
+        hurtbox.bind_mut().attack_damage = self.stats.get(&Stats::AttackDamage).unwrap().0;
+        hurtbox
+            .signals()
+            .area_entered()
+            .connect_other(&this, Self::on_area_entered_hurtbox);
 
         self.previous_state = State::IdleRight {};
     }
@@ -159,7 +158,7 @@ impl MainCharacter {
         let velocity = self.velocity;
         let stat = |map: &HashMap<Stats, StatVal>, stat: &Stats| map.get(stat).unwrap().0 as f32;
         match self.state.state() {
-            csm::State::FallingRight {} | csm::State::AirAttackRight {} => {
+            State::FallingRight {} | State::AirAttackRight {} => {
                 self.velocity.x = 0.0;
                 if self.velocity.y < TERMINAL_VELOCITY {
                     self.velocity.y += GRAVITY * delta;
@@ -172,7 +171,7 @@ impl MainCharacter {
                     )));
                 }
             }
-            csm::State::FallingLeft {} | csm::State::AirAttackLeft {} => {
+            State::FallingLeft {} | State::AirAttackLeft {} => {
                 self.velocity.x = 0.0;
                 if self.velocity.y < TERMINAL_VELOCITY {
                     self.velocity.y += GRAVITY * delta;
@@ -185,7 +184,7 @@ impl MainCharacter {
                     )));
                 }
             }
-            csm::State::MoveFallingLeft {} | csm::State::MoveLeftAirAttack {} => {
+            State::MoveFallingLeft {} | State::MoveLeftAirAttack {} => {
                 self.velocity.x = stat(&self.stats, &Stats::RunningSpeed) * Vector2::LEFT.x;
                 if self.velocity.y < TERMINAL_VELOCITY {
                     self.velocity.y += GRAVITY * delta;
@@ -198,7 +197,7 @@ impl MainCharacter {
                     )));
                 }
             }
-            csm::State::MoveFallingRight {} | csm::State::MoveRightAirAttack {} => {
+            State::MoveFallingRight {} | State::MoveRightAirAttack {} => {
                 self.velocity.x = stat(&self.stats, &Stats::RunningSpeed) * Vector2::RIGHT.x;
                 if self.velocity.y < TERMINAL_VELOCITY {
                     self.velocity.y += GRAVITY * delta;
@@ -211,23 +210,23 @@ impl MainCharacter {
                     )));
                 }
             }
-            csm::State::DodgingLeft {} => {
+            State::DodgingLeft {} => {
                 self.velocity.x = stat(&self.stats, &Stats::DodgingSpeed) * Vector2::LEFT.x;
             }
-            csm::State::DodgingRight {} => {
+            State::DodgingRight {} => {
                 self.velocity.x = stat(&self.stats, &Stats::DodgingSpeed) * Vector2::RIGHT.x;
             }
-            csm::State::MoveLeft {} => {
+            State::MoveLeft {} => {
                 self.velocity.x = Vector2::LEFT.x * stat(&self.stats, &Stats::RunningSpeed)
             }
-            csm::State::MoveRight {} => {
+            State::MoveRight {} => {
                 self.velocity.x = Vector2::RIGHT.x * stat(&self.stats, &Stats::RunningSpeed)
             }
-            csm::State::JumpingRight {} => {
+            State::JumpingRight {} => {
                 self.velocity.y = stat(&self.stats, &Stats::JumpingSpeed) * Vector2::UP.y;
                 self.velocity.x = stat(&self.stats, &Stats::RunningSpeed) * Vector2::RIGHT.x;
             }
-            csm::State::JumpingLeft {} => {
+            State::JumpingLeft {} => {
                 self.velocity.y = stat(&self.stats, &Stats::JumpingSpeed) * Vector2::UP.y;
                 self.velocity.x = stat(&self.stats, &Stats::RunningSpeed) * Vector2::LEFT.x;
             }
