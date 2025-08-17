@@ -44,6 +44,13 @@ impl Direction {
             Direction::East
         }
     }
+
+    pub fn to_vel(&self) -> Vector2 {
+        match self {
+            Direction::East => Vector2::RIGHT,
+            Direction::West => Vector2::LEFT,
+        }
+    }
 }
 
 pub trait Moveable {
@@ -66,10 +73,8 @@ pub trait MoveableBody: Moveable {
 
             let mut this = self.base_mut().clone();
             if let Some(collision) = this.get_last_slide_collision() {
-                dbg!(&collision);
                 let obj = collision.get_collider();
                 if let Some(c) = obj {
-                    dbg!(&c);
                     if c.get_class().to_string() == "TileMapLayer" {
                         self.notify_on_floor();
                     }

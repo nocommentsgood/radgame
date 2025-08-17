@@ -8,3 +8,20 @@ pub enum EnemyTimer {
     #[default]
     None,
 }
+
+#[derive(Clone, Copy, Eq, PartialEq, Hash)]
+pub enum PlayerTimer {
+    AttackChain,
+    DodgeAnimation,
+    JumpingCooldown,
+    AttackAnimation,
+    Attack2Animation,
+    HealingAnimation,
+    HealingCooldown,
+    HurtAnimation,
+    ParryAnimation,
+    Parry,
+    PerfectParry,
+    Coyote,
+    DodgeCooldown,
+}

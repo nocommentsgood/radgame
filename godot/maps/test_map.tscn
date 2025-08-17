@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=4 uid="uid://c3iixjrk3ypgs"]
+[gd_scene load_steps=13 format=4 uid="uid://c3iixjrk3ypgs"]
 
 [ext_resource type="PackedScene" uid="uid://d0yxvbpejsju5" path="res://maps/base_map.tscn" id="1_b71ab"]
 [ext_resource type="Texture2D" uid="uid://b3w0a7wguiang" path="res://assets/environment/tiles/tilemap.png" id="2_pwco0"]
@@ -6,6 +6,8 @@
 [ext_resource type="PackedScene" uid="uid://dt2v4rmlmrw0" path="res://world/game_item.tscn" id="3_pwco0"]
 [ext_resource type="PackedScene" uid="uid://cb2l6ctn5uru8" path="res://world/sliding_door.tscn" id="4_42yok"]
 [ext_resource type="PackedScene" uid="uid://dmnvgp7j5vtfe" path="res://entities/enemies/test_enemy.tscn" id="7_6b7mj"]
+[ext_resource type="PackedScene" uid="uid://cfbrt6vkya0f3" path="res://mock_enemy.tscn" id="7_pbr4s"]
+[ext_resource type="PackedScene" uid="uid://bcae4wnfye0do" path="res://entities/enemies/projectile_enemy.tscn" id="8_6b7mj"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_pbr4s"]
 texture = ExtResource("2_pwco0")
@@ -251,26 +253,17 @@ source_geometry_group_name = &"floor/wall tiles navigation"
 [node name="Map" instance=ExtResource("1_b71ab")]
 
 [node name="SlidingDoor" parent="Environment" index="0" instance=ExtResource("4_42yok")]
-open_position = Vector2(441, 57)
-closed_position = Vector2(441, -54)
 position = Vector2(443, 57)
 
 [node name="SlidingDoor2" parent="Environment" index="1" instance=ExtResource("4_42yok")]
-open_position = Vector2(493, 57)
-closed_position = Vector2(493, -54)
 position = Vector2(493, 56)
 
-[node name="MapTransition" type="MapTransition" parent="Environment" index="2"]
-next_map_scene = &"res://maps/arena_map.tscn"
+[node name="MapTransition" type="Node" parent="Environment" index="2"]
 
-[node name="SlidingDoorTrigger" parent="Environment/EnvironmentTriggers" index="0" node_paths=PackedStringArray("triggerable_objects") instance=ExtResource("3_cabd0")]
-triggerable_objects = [NodePath("../../SlidingDoor"), NodePath("../../SlidingDoor2")]
-trigger_type_hint = 3
-trigger_times = 2
+[node name="SlidingDoorTrigger" parent="Environment/EnvironmentTriggers" index="0" instance=ExtResource("3_cabd0")]
 position = Vector2(390, 31)
 
-[node name="MapTransTrigger" parent="Environment/EnvironmentTriggers" index="1" node_paths=PackedStringArray("triggerable_objects") instance=ExtResource("3_cabd0")]
-triggerable_objects = [NodePath("../../MapTransition")]
+[node name="MapTransTrigger" parent="Environment/EnvironmentTriggers" index="1" instance=ExtResource("3_cabd0")]
 position = Vector2(2980, 94)
 
 [node name="MainMap" type="TileMapLayer" parent="TileMapLayers" index="0" groups=["floor", "floor/wall tiles navigation"]]
@@ -289,9 +282,17 @@ navigation_polygon = SubResource("NavigationPolygon_pbr4s")
 navigation_layers = 4
 
 [node name="TestEnemy" parent="Enemies" index="0" instance=ExtResource("7_6b7mj")]
-left_target = Vector2(654, 0)
-right_target = Vector2(950, 0)
+left_target = Vector2(695, 0)
+right_target = Vector2(878, 0)
 position = Vector2(797, 77)
+
+[node name="MockEnemy" parent="Enemies" index="1" instance=ExtResource("7_pbr4s")]
+position = Vector2(1801, 41)
+
+[node name="ProjectileEnemy" parent="Enemies" index="2" instance=ExtResource("8_6b7mj")]
+left_target = Vector2(50, 0)
+right_target = Vector2(234, 0)
+position = Vector2(50, -136)
 
 [node name="PlayerSpawnPos" parent="." index="5"]
 position = Vector2(229, 37)
