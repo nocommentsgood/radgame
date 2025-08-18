@@ -1,0 +1,14 @@
+[gd_scene load_steps=2 format=3 uid="uid://bvamjbuhuto6u"]
+
+[ext_resource type="Texture2D" uid="uid://du08o422tqkim" path="res://assets/environment/background/backgroundCastles.png" id="1_8300j"]
+
+[node name="Test" type="Node2D"]
+
+[node name="sky" type="Parallax2D" parent="."]
+repeat_size = Vector2(640, 0)
+repeat_times = 2
+
+[node name="BackgroundCastles" type="Sprite2D" parent="sky"]
+position = Vector2(320, 180)
+scale = Vector2(0.625, 0.351562)
+texture = ExtResource("1_8300j")
