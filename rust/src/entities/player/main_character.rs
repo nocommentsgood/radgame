@@ -254,21 +254,14 @@ impl MainCharacter {
     // Had to resort to enabling and disabling the collision shape manually, otherwise the
     // `area_entered()` signal of the `Hurtbox` would emit twice.
     fn on_area_entered_hurtbox(&mut self, area: Gd<Area2D>) {
-        if let Ok(mut hurtbox) = area.try_cast::<EntityHitbox>() {
-            let this = &mut self.to_gd();
-            let anim_player = &mut self.animation_player;
-            let mut timer = godot::classes::Timer::new_alloc();
-            let mut d = AttackData::new(
-                "something",
-                10,
-                &mut hurtbox,
-                this,
-                "attack_east",
-                anim_player,
-                &mut timer,
-            );
-
-            crate::entities::damage::test_damage(&mut d);
+        dbg!();
+        if let Ok(mut hitbox) = area.try_cast::<EntityHitbox>() {
+            dbg!();
+            dbg!(crate::entities::damage::test_damage(&mut AttackData::new(
+                self.stats.get(&Stats::AttackDamage).unwrap().0,
+                &mut hitbox,
+                &mut self.to_gd(),
+            )));
         }
         //     self.hit_enemy = true;
         //     self.base()
