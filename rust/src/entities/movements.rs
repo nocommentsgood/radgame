@@ -1,7 +1,8 @@
 use godot::{
     builtin::Vector2,
-    classes::{CharacterBody2D, Node2D},
-    obj::WithBaseField,
+    classes::{CharacterBody2D, INode2D, Node2D},
+    obj::{Base, Inherits, WithBaseField},
+    prelude::{GodotClass, godot_api},
 };
 
 #[derive(Default, Debug, Clone)]
@@ -58,6 +59,7 @@ pub trait Moveable {
     fn set_velocity(&mut self, velocity: Vector2);
 }
 
+/// Implements movement for CharacterBody2D's.
 pub trait MoveableBody: Moveable {
     /// Calls `move_and_slide()` on the CharacterBody2D. Ensure `set_velocity` is set with desired speed
     /// prior to calling.
@@ -72,13 +74,12 @@ pub trait MoveableBody: Moveable {
             self.base_mut().move_and_slide();
 
             let mut this = self.base_mut().clone();
-            if let Some(collision) = this.get_last_slide_collision() {
-                let obj = collision.get_collider();
-                if let Some(c) = obj {
-                    if c.get_class().to_string() == "TileMapLayer" {
-                        self.notify_on_floor();
-                    }
-                }
+            if let Some(collision) = this.get_last_slide_collision()
+                && let obj = collision.get_collider()
+                && let Some(c) = obj
+                && c.get_class().to_string() == "TileMapLayer"
+            {
+                self.notify_on_floor();
             }
         } else {
             let v = self.get_velocity();
@@ -88,13 +89,14 @@ pub trait MoveableBody: Moveable {
     }
 }
 
+/// Implement for nodes with no physics movement.
 pub trait MoveableEntity: Moveable {
     /// Moves the entity to target position.
     /// Note: Do not provide a delta time calculation in your velocity as this internally calls
     /// velocity.
     fn node_slide(&mut self, use_physics_delta: bool)
     where
-        Self: WithBaseField<Base = Node2D>,
+        Self: WithBaseField<Base: Inherits<Node2D>>,
     {
         let delta = if use_physics_delta {
             self.base()
@@ -112,6 +114,9 @@ pub trait MoveableEntity: Moveable {
     }
 }
 
+/// Used so both physics based nodes and non-physics based nodes can implement the
+/// `enemy_state_machine_ext` trait, while implementing either `MoveableEntity` or `MoveableBody`
+/// trait depending on their needs.
 pub trait Move: Moveable {
     fn slide(&mut self);
 }
