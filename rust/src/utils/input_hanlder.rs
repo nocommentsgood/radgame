@@ -5,7 +5,7 @@ use godot::{
 
 use crate::entities::{
     entity_stats::{StatVal, Stats},
-    player::{character_state_machine::Event, main_character::MainCharacter},
+    player::{self, character_state_machine::Event, main_character::MainCharacter},
     time::PlayerTimer,
 };
 
@@ -87,6 +87,10 @@ impl InputHandler {
                 InputHandler::handle_input(&Input::singleton()).0,
                 Some(ModifierButton::Parry),
             )));
+        }
+
+        if event.is_action_pressed("ability") {
+            player::abilities::spawn_jump_platform(entity);
         }
     }
 }

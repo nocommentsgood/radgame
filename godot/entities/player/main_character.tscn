@@ -3772,7 +3772,7 @@ collision_mask = 2
 collision_priority = 5.0
 slide_on_ceiling = false
 platform_on_leave = 2
-platform_floor_layers = 4294901762
+platform_floor_layers = 4294901888
 platform_wall_layers = 2
 
 [node name="PhysicsShape" type="CollisionShape2D" parent="."]

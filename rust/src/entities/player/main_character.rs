@@ -16,6 +16,7 @@ use crate::{
         entity_hitbox::EntityHitbox,
         entity_stats::{EntityResources, StatModifier, StatVal, Stats},
         hurtbox::Hurtbox,
+        movements::Direction,
         player::{
             character_state_machine as csm,
             item_component::ItemComponent,
@@ -537,6 +538,15 @@ impl MainCharacter {
     fn on_modifier_removed(&mut self, modifier: Gd<StatModifier>) {
         if let Some(val) = self.stats.get_mut(&modifier.bind().stat) {
             val.remove_modifier(modifier.bind().clone());
+        }
+    }
+
+    pub fn get_direction(&self) -> Direction {
+        let state = self.state.state().to_string();
+        if state.contains("right") {
+            Direction::East
+        } else {
+            Direction::West
         }
     }
 }

@@ -1,8 +1,7 @@
 use godot::{
     builtin::Vector2,
-    classes::{CharacterBody2D, INode2D, Node2D},
-    obj::{Base, Inherits, WithBaseField},
-    prelude::{GodotClass, godot_api},
+    classes::{CharacterBody2D, Node2D},
+    obj::{Inherits, WithBaseField},
 };
 
 #[derive(Default, Debug, Clone)]

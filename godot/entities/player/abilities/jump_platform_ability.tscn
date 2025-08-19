@@ -1,0 +1,23 @@
+[gd_scene load_steps=3 format=3 uid="uid://cul64aw83q0sm"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_8r2qo"]
+size = Vector2(40, 10)
+
+[sub_resource type="PlaceholderTexture2D" id="PlaceholderTexture2D_a4f7a"]
+size = Vector2(40, 10)
+
+[node name="StaticBody2D" type="JumpPlatform"]
+collision_layer = 2
+collision_mask = 2
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("RectangleShape2D_8r2qo")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+texture = SubResource("PlaceholderTexture2D_a4f7a")
+
+[node name="FreeTimer" type="Timer" parent="."]
+one_shot = true
+
+[node name="ChangeTimer" type="Timer" parent="."]
+one_shot = true
