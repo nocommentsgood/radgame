@@ -664,7 +664,7 @@ impl CharacterStateMachine {
                 // Moving
                 (Some(MoveButton::Right), None) => Response::Transition(State::move_right()),
                 (Some(MoveButton::Left), None) => Response::Transition(State::move_left()),
-                (None, None) => Response::Transition(State::idle_right()),
+                (None, None) => Response::Transition(State::idle_left()),
 
                 _ => Handled,
             },
