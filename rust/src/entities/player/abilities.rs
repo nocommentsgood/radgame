@@ -92,3 +92,38 @@ pub fn spawn_jump_platform(entity: &mut MainCharacter) {
     plat.bind_mut().start = pos;
     entity.base_mut().add_sibling(&plat);
 }
+
+pub struct TwinPillarSpell {
+    free_timer: Gd<Timer>,
+    damage: u32,
+    speed: f32,
+}
+
+pub trait AbilityComponent: std::fmt::Debug {
+    fn execute_ability(&self);
+}
+
+#[derive(Debug)]
+pub struct AbilityComp {}
+impl AbilityComp {
+    pub fn new() -> Self {
+        Self {}
+    }
+}
+impl AbilityComponent for AbilityComp {
+    fn execute_ability(&self) {
+        todo!();
+    }
+}
+#[derive(Debug)]
+pub struct AnotherAbilityComp {}
+impl AnotherAbilityComp {
+    pub fn new() -> Self {
+        Self {}
+    }
+}
+impl AbilityComponent for AnotherAbilityComp {
+    fn execute_ability(&self) {
+        todo!();
+    }
+}

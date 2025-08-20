@@ -1,7 +1,7 @@
 [gd_scene load_steps=13 format=4 uid="uid://c3iixjrk3ypgs"]
 
 [ext_resource type="PackedScene" uid="uid://d0yxvbpejsju5" path="res://maps/base_map.tscn" id="1_b71ab"]
-[ext_resource type="PackedScene" uid="uid://bvamjbuhuto6u" path="res://maps/background.tscn" id="2_6b7mj"]
+[ext_resource type="PackedScene" path="res://maps/background.tscn" id="2_6b7mj"]
 [ext_resource type="Texture2D" uid="uid://b3w0a7wguiang" path="res://assets/environment/tiles/tilemap.png" id="2_pwco0"]
 [ext_resource type="PackedScene" uid="uid://601tmpn60stx" path="res://utils/environment_trigger.tscn" id="3_cabd0"]
 [ext_resource type="PackedScene" uid="uid://dt2v4rmlmrw0" path="res://world/game_item.tscn" id="3_pwco0"]
