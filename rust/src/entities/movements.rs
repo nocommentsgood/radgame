@@ -1,7 +1,11 @@
 use godot::{
     builtin::Vector2,
-    classes::{CharacterBody2D, Node2D},
-    obj::{Inherits, WithBaseField},
+    classes::{
+        CharacterBody2D, INode2D, Node2D, Timer, class_macros::sys::godot_virtual_consts::Node,
+    },
+    meta::FromGodot,
+    obj::{Base, Bounds, DynGd, Gd, Inherits, NewGd, OnEditor, WithBaseField, bounds::DeclUser},
+    prelude::{GodotClass, godot_api, godot_dyn},
 };
 
 #[derive(Default, Debug, Clone)]
@@ -118,4 +122,103 @@ pub trait MoveableEntity: Moveable {
 /// trait depending on their needs.
 pub trait Move: Moveable {
     fn slide(&mut self);
+}
+
+pub trait MovementBehavior {
+    fn compute(&self, cur_pos: Vector2, delta: f32) -> Vector2;
+    fn set_speed(&mut self, speed: f32);
+}
+
+#[derive(GodotClass)]
+#[class(init, base = Node2D)]
+pub struct MoveLeft {
+    #[export]
+    speed: f32,
+    base: Base<Node2D>,
+}
+
+#[godot_api]
+impl INode2D for MoveLeft {
+    fn process(&mut self, delta: f32) {
+        let mut parent = self.base().get_node_as::<Node2D>("..");
+        let cur_pos = parent.get_global_position();
+        let new = self.compute(cur_pos, delta);
+        parent.set_global_position(new);
+    }
+}
+
+#[godot_dyn]
+impl MovementBehavior for MoveLeft {
+    fn compute(&self, cur_pos: Vector2, delta: f32) -> Vector2 {
+        cur_pos + (Vector2::LEFT * self.speed) * delta
+    }
+    fn set_speed(&mut self, speed: f32) {
+        self.speed = speed;
+    }
+}
+
+#[derive(GodotClass)]
+#[class(init, base = Node2D)]
+pub struct MoveRight {
+    #[export]
+    pub speed: f32,
+    base: Base<Node2D>,
+}
+
+#[godot_api]
+impl INode2D for MoveRight {
+    fn process(&mut self, delta: f32) {
+        let mut parent = self.base().get_node_as::<Node2D>("..");
+        let cur_pos = parent.get_global_position();
+        let new = self.compute(cur_pos, delta);
+        parent.set_global_position(new);
+    }
+}
+
+#[godot_dyn]
+impl MovementBehavior for MoveRight {
+    fn compute(&self, cur_pos: Vector2, delta: f32) -> Vector2 {
+        cur_pos + Vector2::RIGHT * self.speed * delta
+    }
+    fn set_speed(&mut self, speed: f32) {
+        self.speed = speed;
+    }
+}
+
+#[derive(GodotClass)]
+#[class(init, base = Node2D)]
+pub struct AlternatingMovement {
+    #[export]
+    pub timer: OnEditor<Gd<Timer>>,
+    #[export]
+    pub speed: f32,
+    base: Base<Node2D>,
+}
+
+#[godot_api]
+impl INode2D for AlternatingMovement {
+    fn process(&mut self, delta: f32) {}
+}
+
+#[godot_dyn]
+impl MovementBehavior for AlternatingMovement {
+    fn compute(&self, cur_pos: Vector2, delta: f32) -> Vector2 {
+        cur_pos + Vector2::RIGHT * self.speed * delta
+    }
+    fn set_speed(&mut self, speed: f32) {
+        self.speed = speed;
+    }
+}
+
+pub fn swap_movement<T: MovementBehavior + Inherits<Node2D>>(
+    entity: &mut Node2D,
+    old_movement: &Gd<Node2D>,
+    new_movement: Gd<T>,
+    speed: f32,
+) -> DynGd<Node2D, dyn MovementBehavior> {
+    entity.remove_child(old_movement);
+    entity.add_child(&new_movement.clone().upcast());
+    let mut new = DynGd::<Node2D, dyn MovementBehavior>::from_godot(new_movement.upcast());
+    new.dyn_bind_mut().set_speed(speed);
+    new
 }

@@ -77,9 +77,9 @@ pub struct MainCharacter {
 #[godot_api]
 impl ICharacterBody2D for MainCharacter {
     fn ready(&mut self) {
-        dbg!(&self.ability_comp);
+        // dbg!(&self.ability_comp);
         self.ability_comp = Box::new(AnotherAbilityComp::new());
-        dbg!(&self.ability_comp);
+        // dbg!(&self.ability_comp);
         let this = self.to_gd();
 
         self.item_comp

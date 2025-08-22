@@ -1,3 +1,5 @@
+use crate::entities::movements::{AlternatingMovement, MoveRight, MovementBehavior};
+
 use super::entity_stats::EntityResources;
 use godot::{
     classes::{AnimationPlayer, Node2D, Timer},
@@ -54,6 +56,8 @@ pub trait TestDamaging: std::fmt::Debug {
 #[derive(GodotClass)]
 #[class(base = Node2D, init)]
 struct MockEnemy {
+    #[export]
+    test_movement: OnEditor<DynGd<Node2D, dyn MovementBehavior>>,
     #[init(val = 200)]
     health: u32,
     #[init(node = "AnimationPlayer")]
@@ -61,6 +65,31 @@ struct MockEnemy {
     #[init(node = "Timer")]
     timer: OnReady<Gd<Timer>>,
     base: Base<Node2D>,
+}
+
+#[godot_api]
+impl INode2D for MockEnemy {
+    fn ready(&mut self) {
+        self.timer
+            .signals()
+            .timeout()
+            .connect_other(&self.to_gd(), Self::switch);
+        self.timer.start();
+    }
+}
+
+#[godot_api]
+impl MockEnemy {
+    fn switch(&mut self) {
+        let right = AlternatingMovement::new_alloc();
+        let right = MoveRight::new_alloc();
+        super::movements::swap_movement(
+            self.to_gd().upcast_mut(),
+            &self.test_movement.clone().into_gd(),
+            right,
+            100.0,
+        );
+    }
 }
 
 impl HasHealth for Gd<MockEnemy> {
