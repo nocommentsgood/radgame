@@ -1,14 +1,19 @@
 use godot::{
     builtin::Vector2,
-    classes::{IStaticBody2D, PackedScene, StaticBody2D, Timer},
-    obj::{Base, Gd, OnReady, WithBaseField, WithDeferredCall},
+    classes::{Area2D, IStaticBody2D, Node2D, PackedScene, StaticBody2D, Timer},
+    obj::{Base, Gd, NewAlloc, OnReady, WithBaseField, WithDeferredCall},
     prelude::{GodotClass, godot_api},
     tools::load,
 };
 
 use crate::entities::player::main_character::MainCharacter;
 
-#[derive(GodotClass)]
+pub enum AbilityType<'a> {
+    JumpPlatform(&'a mut MainCharacter),
+    TwinPillar(&'a mut MainCharacter),
+}
+
+#[derive(GodotClass, Debug)]
 #[class(init, base=StaticBody2D)]
 struct JumpPlatform {
     pub velocity: Vector2,
@@ -93,37 +98,53 @@ pub fn spawn_jump_platform(entity: &mut MainCharacter) {
     entity.base_mut().add_sibling(&plat);
 }
 
-pub struct TwinPillarSpell {
-    free_timer: Gd<Timer>,
-    damage: u32,
-    speed: f32,
+impl Ability for JumpPlatform {
+    fn execute(&mut self, player: &mut MainCharacter) {
+        todo!()
+    }
 }
 
-pub trait AbilityComponent: std::fmt::Debug {
-    fn execute_ability(&self);
+// TODO: Add movement comp to pillars.
+#[derive(Debug, Default)]
+// #[class(init, base = Node)]
+pub struct TwinPillarAbility {
+    // free_timer: Option<Gd<Timer>>,
+    // damage: u32,
+    // speed: f32,
+    // #[init(node = "LeftPillar")]
+    // left_pillar: Gd<Area2D>,
+    // #[init(node = "RightPillar")]
+    // right_pillar: Gd<Area2D>,
+    // base: Base<Node>,
 }
 
-#[derive(Debug)]
-pub struct AbilityComp {}
-impl AbilityComp {
-    pub fn new() -> Self {
-        Self {}
+impl Ability for TwinPillarAbility {
+    fn execute(&mut self, player: &mut MainCharacter) {
+        let mut timer = Timer::new_alloc();
+        timer.set_wait_time(1.0);
+
+        let mut ability = load::<PackedScene>("uid://dnfo3s5ywpq6m").instantiate_as::<Node2D>();
+        let left_pillar = ability.get_node_as::<Area2D>("LeftPillar");
+        let right_pillar = ability.get_node_as::<Area2D>("RightPillar");
+        ability.set_position(player.base().get_global_position());
+        ability.add_child(&timer);
+        player.base_mut().add_sibling(&ability);
+
+        timer
+            .signals()
+            .timeout()
+            .connect(move || ability.queue_free());
+        timer.start();
     }
 }
-impl AbilityComponent for AbilityComp {
-    fn execute_ability(&self) {
-        todo!();
-    }
+
+pub trait Ability: std::fmt::Debug {
+    fn execute(&mut self, player: &mut MainCharacter);
 }
-#[derive(Debug)]
-pub struct AnotherAbilityComp {}
-impl AnotherAbilityComp {
-    pub fn new() -> Self {
-        Self {}
-    }
-}
-impl AbilityComponent for AnotherAbilityComp {
-    fn execute_ability(&self) {
-        todo!();
+
+pub fn spawn_ability(ability: AbilityType) {
+    match ability {
+        AbilityType::JumpPlatform(entity) => spawn_jump_platform(entity),
+        AbilityType::TwinPillar(entity) => TwinPillarAbility::default().execute(entity),
     }
 }

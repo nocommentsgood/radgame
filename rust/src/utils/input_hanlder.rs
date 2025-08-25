@@ -5,7 +5,9 @@ use godot::{
 
 use crate::entities::{
     entity_stats::{StatVal, Stats},
-    player::{self, character_state_machine::Event, main_character::MainCharacter},
+    player::{
+        self, abilities::AbilityType, character_state_machine::Event, main_character::MainCharacter,
+    },
     time::PlayerTimer,
 };
 
@@ -90,7 +92,7 @@ impl InputHandler {
         }
 
         if event.is_action_pressed("ability") {
-            player::abilities::spawn_jump_platform(entity);
+            player::abilities::spawn_ability(AbilityType::TwinPillar(entity));
         }
     }
 }

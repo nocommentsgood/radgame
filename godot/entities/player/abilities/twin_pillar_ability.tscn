@@ -1,0 +1,27 @@
+[gd_scene load_steps=3 format=3 uid="uid://dnfo3s5ywpq6m"]
+
+[sub_resource type="PlaceholderTexture2D" id="PlaceholderTexture2D_8qkei"]
+size = Vector2(14, 40)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_jwu3n"]
+size = Vector2(14, 40)
+
+[node name="TwinPillarAbility" type="Node2D"]
+
+[node name="RightPillar" type="Area2D" parent="."]
+position = Vector2(7, 0)
+
+[node name="Sprite2D" type="Sprite2D" parent="RightPillar"]
+texture = SubResource("PlaceholderTexture2D_8qkei")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="RightPillar"]
+shape = SubResource("RectangleShape2D_jwu3n")
+
+[node name="LeftPillar" type="Area2D" parent="."]
+position = Vector2(-7, 0)
+
+[node name="Sprite2D" type="Sprite2D" parent="LeftPillar"]
+texture = SubResource("PlaceholderTexture2D_8qkei")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="LeftPillar"]
+shape = SubResource("RectangleShape2D_jwu3n")

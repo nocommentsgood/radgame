@@ -1,11 +1,9 @@
 use godot::{
     builtin::Vector2,
-    classes::{
-        CharacterBody2D, INode2D, Node2D, Timer, class_macros::sys::godot_virtual_consts::Node,
-    },
+    classes::{CharacterBody2D, INode2D, Node2D, Timer},
     meta::FromGodot,
-    obj::{Base, Bounds, DynGd, Gd, Inherits, NewGd, OnEditor, WithBaseField, bounds::DeclUser},
-    prelude::{GodotClass, godot_api, godot_dyn},
+    obj::{Base, DynGd, Gd, Inherits, OnEditor, WithBaseField},
+    prelude::{Export, GodotClass, GodotConvert, Var, godot_api, godot_dyn},
 };
 
 #[derive(Default, Debug, Clone)]
@@ -25,7 +23,8 @@ impl SpeedComponent {
     }
 }
 
-#[derive(Default, Debug, Clone, PartialEq)]
+#[derive(Default, Debug, Clone, Copy, PartialEq, GodotConvert, Var, Export)]
+#[godot(via = i64)]
 pub enum Direction {
     #[default]
     East,
@@ -49,7 +48,7 @@ impl Direction {
         }
     }
 
-    pub fn to_vel(&self) -> Vector2 {
+    pub fn to_vel(self) -> Vector2 {
         match self {
             Direction::East => Vector2::RIGHT,
             Direction::West => Vector2::LEFT,
@@ -125,7 +124,7 @@ pub trait Move: Moveable {
 }
 
 pub trait MovementBehavior {
-    fn compute(&self, cur_pos: Vector2, delta: f32) -> Vector2;
+    fn compute_velocity(&self, cur_pos: Vector2, delta: f32) -> Vector2;
     fn set_speed(&mut self, speed: f32);
 }
 
@@ -142,14 +141,14 @@ impl INode2D for MoveLeft {
     fn process(&mut self, delta: f32) {
         let mut parent = self.base().get_node_as::<Node2D>("..");
         let cur_pos = parent.get_global_position();
-        let new = self.compute(cur_pos, delta);
+        let new = self.compute_velocity(cur_pos, delta);
         parent.set_global_position(new);
     }
 }
 
 #[godot_dyn]
 impl MovementBehavior for MoveLeft {
-    fn compute(&self, cur_pos: Vector2, delta: f32) -> Vector2 {
+    fn compute_velocity(&self, cur_pos: Vector2, delta: f32) -> Vector2 {
         cur_pos + (Vector2::LEFT * self.speed) * delta
     }
     fn set_speed(&mut self, speed: f32) {
@@ -170,14 +169,14 @@ impl INode2D for MoveRight {
     fn process(&mut self, delta: f32) {
         let mut parent = self.base().get_node_as::<Node2D>("..");
         let cur_pos = parent.get_global_position();
-        let new = self.compute(cur_pos, delta);
+        let new = self.compute_velocity(cur_pos, delta);
         parent.set_global_position(new);
     }
 }
 
 #[godot_dyn]
 impl MovementBehavior for MoveRight {
-    fn compute(&self, cur_pos: Vector2, delta: f32) -> Vector2 {
+    fn compute_velocity(&self, cur_pos: Vector2, delta: f32) -> Vector2 {
         cur_pos + Vector2::RIGHT * self.speed * delta
     }
     fn set_speed(&mut self, speed: f32) {
@@ -188,28 +187,77 @@ impl MovementBehavior for MoveRight {
 #[derive(GodotClass)]
 #[class(init, base = Node2D)]
 pub struct AlternatingMovement {
+    /// The amount of time to spend moving. Changes direction on timeout.
     #[export]
-    pub timer: OnEditor<Gd<Timer>>,
+    pub direction_timer: OnEditor<Gd<Timer>>,
+
+    /// The amount of time to idle between direction changes.
+    #[export]
+    pub idle_timer: OnEditor<Gd<Timer>>,
+
     #[export]
     pub speed: f32,
+
+    #[export]
+    initial_direction: Direction,
+
     base: Base<Node2D>,
 }
 
 #[godot_api]
 impl INode2D for AlternatingMovement {
-    fn process(&mut self, delta: f32) {}
+    fn ready(&mut self) {
+        self.direction_timer
+            .signals()
+            .timeout()
+            .connect_other(&self.to_gd(), Self::on_direction_timer_timeout);
+        self.idle_timer
+            .signals()
+            .timeout()
+            .connect_other(&self.to_gd(), Self::on_idle_timer_timeout);
+    }
+
+    fn process(&mut self, delta: f32) {
+        if self.idle_timer.get_time_left() == 0.0 {
+            let mut parent = self.base().get_node_as::<Node2D>("..");
+            let cur_pos = parent.get_global_position();
+            let new = self.compute_velocity(cur_pos, delta);
+            parent.set_global_position(new);
+        }
+    }
+}
+
+#[godot_api]
+impl AlternatingMovement {
+    fn on_idle_timer_timeout(&mut self) {
+        self.idle_timer.stop();
+        self.direction_timer.start();
+    }
+
+    fn on_direction_timer_timeout(&mut self) {
+        self.idle_timer.start();
+        self.direction_timer.stop();
+        match self.initial_direction {
+            Direction::East => self.initial_direction = Direction::West,
+            Direction::West => self.initial_direction = Direction::East,
+        }
+    }
 }
 
 #[godot_dyn]
 impl MovementBehavior for AlternatingMovement {
-    fn compute(&self, cur_pos: Vector2, delta: f32) -> Vector2 {
-        cur_pos + Vector2::RIGHT * self.speed * delta
+    fn compute_velocity(&self, cur_pos: Vector2, delta: f32) -> Vector2 {
+        match self.initial_direction {
+            Direction::East => cur_pos + Vector2::RIGHT * self.speed * delta,
+            Direction::West => cur_pos + Vector2::LEFT * self.speed * delta,
+        }
     }
     fn set_speed(&mut self, speed: f32) {
         self.speed = speed;
     }
 }
 
+/// Swaps the movement trait object of an entity to the given movement node.
 pub fn swap_movement<T: MovementBehavior + Inherits<Node2D>>(
     entity: &mut Node2D,
     old_movement: &Gd<Node2D>,

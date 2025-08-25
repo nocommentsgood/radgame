@@ -18,7 +18,6 @@ use crate::{
         hurtbox::Hurtbox,
         movements::Direction,
         player::{
-            abilities::{AbilityComp, AbilityComponent, AnotherAbilityComp},
             character_state_machine as csm,
             item_component::ItemComponent,
             shaky_player_camera::{ShakyPlayerCamera, TraumaLevel},
@@ -43,8 +42,6 @@ pub struct MainCharacter {
     pub timers: HashMap<PlayerTimer, Gd<Timer>>,
     pub state: StateMachine<csm::CharacterStateMachine>,
     pub stats: HashMap<Stats, StatVal>,
-    #[init(val = Box::new(AbilityComp::new()))]
-    ability_comp: Box<dyn AbilityComponent>,
     base: Base<CharacterBody2D>,
 
     #[export]
@@ -77,9 +74,6 @@ pub struct MainCharacter {
 #[godot_api]
 impl ICharacterBody2D for MainCharacter {
     fn ready(&mut self) {
-        // dbg!(&self.ability_comp);
-        self.ability_comp = Box::new(AnotherAbilityComp::new());
-        // dbg!(&self.ability_comp);
         let this = self.to_gd();
 
         self.item_comp
