@@ -17,6 +17,9 @@ texture = SubResource("PlaceholderTexture2D_8qkei")
 [node name="CollisionShape2D" type="CollisionShape2D" parent="RightPillar"]
 shape = SubResource("RectangleShape2D_jwu3n")
 
+[node name="MoveRight" type="MoveRight" parent="RightPillar"]
+speed = 20.0
+
 [node name="LeftPillar" type="Area2D" parent="."]
 position = Vector2(-7, 0)
 
@@ -25,3 +28,6 @@ texture = SubResource("PlaceholderTexture2D_8qkei")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="LeftPillar"]
 shape = SubResource("RectangleShape2D_jwu3n")
+
+[node name="MoveLeft" type="MoveLeft" parent="LeftPillar"]
+speed = 20.0

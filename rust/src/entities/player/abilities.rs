@@ -6,7 +6,10 @@ use godot::{
     tools::load,
 };
 
-use crate::entities::player::main_character::MainCharacter;
+use crate::entities::{
+    movements::{MoveLeft, MoveRight},
+    player::main_character::MainCharacter,
+};
 
 pub enum AbilityType<'a> {
     JumpPlatform(&'a mut MainCharacter),
@@ -75,6 +78,8 @@ impl JumpPlatform {
         self.change_timer.stop();
         let cur_pos = self.base().get_position();
         self.velocity = cur_pos.direction_to(self.start);
+        let lin_vel = self.base().get_constant_linear_velocity() * -1.0;
+        self.base_mut().set_constant_linear_velocity(lin_vel);
     }
 }
 
@@ -84,11 +89,13 @@ pub fn spawn_jump_platform(entity: &mut MainCharacter) {
     let dir = entity.get_direction();
     match dir {
         crate::entities::movements::Direction::East => {
+            plat.set_constant_linear_velocity(Vector2::new(100.0, 0.0));
             plat.set_position(pos + Vector2::new(40.0, 0.0));
             plat.bind_mut().target = pos + Vector2::new(100.0, 0.0);
             plat.bind_mut().velocity = pos.direction_to(pos + Vector2::new(100.0, 0.0));
         }
         crate::entities::movements::Direction::West => {
+            plat.set_constant_linear_velocity(Vector2::new(-100.0, 0.0));
             plat.set_position(pos + Vector2::new(-40.0, 0.0));
             plat.bind_mut().target = pos + Vector2::new(-100.0, 0.0);
             plat.bind_mut().velocity = pos.direction_to(pos + Vector2::new(-100.0, 0.0));
@@ -105,38 +112,27 @@ impl Ability for JumpPlatform {
 }
 
 // TODO: Add movement comp to pillars.
-#[derive(Debug, Default)]
+// #[derive(Debug, Default)]
 // #[class(init, base = Node)]
-pub struct TwinPillarAbility {
-    // free_timer: Option<Gd<Timer>>,
-    // damage: u32,
-    // speed: f32,
-    // #[init(node = "LeftPillar")]
-    // left_pillar: Gd<Area2D>,
-    // #[init(node = "RightPillar")]
-    // right_pillar: Gd<Area2D>,
-    // base: Base<Node>,
-}
-
-impl Ability for TwinPillarAbility {
-    fn execute(&mut self, player: &mut MainCharacter) {
-        let mut timer = Timer::new_alloc();
-        timer.set_wait_time(1.0);
-
-        let mut ability = load::<PackedScene>("uid://dnfo3s5ywpq6m").instantiate_as::<Node2D>();
-        let left_pillar = ability.get_node_as::<Area2D>("LeftPillar");
-        let right_pillar = ability.get_node_as::<Area2D>("RightPillar");
-        ability.set_position(player.base().get_global_position());
-        ability.add_child(&timer);
-        player.base_mut().add_sibling(&ability);
-
-        timer
-            .signals()
-            .timeout()
-            .connect(move || ability.queue_free());
-        timer.start();
-    }
-}
+// pub struct TwinPillarAbility;
+//
+// impl Ability for TwinPillarAbility {
+//     fn execute(&mut self, player: &mut MainCharacter) {
+//         let mut timer = Timer::new_alloc();
+//         timer.set_wait_time(1.5);
+//
+//         let mut ability = load::<PackedScene>("uid://dnfo3s5ywpq6m").instantiate_as::<Node2D>();
+//         ability.set_position(player.base().get_global_position());
+//         ability.add_child(&timer);
+//         player.base_mut().add_sibling(&ability);
+//
+//         timer
+//             .signals()
+//             .timeout()
+//             .connect(move || ability.queue_free());
+//         timer.start();
+//     }
+// }
 
 pub trait Ability: std::fmt::Debug {
     fn execute(&mut self, player: &mut MainCharacter);
@@ -144,7 +140,20 @@ pub trait Ability: std::fmt::Debug {
 
 pub fn spawn_ability(ability: AbilityType) {
     match ability {
-        AbilityType::JumpPlatform(entity) => spawn_jump_platform(entity),
-        AbilityType::TwinPillar(entity) => TwinPillarAbility::default().execute(entity),
+        AbilityType::JumpPlatform(player) => spawn_jump_platform(player),
+        AbilityType::TwinPillar(player) => {
+            let mut ability = load::<PackedScene>("uid://dnfo3s5ywpq6m").instantiate_as::<Node2D>();
+            let mut timer = Timer::new_alloc();
+
+            timer.set_wait_time(1.5);
+            ability.set_position(player.base().get_global_position());
+            ability.add_child(&timer);
+            player.base_mut().add_sibling(&ability);
+            timer
+                .signals()
+                .timeout()
+                .connect(move || ability.queue_free());
+            timer.start();
+        }
     }
 }
