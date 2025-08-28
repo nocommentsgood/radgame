@@ -1,19 +1,63 @@
+use std::collections::VecDeque;
+
 use godot::{
     builtin::Vector2,
-    classes::{Area2D, IStaticBody2D, Node2D, PackedScene, StaticBody2D, Timer},
+    classes::{IStaticBody2D, Node2D, PackedScene, StaticBody2D, Timer},
     obj::{Base, Gd, NewAlloc, OnReady, WithBaseField, WithDeferredCall},
     prelude::{GodotClass, godot_api},
     tools::load,
 };
 
-use crate::entities::{
-    movements::{MoveLeft, MoveRight},
-    player::main_character::MainCharacter,
-};
+use crate::entities::player::main_character::MainCharacter;
 
-pub enum AbilityType<'a> {
-    JumpPlatform(&'a mut MainCharacter),
-    TwinPillar(&'a mut MainCharacter),
+#[derive(Clone, Copy, Debug)]
+pub enum Ability {
+    JumpPlatform,
+    TwinPillar,
+}
+impl Ability {
+    pub fn execute(&self, player: &mut MainCharacter) {
+        match self {
+            Ability::JumpPlatform => {
+                let mut plat =
+                    load::<PackedScene>("uid://cul64aw83q0sm").instantiate_as::<JumpPlatform>();
+                let pos = player.base().get_position();
+                let dir = player.get_direction();
+                match dir {
+                    crate::entities::movements::Direction::East => {
+                        plat.set_constant_linear_velocity(Vector2::new(100.0, 0.0));
+                        plat.set_position(pos + Vector2::new(40.0, 0.0));
+                        plat.bind_mut().target = pos + Vector2::new(100.0, 0.0);
+                        plat.bind_mut().velocity = pos.direction_to(pos + Vector2::new(100.0, 0.0));
+                    }
+                    crate::entities::movements::Direction::West => {
+                        plat.set_constant_linear_velocity(Vector2::new(-100.0, 0.0));
+                        plat.set_position(pos + Vector2::new(-40.0, 0.0));
+                        plat.bind_mut().target = pos + Vector2::new(-100.0, 0.0);
+                        plat.bind_mut().velocity =
+                            pos.direction_to(pos + Vector2::new(-100.0, 0.0));
+                    }
+                }
+                plat.bind_mut().start = pos;
+                player.base_mut().add_sibling(&plat);
+            }
+            Ability::TwinPillar => {
+                let mut ability =
+                    load::<PackedScene>("uid://dnfo3s5ywpq6m").instantiate_as::<Node2D>();
+                let mut timer = Timer::new_alloc();
+
+                timer.set_wait_time(1.5);
+                ability.set_position(player.base().get_global_position());
+                ability.add_child(&timer);
+                player.base_mut().add_sibling(&ability);
+                timer
+                    .signals()
+                    .timeout()
+                    .connect(move || ability.queue_free());
+                timer.start();
+            }
+        }
+    }
 }
 
 #[derive(GodotClass, Debug)]
@@ -33,7 +77,6 @@ struct JumpPlatform {
 #[godot_api]
 impl IStaticBody2D for JumpPlatform {
     fn ready(&mut self) {
-        // timers
         self.free_timer.set_wait_time(4.0);
         self.free_timer
             .signals()
@@ -83,77 +126,31 @@ impl JumpPlatform {
     }
 }
 
-pub fn spawn_jump_platform(entity: &mut MainCharacter) {
-    let mut plat = load::<PackedScene>("uid://cul64aw83q0sm").instantiate_as::<JumpPlatform>();
-    let pos = entity.base().get_position();
-    let dir = entity.get_direction();
-    match dir {
-        crate::entities::movements::Direction::East => {
-            plat.set_constant_linear_velocity(Vector2::new(100.0, 0.0));
-            plat.set_position(pos + Vector2::new(40.0, 0.0));
-            plat.bind_mut().target = pos + Vector2::new(100.0, 0.0);
-            plat.bind_mut().velocity = pos.direction_to(pos + Vector2::new(100.0, 0.0));
+#[derive(Default, Clone, Debug)]
+pub struct AbilityComp {
+    /// The player's quick abilities. Limited to a capacity of 3 abilities.
+    pub quick: VecDeque<Option<Ability>>,
+}
+
+impl AbilityComp {
+    #[allow(unused)]
+    pub fn new() -> Self {
+        let mut this = Self {
+            quick: VecDeque::with_capacity(3),
+        };
+        for _ in 0..2 {
+            this.quick.push_back(None);
         }
-        crate::entities::movements::Direction::West => {
-            plat.set_constant_linear_velocity(Vector2::new(-100.0, 0.0));
-            plat.set_position(pos + Vector2::new(-40.0, 0.0));
-            plat.bind_mut().target = pos + Vector2::new(-100.0, 0.0);
-            plat.bind_mut().velocity = pos.direction_to(pos + Vector2::new(-100.0, 0.0));
-        }
+        this
     }
-    plat.bind_mut().start = pos;
-    entity.base_mut().add_sibling(&plat);
-}
 
-impl Ability for JumpPlatform {
-    fn execute(&mut self, player: &mut MainCharacter) {
-        todo!()
-    }
-}
-
-// TODO: Add movement comp to pillars.
-// #[derive(Debug, Default)]
-// #[class(init, base = Node)]
-// pub struct TwinPillarAbility;
-//
-// impl Ability for TwinPillarAbility {
-//     fn execute(&mut self, player: &mut MainCharacter) {
-//         let mut timer = Timer::new_alloc();
-//         timer.set_wait_time(1.5);
-//
-//         let mut ability = load::<PackedScene>("uid://dnfo3s5ywpq6m").instantiate_as::<Node2D>();
-//         ability.set_position(player.base().get_global_position());
-//         ability.add_child(&timer);
-//         player.base_mut().add_sibling(&ability);
-//
-//         timer
-//             .signals()
-//             .timeout()
-//             .connect(move || ability.queue_free());
-//         timer.start();
-//     }
-// }
-
-pub trait Ability: std::fmt::Debug {
-    fn execute(&mut self, player: &mut MainCharacter);
-}
-
-pub fn spawn_ability(ability: AbilityType) {
-    match ability {
-        AbilityType::JumpPlatform(player) => spawn_jump_platform(player),
-        AbilityType::TwinPillar(player) => {
-            let mut ability = load::<PackedScene>("uid://dnfo3s5ywpq6m").instantiate_as::<Node2D>();
-            let mut timer = Timer::new_alloc();
-
-            timer.set_wait_time(1.5);
-            ability.set_position(player.base().get_global_position());
-            ability.add_child(&timer);
-            player.base_mut().add_sibling(&ability);
-            timer
-                .signals()
-                .timeout()
-                .connect(move || ability.queue_free());
-            timer.start();
-        }
+    pub fn new_test() -> Self {
+        let mut this = Self {
+            quick: VecDeque::with_capacity(3),
+        };
+        this.quick.push_back(Some(Ability::JumpPlatform));
+        this.quick.push_back(Some(Ability::TwinPillar));
+        this.quick.push_back(None);
+        this
     }
 }

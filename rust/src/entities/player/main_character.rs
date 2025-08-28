@@ -18,6 +18,7 @@ use crate::{
         hurtbox::Hurtbox,
         movements::Direction,
         player::{
+            abilities::AbilityComp,
             character_state_machine as csm,
             item_component::ItemComponent,
             shaky_player_camera::{ShakyPlayerCamera, TraumaLevel},
@@ -42,6 +43,8 @@ pub struct MainCharacter {
     pub timers: HashMap<PlayerTimer, Gd<Timer>>,
     pub state: StateMachine<csm::CharacterStateMachine>,
     pub stats: HashMap<Stats, StatVal>,
+    #[init(val = AbilityComp::new_test())]
+    pub ability_comp: AbilityComp,
     base: Base<CharacterBody2D>,
 
     #[export]

@@ -1,8 +1,6 @@
-use crate::entities::movements::{AlternatingMovement, MoveRight, MovementBehavior};
-
 use super::entity_stats::EntityResources;
 use godot::{
-    classes::{AnimationPlayer, Node2D, Timer},
+    classes::{AnimationPlayer, Node2D},
     obj::{DynGd, Gd},
     prelude::*,
 };
