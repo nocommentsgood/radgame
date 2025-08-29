@@ -25,7 +25,7 @@ use crate::{
         },
         time::PlayerTimer,
     },
-    utils::input_hanlder::{InputHandler, Inputs},
+    utils::input_hanlder::{DevInputHandler, InputHandler, Inputs},
 };
 
 type State = csm::State;
@@ -117,6 +117,7 @@ impl ICharacterBody2D for MainCharacter {
 
     fn unhandled_input(&mut self, input: Gd<godot::classes::InputEvent>) {
         InputHandler::handle_unhandled(&input, self);
+        DevInputHandler::handle_unhandled(&input, self);
     }
 
     fn physics_process(&mut self, delta: f32) {

@@ -105,6 +105,22 @@ impl InputHandler {
     }
 }
 
+pub struct DevInputHandler;
+
+impl DevInputHandler {
+    pub fn handle_unhandled(event: &Gd<InputEvent>, entity: &mut MainCharacter) {
+        if event.is_action_pressed("dev_teleport") {
+            let pos = entity
+                .base()
+                .get_viewport()
+                .unwrap()
+                .get_camera_2d()
+                .unwrap()
+                .get_global_mouse_position();
+            entity.base_mut().set_global_position(pos);
+        }
+    }
+}
 /// Horizontal movement.
 #[derive(Clone, PartialEq, Eq, Debug, Copy)]
 pub enum MoveButton {
