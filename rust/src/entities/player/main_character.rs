@@ -16,7 +16,9 @@ use crate::{
         entity_hitbox::EntityHitbox,
         entity_stats::{EntityResources, StatModifier, StatVal, Stats},
         hurtbox::Hurtbox,
+        movements::Direction,
         player::{
+            abilities::AbilityComp,
             character_state_machine as csm,
             item_component::ItemComponent,
             shaky_player_camera::{ShakyPlayerCamera, TraumaLevel},
@@ -41,6 +43,8 @@ pub struct MainCharacter {
     pub timers: HashMap<PlayerTimer, Gd<Timer>>,
     pub state: StateMachine<csm::CharacterStateMachine>,
     pub stats: HashMap<Stats, StatVal>,
+    #[init(val = AbilityComp::new_test())]
+    pub ability_comp: AbilityComp,
     base: Base<CharacterBody2D>,
 
     #[export]
@@ -254,21 +258,14 @@ impl MainCharacter {
     // Had to resort to enabling and disabling the collision shape manually, otherwise the
     // `area_entered()` signal of the `Hurtbox` would emit twice.
     fn on_area_entered_hurtbox(&mut self, area: Gd<Area2D>) {
-        if let Ok(mut hurtbox) = area.try_cast::<EntityHitbox>() {
-            let this = &mut self.to_gd();
-            let anim_player = &mut self.animation_player;
-            let mut timer = godot::classes::Timer::new_alloc();
-            let mut d = AttackData::new(
-                "something",
-                10,
-                &mut hurtbox,
-                this,
-                "attack_east",
-                anim_player,
-                &mut timer,
-            );
-
-            crate::entities::damage::test_damage(&mut d);
+        dbg!();
+        if let Ok(mut hitbox) = area.try_cast::<EntityHitbox>() {
+            dbg!();
+            dbg!(crate::entities::damage::test_damage(&mut AttackData::new(
+                self.stats.get(&Stats::AttackDamage).unwrap().0,
+                &mut hitbox,
+                &mut self.to_gd(),
+            )));
         }
         //     self.hit_enemy = true;
         //     self.base()
@@ -544,6 +541,15 @@ impl MainCharacter {
     fn on_modifier_removed(&mut self, modifier: Gd<StatModifier>) {
         if let Some(val) = self.stats.get_mut(&modifier.bind().stat) {
             val.remove_modifier(modifier.bind().clone());
+        }
+    }
+
+    pub fn get_direction(&self) -> Direction {
+        let state = self.state.state().to_string();
+        if state.contains("right") {
+            Direction::East
+        } else {
+            Direction::West
         }
     }
 }

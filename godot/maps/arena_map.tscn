@@ -242,7 +242,7 @@ outlines = Array[PackedVector2Array]([PackedVector2Array(47, -82, 607, -80, 602,
 source_geometry_mode = 1
 source_geometry_group_name = &"floor"
 
-[node name="Map2" instance=ExtResource("1_7rrgt")]
+[node name="Map" instance=ExtResource("1_7rrgt")]
 
 [node name="SlidingDoor" parent="Environment" index="0" instance=ExtResource("2_x81nw")]
 open_position = Vector2(11, 56)

@@ -88,6 +88,20 @@ impl InputHandler {
                 Some(ModifierButton::Parry),
             )));
         }
+
+        if event.is_action_pressed("rotate_abilities_left") {
+            entity.ability_comp.quick.rotate_left(1);
+        }
+
+        if event.is_action_pressed("rotate_abilities_right") {
+            entity.ability_comp.quick.rotate_right(1);
+        }
+
+        if event.is_action_pressed("ability")
+            && let Some(Some(ability)) = entity.ability_comp.clone().quick.front()
+        {
+            ability.execute(entity);
+        }
     }
 }
 

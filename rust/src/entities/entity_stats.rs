@@ -28,6 +28,7 @@ pub trait EntityResources {
     fn set_mana(&mut self, amount: u32);
 }
 
+#[derive(Clone, Copy)]
 pub struct StatVal(pub u32, Option<u32>);
 
 impl StatVal {
