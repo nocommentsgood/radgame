@@ -12,6 +12,7 @@ pub enum Stats {
     JumpingSpeed,
     DodgingSpeed,
     AttackingSpeed,
+    Level,
 }
 
 pub trait EntityResources {

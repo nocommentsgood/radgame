@@ -97,6 +97,7 @@ impl ICharacterBody2D for MainCharacter {
         self.stats.insert(Stats::JumpingSpeed, StatVal::new(350));
         self.stats.insert(Stats::DodgingSpeed, StatVal::new(250));
         self.stats.insert(Stats::AttackingSpeed, StatVal::new(10));
+        self.stats.insert(Stats::Level, StatVal::new(1));
 
         self.init_timers();
 

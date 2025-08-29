@@ -105,6 +105,7 @@ impl InputHandler {
     }
 }
 
+/// Developer input handling.
 pub struct DevInputHandler;
 
 impl DevInputHandler {
@@ -118,6 +119,27 @@ impl DevInputHandler {
                 .unwrap()
                 .get_global_mouse_position();
             entity.base_mut().set_global_position(pos);
+        }
+
+        if event.is_action_pressed("dev_increase_level")
+            && let Some(x) = entity.stats.get_mut(&Stats::Level)
+        {
+            x.0 += 1;
+            println!(
+                "DevTools: Increased player level... Current level: {}",
+                entity.stats.get(&Stats::Level).unwrap().0
+            );
+        }
+
+        if event.is_action_pressed("dev_decrease_level")
+            && let Some(x) = entity.stats.get_mut(&Stats::Level)
+            && x.0 > 1
+        {
+            x.0 -= 1;
+            println!(
+                "DevTools: Decreased player level... Current level: {}",
+                entity.stats.get(&Stats::Level).unwrap().0
+            );
         }
     }
 }

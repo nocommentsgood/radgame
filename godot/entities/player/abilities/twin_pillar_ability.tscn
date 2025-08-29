@@ -8,8 +8,11 @@ size = Vector2(14, 40)
 
 [node name="TwinPillarAbility" type="Node2D"]
 
-[node name="RightPillar" type="Area2D" parent="."]
+[node name="RightPillar" type="Hurtbox" parent="."]
+attack_damage = 10
 position = Vector2(7, 0)
+collision_layer = 16
+collision_mask = 10
 
 [node name="Sprite2D" type="Sprite2D" parent="RightPillar"]
 texture = SubResource("PlaceholderTexture2D_8qkei")
@@ -20,8 +23,11 @@ shape = SubResource("RectangleShape2D_jwu3n")
 [node name="MoveRight" type="MoveRight" parent="RightPillar"]
 speed = 20.0
 
-[node name="LeftPillar" type="Area2D" parent="."]
+[node name="LeftPillar" type="Hurtbox" parent="."]
+attack_damage = 10
 position = Vector2(-7, 0)
+collision_layer = 16
+collision_mask = 10
 
 [node name="Sprite2D" type="Sprite2D" parent="LeftPillar"]
 texture = SubResource("PlaceholderTexture2D_8qkei")

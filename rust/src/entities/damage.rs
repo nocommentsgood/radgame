@@ -6,8 +6,6 @@ use godot::{
 };
 
 /// Implement on entities that are capable of being damaged. See also: trait Damaging.
-/// Implementor is responsible for providing their own 'destroy' function.
-/// This trait is 'dyn compatible' and can be used with godot_dyn macro.
 pub trait Damageable: EntityResources {
     fn take_damage(&mut self, amount: u32) {
         let mut current_health = self.get_health();
@@ -132,3 +130,7 @@ impl<'a> AttackData<'a> {
 //         }
 //     }
 // }
+
+pub fn calc_simple_damage(base_damage: &u32, player_level: &u32) -> u32 {
+    (10 * (base_damage / player_level)) + 20
+}
