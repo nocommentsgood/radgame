@@ -1,5 +1,5 @@
 use godot::{
-    classes::{Area2D, Node2D},
+    classes::{Area2D, Node2D, RayCast2D},
     obj::{Gd, Inherits, WithBaseField},
 };
 
@@ -22,6 +22,22 @@ where
         self.base_mut()
             .upcast_mut()
             .get_node_as::<Node2D>("EnemySensors")
+    }
+
+    fn left_wall_cast(&self) -> Gd<RayCast2D> {
+        self.sensors().get_node_as::<RayCast2D>("LeftWallCast")
+    }
+
+    fn right_wall_cast(&self) -> Gd<RayCast2D> {
+        self.sensors().get_node_as::<RayCast2D>("RightWallCast")
+    }
+
+    fn left_ground_cast(&self) -> Gd<RayCast2D> {
+        self.sensors().get_node_as::<RayCast2D>("LeftGroundCast")
+    }
+
+    fn right_ground_cast(&self) -> Gd<RayCast2D> {
+        self.sensors().get_node_as::<RayCast2D>("RightGroundCast")
     }
 
     fn aggro_area(&self) -> Gd<Area2D> {

@@ -13,7 +13,6 @@ size = Vector2(325, 132)
 size = Vector2(20, 42)
 
 [node name="EnemySensors" type="Node2D"]
-visible = false
 
 [node name="Hurtboxes" type="Hurtbox" parent="." groups=["enemy_parryable_attack"]]
 collision_layer = 32
@@ -67,4 +66,12 @@ collision_mask = 2
 
 [node name="RightGroundCast" type="RayCast2D" parent="."]
 target_position = Vector2(23, 30)
+collision_mask = 2
+
+[node name="LeftWallCast" type="RayCast2D" parent="."]
+target_position = Vector2(-55, 0)
+collision_mask = 2
+
+[node name="RightWallCast" type="RayCast2D" parent="."]
+target_position = Vector2(55, 0)
 collision_mask = 2
