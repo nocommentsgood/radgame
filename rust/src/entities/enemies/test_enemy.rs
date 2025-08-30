@@ -83,7 +83,7 @@ impl ICharacterBody2D for TestEnemy {
         self.timers
             .get_mut(&ET::AttackChainCooldown)
             .unwrap()
-            .set_wait_time(2.7);
+            .set_wait_time(1.35);
         self.timers.get_mut(&ET::Idle).unwrap().set_wait_time(1.5);
 
         let mut ts = self.timers.clone();
@@ -112,7 +112,7 @@ impl ICharacterBody2D for TestEnemy {
             State::Attack2 {} => self.track_player(),
             _ => (),
         }
-        // dbg!(&self.state.state());
+        dbg!(&self.state.state());
 
         // self.update_timers();
     }
@@ -244,7 +244,7 @@ impl EnemyEntityStateMachineExt for TestEnemy {
         self.chain_attack_count = amount;
     }
 
-    fn actual_attack(&mut self) {
+    fn attack_implementation(&mut self) {
         // if let Some(p) = self.get_player_pos() {
         //     let pos = self.base().get_position();
         //     let dir = Direction::from_vel(&pos.direction_to(p));

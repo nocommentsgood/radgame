@@ -1,0 +1,15 @@
+[gd_scene load_steps=2 format=3 uid="uid://cq3qswo7ofmu3"]
+
+[ext_resource type="PackedScene" uid="uid://ktv3myqxd2dt" path="res://entities/enemies/enemy_sensors.tscn" id="1_lt114"]
+
+[node name="BaseEnemyEntity" type="Node2D"]
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="."]
+
+[node name="NavigationAgent2D" type="NavigationAgent2D" parent="."]
+
+[node name="EnemySensors" parent="." instance=ExtResource("1_lt114")]
+
+[editable path="EnemySensors"]

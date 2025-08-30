@@ -275,7 +275,7 @@ impl EnemyEntityStateMachineExt for ProjectileEnemy {
         self.player_pos
     }
 
-    fn actual_attack(&mut self) {
+    fn attack_implementation(&mut self) {
         if let Some(target) = self.get_player_pos() {
             self.shoot_projectile(target);
         }

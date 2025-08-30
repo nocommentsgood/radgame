@@ -19,6 +19,12 @@ use crate::entities::{
 type ET = EnemyTimer;
 
 // TODO: Figure out how to register functions as signals in traits.
+/// The idea behind this was to provide a trait that could be used to implement basic enemy
+/// functionality: movement, sending events to the state machine, etc. When a new enemy class is created, almost
+/// all functionality would be provided by implementing `EnemyEntityStateMachineExt`.
+//
+// In practice, I don't think it is modular enough, and should probably be replaced with some sort
+// of composition. I think that would also remove these weird trait bounds.
 pub trait EnemyEntityStateMachineExt:
     HasEnemySensors + crate::entities::movements::Move + Animatable
 where
@@ -30,7 +36,11 @@ where
     fn get_player_pos(&self) -> Option<Vector2>;
     fn get_chain_attack_count(&self) -> u32;
     fn set_chain_attack_count(&mut self, amount: u32);
-    fn actual_attack(&mut self);
+
+    /// The method to call during attacking states.
+    /// For example, this is where the `ProjectileEnemy` spawns it's projectile.
+    fn attack_implementation(&mut self);
+
     fn connect_signals(&mut self) {
         let this = self.to_gd();
         self.timers()
@@ -128,7 +138,7 @@ where
         self.timers().get_mut(&ET::AttackAnimation).unwrap().start();
         self.timers().get_mut(&ET::AttackCooldown).unwrap().start();
         self.track_player();
-        self.actual_attack();
+        self.attack_implementation();
     }
 
     fn on_attack_animation_timeout(&mut self) {
@@ -136,7 +146,7 @@ where
     }
 
     fn chain_attack(&mut self) {
-        self.actual_attack();
+        self.attack_implementation();
         self.timers()
             .get_mut(&ET::AttackChainCooldown)
             .unwrap()
