@@ -32,7 +32,7 @@ type State = csm::State;
 type PT = PlayerTimer;
 type Event = csm::Event;
 const GRAVITY: f32 = 1000.0;
-const TERMINAL_VELOCITY: f32 = 350.0;
+const TERMINAL_VELOCITY: f32 = 500.0;
 
 #[derive(GodotClass)]
 #[class(init, base=CharacterBody2D)]
@@ -135,10 +135,6 @@ impl ICharacterBody2D for MainCharacter {
 
         // dbg!(&self.state.state());
         self.accelerate(&delta);
-        let velocity = self.velocity;
-        // dbg!(&velocity);
-        self.base_mut().set_velocity(velocity);
-        self.base_mut().move_and_slide();
     }
 }
 
@@ -161,7 +157,6 @@ impl MainCharacter {
     /// Applies accelerated movement depending on current state.
     /// Moves the camera if the player's velocity has changed.
     fn accelerate(&mut self, delta: &f32) {
-        let velocity = self.velocity;
         let stat = |map: &HashMap<Stats, StatVal>, stat: &Stats| map.get(stat).unwrap().0 as f32;
         match self.state.state() {
             State::FallingRight {} | State::AirAttackRight {} => {
@@ -238,6 +233,22 @@ impl MainCharacter {
             }
             _ => self.velocity.x = 0.0,
         }
+
+        let velocity = self.velocity;
+        self.base_mut().set_velocity(velocity);
+        self.base_mut().move_and_slide();
+
+        // Ceiling collision handling.
+        let ceiling = self.base().is_on_ceiling_only();
+        let collisions = self.base_mut().get_last_slide_collision();
+        if let Some(c) = collisions
+            && ceiling
+        {
+            self.velocity = self.velocity.bounce(c.get_normal().normalized_or_zero());
+            let velocity = self.velocity;
+            self.base_mut().set_velocity(velocity);
+        }
+
         if self.velocity != velocity {
             self.update_camera();
         }

@@ -112,7 +112,7 @@ impl ICharacterBody2D for TestEnemy {
             State::Attack2 {} => self.track_player(),
             _ => (),
         }
-        dbg!(&self.state.state());
+        // dbg!(&self.state.state());
 
         // self.update_timers();
     }
