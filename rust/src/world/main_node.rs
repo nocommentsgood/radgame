@@ -2,7 +2,10 @@ use godot::prelude::*;
 
 use super::map::Map;
 
-use crate::{entities::player::main_character::MainCharacter, utils::constants};
+use crate::{
+    entities::player::{item_component::ItemComponent, main_character::MainCharacter},
+    utils::constants,
+};
 
 #[derive(GodotClass)]
 #[class(init, base = Node)]
@@ -29,6 +32,12 @@ impl INode for Main {
             .signals()
             .propigate_map_trans()
             .connect_other(&self.to_gd(), Self::on_transition_map_request);
+
+        if let Some(path) = &constants::get_world_data().bind().paths.player {
+            let player = self.base().get_node_as::<MainCharacter>(path);
+            let mut item_comp = player.get_node_as::<ItemComponent>("ItemComponent");
+            Self::connect_map_items(&mut self.map, &mut item_comp);
+        }
     }
 
     fn enter_tree(&mut self) {
@@ -84,14 +93,12 @@ impl Main {
                     .as_ref()
                     .unwrap(),
             );
-            let new_map = map.clone();
+            let mut new_map = map.clone();
             let timer = self.base().get_tree().unwrap().create_timer(0.1).unwrap();
+
             godot::task::spawn(async move {
                 new_map.signals().ready().to_future().await;
                 let pos = new_map.bind().player_spawn_pos;
-
-                // BUG: After moving the player the player will float until movement input. I think
-                // manually stepping the physics server would fix this. See Godot issue #76462
                 player.set_position(pos);
 
                 // Wait for camera to move to player's position.
@@ -106,12 +113,29 @@ impl Main {
                     camera.set_drag_horizontal_enabled(true);
                     camera.set_position_smoothing_enabled(true);
                 }
+
+                // Connect items in the new map to player item component.
+                let mut item_comp = player.get_node_as::<ItemComponent>("ItemComponent");
+                Self::connect_map_items(&mut new_map, &mut item_comp);
             });
 
             map.signals()
                 .propigate_map_trans()
                 .connect_other(&self.to_gd(), Self::on_transition_map_request);
             *self.map = map;
+        }
+    }
+
+    fn connect_map_items(map: &mut Gd<Map>, player_item_comp: &mut Gd<ItemComponent>) {
+        let items = &map.bind().items;
+        for item in items {
+            println!("Connecting items");
+            item.signals()
+                .player_entered_item_area()
+                .connect_other(player_item_comp, ItemComponent::set_in_item_area);
+            item.signals()
+                .player_exited_item_area()
+                .connect_other(player_item_comp, ItemComponent::set_exited_item_area);
         }
     }
 }

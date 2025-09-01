@@ -85,6 +85,7 @@ impl Map {
     #[signal]
     pub fn propigate_map_trans(next_map: Gd<PackedScene>);
 
+    // Propigate the transition request to the main node.
     fn on_map_transition_req(&mut self, next_map: Gd<PackedScene>) {
         self.signals().propigate_map_trans().emit(&next_map);
     }
