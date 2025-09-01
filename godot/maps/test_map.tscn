@@ -275,12 +275,14 @@ position = Vector2(443, 57)
 [node name="SlidingDoor2" parent="Environment" index="1" instance=ExtResource("4_42yok")]
 position = Vector2(493, 56)
 
-[node name="MapTransition" type="Node" parent="Environment" index="2"]
+[node name="MapTransition" type="MapTransition" parent="Environment" index="2"]
+next_map_scene = &"uid://b05ix3h8osl2g"
 
 [node name="SlidingDoorTrigger" parent="Environment/EnvironmentTriggers" index="0" instance=ExtResource("3_cabd0")]
 position = Vector2(390, 31)
 
-[node name="MapTransTrigger" parent="Environment/EnvironmentTriggers" index="1" instance=ExtResource("3_cabd0")]
+[node name="MapTransTrigger" parent="Environment/EnvironmentTriggers" index="1" node_paths=PackedStringArray("triggerable_objects") instance=ExtResource("3_cabd0")]
+triggerable_objects = [NodePath("../../MapTransition")]
 position = Vector2(2980, 94)
 
 [node name="Fore" type="TileMapLayer" parent="TileMapLayers" index="0" groups=["floor", "floor/wall tiles navigation"]]
