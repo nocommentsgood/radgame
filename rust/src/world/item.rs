@@ -45,7 +45,6 @@ impl Item {
 #[class(init, base=Node2D)]
 pub struct GameItem {
     pub item: Item,
-    location: Vector2i,
     base: Base<Node2D>,
 }
 
@@ -56,29 +55,8 @@ impl INode2D for GameItem {
     }
 
     fn ready(&mut self) {
-        let pos = self.location.cast_float();
-        let texture = godot::prelude::load::<Texture2D>("res://assets/bullet.webp");
-        let mut sprite = Sprite2D::new_alloc();
-        sprite.set_texture(&texture);
-
-        let mut area = Area2D::new_alloc();
-        let mut shape = CollisionShape2D::new_alloc();
-        let mut rect = RectangleShape2D::new_gd();
-        rect.set_size(Vector2::new(30.0, 30.0));
-        shape.set_shape(&rect);
-        area.add_child(&shape);
-
-        area.set_collision_layer_value(CollisionLayers::LayerOne as i32, false);
-        area.set_collision_mask_value(CollisionLayers::LayerOne as i32, false);
-        area.set_collision_layer_value(CollisionLayers::Items as i32, true);
-        area.set_collision_mask_value(CollisionLayers::PlayerHitbox as i32, true);
-
-        let mut base = self.base_mut();
-        base.set_as_top_level(true);
-        base.set_global_position(pos);
-        base.add_child(&sprite);
-        base.add_child(&area);
-        drop(base);
+        let mut area = self.base().get_node_as::<Area2D>("Area2D");
+        self.base_mut().set_as_top_level(true);
 
         let mut this = self.to_gd();
         area.signals()
@@ -104,16 +82,10 @@ impl GameItem {
         self.base_mut().queue_free();
     }
 
-    pub fn new_from_fn(item: Item, location: Vector2i) -> Gd<Self> {
-        Gd::from_init_fn(|base| Self {
-            item,
-            location,
-            base,
-        })
-    }
-
+    // Should this be entity hitbox?
     fn on_area_entered(&mut self, area: Gd<Area2D>) {
         if let Ok(_area) = area.try_cast::<EntityHitbox>() {
+            println!("Player entered item");
             let this = self.to_gd();
             self.signals().player_entered_item_area().emit(&this);
         }
@@ -121,6 +93,7 @@ impl GameItem {
 
     fn on_area_exited(&mut self, area: Gd<Area2D>) {
         if let Ok(_area) = area.try_cast::<EntityHitbox>() {
+            println!("Player exited item");
             self.signals().player_exited_item_area().emit();
         }
     }

@@ -11,6 +11,8 @@ size = Vector2(30, 30)
 texture = ExtResource("1_rgp4l")
 
 [node name="Area2D" type="Area2D" parent="."]
+collision_layer = 256
+collision_mask = 4
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Area2D"]
 shape = SubResource("RectangleShape2D_otm4a")
