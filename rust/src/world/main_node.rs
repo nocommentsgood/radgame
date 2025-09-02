@@ -4,7 +4,8 @@ use super::map::Map;
 
 use crate::{
     entities::player::{item_component::ItemComponent, main_character::MainCharacter},
-    utils::constants,
+    utils::global_data_singleton::GlobalData,
+    world::item::GameItem,
 };
 
 #[derive(GodotClass)]
@@ -19,24 +20,18 @@ struct Main {
 impl INode for Main {
     fn ready(&mut self) {
         self.map.init(
-            self.base().get_node_as::<Map>(
-                constants::get_world_data()
-                    .bind()
-                    .paths
-                    .map
-                    .as_ref()
-                    .unwrap(),
-            ),
+            self.base()
+                .get_node_as::<Map>(GlobalData::singleton().bind().paths.map.as_ref().unwrap()),
         );
         self.map
             .signals()
             .propigate_map_trans()
             .connect_other(&self.to_gd(), Self::on_transition_map_request);
 
-        if let Some(path) = &constants::get_world_data().bind().paths.player {
+        if let Some(path) = &GlobalData::singleton().bind().paths.player {
             let player = self.base().get_node_as::<MainCharacter>(path);
             let mut item_comp = player.get_node_as::<ItemComponent>("ItemComponent");
-            Self::connect_map_items(&mut self.map, &mut item_comp);
+            Self::connect_map_items(&mut self.map.bind_mut().items, &mut item_comp);
         }
     }
 
@@ -56,7 +51,7 @@ impl Main {
     // Update world data when player path changes.
     fn on_player_entered_tree(&mut self, node: Gd<Node>) {
         if let Ok(player) = node.try_cast::<MainCharacter>() {
-            constants::get_world_data()
+            GlobalData::singleton()
                 .bind_mut()
                 .paths
                 .player
@@ -66,7 +61,7 @@ impl Main {
 
     fn on_player_exited_tree(&mut self, node: Gd<Node>) {
         if let Ok(_p) = node.try_cast::<MainCharacter>() {
-            constants::get_world_data().bind_mut().paths.player.take();
+            GlobalData::singleton().bind_mut().paths.player.take();
         }
     }
 
@@ -86,7 +81,7 @@ impl Main {
             });
 
             let mut player = self.base().get_node_as::<MainCharacter>(
-                constants::get_world_data()
+                GlobalData::singleton()
                     .bind()
                     .paths
                     .player
@@ -116,7 +111,7 @@ impl Main {
 
                 // Connect items in the new map to player item component.
                 let mut item_comp = player.get_node_as::<ItemComponent>("ItemComponent");
-                Self::connect_map_items(&mut new_map, &mut item_comp);
+                Self::connect_map_items(&mut new_map.bind_mut().items, &mut item_comp);
             });
 
             map.signals()
@@ -126,16 +121,17 @@ impl Main {
         }
     }
 
-    fn connect_map_items(map: &mut Gd<Map>, player_item_comp: &mut Gd<ItemComponent>) {
-        let items = &map.bind().items;
-        for item in items {
-            println!("Connecting items");
+    fn connect_map_items(map: &mut [Gd<GameItem>], player_item_comp: &mut Gd<ItemComponent>) {
+        for item in map {
+            let mut comp = player_item_comp.clone();
             item.signals()
                 .player_entered_item_area()
-                .connect_other(player_item_comp, ItemComponent::set_in_item_area);
+                .connect(move |item| comp.bind_mut().set_in_item_area(item));
+
+            let mut comp = player_item_comp.clone();
             item.signals()
                 .player_exited_item_area()
-                .connect_other(player_item_comp, ItemComponent::set_exited_item_area);
+                .connect(move || comp.bind_mut().set_exited_item_area());
         }
     }
 }

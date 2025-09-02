@@ -2,6 +2,7 @@ use godot::{classes::InputEvent, prelude::*};
 
 use crate::{
     entities::entity_stats::{ModifierKind, StatModifier, Stats},
+    utils::global_data_singleton::GlobalData,
     world::item::*,
 };
 
@@ -14,7 +15,7 @@ pub enum EquipErr {
     OutOfBounds,
 }
 
-#[derive(GodotClass)]
+#[derive(GodotClass, Clone, Default)]
 #[class(base=Node)]
 pub struct ItemComponent {
     pub unlocked_beads: Vec<Option<Item>>,
@@ -25,12 +26,11 @@ pub struct ItemComponent {
     quest_and_other: Vec<Option<Item>>,
     in_item_area: bool,
     item: Option<Gd<GameItem>>,
-    base: Base<Node>,
 }
 
 #[godot_api]
 impl INode for ItemComponent {
-    fn init(base: Base<Node>) -> Self {
+    fn init(_base: Base<Node>) -> Self {
         Self {
             unlocked_beads: vec![None; 9],
             equipped_beads: vec![None; 3],
@@ -40,7 +40,6 @@ impl INode for ItemComponent {
             quest_and_other: vec![None; 20],
             in_item_area: false,
             item: None,
-            base,
         }
     }
 
@@ -99,21 +98,9 @@ impl INode for ItemComponent {
 
 #[godot_api]
 impl ItemComponent {
-    #[signal]
-    fn new_item_added(item: Gd<GameItem>);
-
-    #[signal]
-    fn picked_up_item(item: Gd<GameItem>);
-
-    #[signal]
-    pub fn new_modifier(modifier: Gd<StatModifier>);
-
-    #[signal]
-    pub fn modifier_removed(modifier: Gd<StatModifier>);
-
     pub fn set_in_item_area(&mut self, item: Gd<GameItem>) {
         self.in_item_area = true;
-        self.item = Some(item);
+        self.item = Some(item.clone());
     }
 
     pub fn set_exited_item_area(&mut self) {
@@ -146,7 +133,12 @@ impl ItemComponent {
                     }
                     _ => self.quest_and_other.push(Some(bind)),
                 }
-                self.signals().picked_up_item().emit(&item.clone());
+
+                GlobalData::singleton()
+                    .bind_mut()
+                    .sig_handler()
+                    .picked_up_item()
+                    .emit(&item.clone());
                 item.bind_mut().picked_up();
             }
         }
@@ -178,7 +170,10 @@ impl ItemComponent {
             };
             if let Some(slot) = equipped_items.iter_mut().find(|slot| slot.is_none()) {
                 *slot = item.clone();
-                self.signals()
+
+                GlobalData::singleton()
+                    .bind_mut()
+                    .sig_handler()
                     .new_modifier()
                     .emit(&Gd::from_object(modifier.clone()));
                 Ok(item.to_owned().unwrap())
@@ -202,7 +197,10 @@ impl ItemComponent {
                 else {
                     return Err(EquipErr::IncorrectItemKind);
                 };
-                self.signals()
+
+                GlobalData::singleton()
+                    .bind_mut()
+                    .sig_handler()
                     .modifier_removed()
                     .emit(&Gd::from_object(modifier.clone()));
                 Ok(item)
@@ -212,5 +210,36 @@ impl ItemComponent {
         } else {
             Err(EquipErr::ItemNotFound)
         }
+    }
+}
+
+// TODO: More test in the future, moved out of this file.
+#[cfg(test)]
+mod tests {
+    use crate::{
+        entities::{
+            entity_stats::{StatModifier, Stats},
+            player::item_component::ItemComponent,
+        },
+        world::item::{Item, ItemKind},
+    };
+
+    #[test]
+    fn insert_item_into_empty_vec() {
+        let mut empty = ItemComponent::default();
+        let bead_1 = Item::new(
+            ItemKind::RosaryBead {
+                effect: StatModifier::new(
+                    Stats::Health,
+                    crate::entities::entity_stats::ModifierKind::Flat(10),
+                ),
+            },
+            "TestBead1".to_string(),
+            Some("Test description 1".to_string()),
+            "test".to_string(),
+        );
+        empty.unlocked_beads.insert(0, Some(bead_1.clone()));
+
+        assert_eq!(Some(bead_1), *empty.unlocked_beads.first().unwrap());
     }
 }

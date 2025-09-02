@@ -25,7 +25,10 @@ use crate::{
         },
         time::PlayerTimer,
     },
-    utils::input_hanlder::{DevInputHandler, InputHandler, Inputs},
+    utils::{
+        global_data_singleton::GlobalData,
+        input_hanlder::{DevInputHandler, InputHandler, Inputs},
+    },
 };
 
 type State = csm::State;
@@ -79,13 +82,15 @@ impl ICharacterBody2D for MainCharacter {
     fn ready(&mut self) {
         let this = self.to_gd();
 
-        self.item_comp
-            .signals()
+        GlobalData::singleton()
+            .bind_mut()
+            .sig_handler()
             .new_modifier()
             .connect_other(&this, Self::on_new_modifier);
 
-        self.item_comp
-            .signals()
+        GlobalData::singleton()
+            .bind_mut()
+            .sig_handler()
             .modifier_removed()
             .connect_other(&this, Self::on_modifier_removed);
 

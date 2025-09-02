@@ -82,10 +82,12 @@ impl GameItem {
         self.base_mut().queue_free();
     }
 
-    // Should this be entity hitbox?
+    pub fn new_gd(item: Item) -> Gd<Self> {
+        Gd::from_init_fn(|base| GameItem { item, base })
+    }
+
     fn on_area_entered(&mut self, area: Gd<Area2D>) {
         if let Ok(_area) = area.try_cast::<EntityHitbox>() {
-            println!("Player entered item");
             let this = self.to_gd();
             self.signals().player_entered_item_area().emit(&this);
         }
@@ -93,7 +95,6 @@ impl GameItem {
 
     fn on_area_exited(&mut self, area: Gd<Area2D>) {
         if let Ok(_area) = area.try_cast::<EntityHitbox>() {
-            println!("Player exited item");
             self.signals().player_exited_item_area().emit();
         }
     }

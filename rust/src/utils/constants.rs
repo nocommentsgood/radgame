@@ -13,13 +13,3 @@ pub const PLAYER_HURTBOX: &str = "Hurtbox";
 // Enemy child nodes
 pub const ENEMY_SENSORS: &str = "EnemySensors";
 // End Enemies ====================================================
-
-// Globals ====================================================
-pub const GLOBAL_DATA: &str = "GlobalData";
-
-pub fn get_world_data() -> Gd<GlobalData> {
-    godot::classes::Engine::singleton()
-        .get_singleton(GLOBAL_DATA)
-        .expect("Couldn't get GlobalData object")
-        .cast::<GlobalData>()
-}

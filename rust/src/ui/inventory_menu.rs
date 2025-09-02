@@ -8,7 +8,7 @@ use godot::{
 
 use crate::{
     entities::player::{item_component::ItemComponent, main_character::MainCharacter},
-    utils::constants,
+    utils::global_data_singleton::GlobalData,
 };
 
 #[derive(GodotClass)]
@@ -35,7 +35,7 @@ impl ICanvasLayer for InventoryMenu {
         self.item_comp = self
             .base()
             .get_node_as::<MainCharacter>(
-                constants::get_world_data()
+                GlobalData::singleton()
                     .bind()
                     .paths
                     .player
