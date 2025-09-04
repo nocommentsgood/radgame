@@ -1,11 +1,11 @@
-use godot::prelude::*;
+use godot::{classes::Area2D, prelude::*};
 
 use super::map::Map;
 
 use crate::{
     entities::player::{item_component::ItemComponent, main_character::MainCharacter},
     utils::global_data_singleton::GlobalData,
-    world::item::GameItem,
+    world::item::{GameItem, GameItemSignalHandler},
 };
 
 #[derive(GodotClass)]
@@ -121,17 +121,56 @@ impl Main {
         }
     }
 
-    fn connect_map_items(map: &mut [Gd<GameItem>], player_item_comp: &mut Gd<ItemComponent>) {
-        for item in map {
-            let mut comp = player_item_comp.clone();
-            item.signals()
-                .player_entered_item_area()
-                .connect(move |item| comp.bind_mut().set_in_item_area(item));
+    fn connect_map_items(map_items: &mut [Gd<GameItem>], player_item_comp: &mut Gd<ItemComponent>) {
+        for item in map_items.iter_mut() {
+            Self::init_game_items(item);
+        }
 
-            let mut comp = player_item_comp.clone();
-            item.signals()
-                .player_exited_item_area()
-                .connect(move || comp.bind_mut().set_exited_item_area());
+        let mp: Vec<_> = map_items.to_vec();
+        let comp = player_item_comp.clone();
+
+        // Wait for GameItemSignalHandler to be ready.
+        godot::task::spawn(async move {
+            for item in mp {
+                let guard = item.bind();
+                let sig_handler = guard.sig_handler.as_ref().unwrap();
+                sig_handler.signals().ready().to_future().await;
+
+                let mut p_comp = comp.clone();
+                sig_handler
+                    .signals()
+                    .player_entered_item_area()
+                    .connect(move |item| p_comp.bind_mut().set_in_item_area(item));
+                let mut t_comp = comp.clone();
+                sig_handler
+                    .signals()
+                    .player_exited_item_area()
+                    .connect(move || t_comp.bind_mut().set_exited_item_area());
+            }
+        });
+    }
+
+    /// Initializes properties of a `Gd<GameItem>`, as the `GameItem` does not store a `Base<T>`
+    /// field.
+    fn init_game_items(game_item: &mut Gd<GameItem>) {
+        if let Ok(mut game_item) = game_item.clone().try_cast::<GameItem>() {
+            let mut node = GameItemSignalHandler::new_alloc();
+            node.set_name("GameItemSignalHandler");
+
+            game_item.set_as_top_level(true);
+            game_item.call_deferred("add_child", vslice![&node.to_variant()]);
+            game_item.add_to_group("items");
+            game_item.bind_mut().sig_handler = Some(node);
+
+            let area = game_item.get_node_as::<Area2D>("Area2D");
+            let mut gi = game_item.clone();
+            area.signals()
+                .area_entered()
+                .connect(move |area| gi.bind_mut().on_area_entered(area));
+            let mut gi = game_item.clone();
+            area.signals()
+                .area_exited()
+                .connect(move |area| gi.bind_mut().on_area_exited(area));
         }
     }
 }

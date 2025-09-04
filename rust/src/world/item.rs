@@ -1,5 +1,6 @@
 use godot::{
-    classes::{Area2D, CollisionShape2D, RectangleShape2D, Sprite2D, Texture2D},
+    classes::{Area2D, CollisionShape2D, RectangleShape2D, Sprite2D, Texture2D, Timer},
+    obj::WithBaseField,
     prelude::*,
 };
 
@@ -41,61 +42,67 @@ impl Item {
     }
 }
 
-#[derive(GodotClass)]
-#[class(init, base=Node2D)]
+/// This struct is initialized by Godot in `Main::init_game_items`.
+/// To set base node properties, do so in the aforementioned function.
+#[derive(GodotClass, Clone)]
+#[class(base=Node2D)]
 pub struct GameItem {
     pub item: Item,
-    base: Base<Node2D>,
+    pub sig_handler: Option<Gd<GameItemSignalHandler>>,
 }
 
 #[godot_api]
 impl INode2D for GameItem {
-    fn enter_tree(&mut self) {
-        self.base_mut().add_to_group("items");
-    }
-
-    fn ready(&mut self) {
-        let mut area = self.base().get_node_as::<Area2D>("Area2D");
-        self.base_mut().set_as_top_level(true);
-
-        let mut this = self.to_gd();
-        area.signals()
-            .area_entered()
-            .connect(move |area| this.bind_mut().on_area_entered(area));
-
-        let mut this = self.to_gd();
-        area.signals()
-            .area_exited()
-            .connect(move |area| this.bind_mut().on_area_exited(area));
+    fn init(_base: Base<Node2D>) -> Self {
+        Self {
+            item: Item::default(),
+            sig_handler: None,
+        }
     }
 }
 
 #[godot_api]
 impl GameItem {
+    pub fn picked_up(&mut self) {
+        println!("Picked up");
+        if let Some(base) = &self.sig_handler {
+            self.sig_handler.as_mut().unwrap().bind_mut().destroy();
+        }
+    }
+
+    pub fn on_area_entered(&mut self, area: Gd<Area2D>) {
+        if let Ok(_area) = area.try_cast::<EntityHitbox>() {
+            println!("PLayer entered item area");
+            let b = self.sig_handler.as_ref().unwrap();
+            let this = Gd::from_object(self.clone());
+            b.signals().player_entered_item_area().emit(&this);
+        }
+    }
+
+    pub fn on_area_exited(&mut self, area: Gd<Area2D>) {
+        if let Ok(_area) = area.try_cast::<EntityHitbox>() {
+            println!("PLayer exited item area");
+            let b = self.sig_handler.as_ref().unwrap();
+            b.signals().player_exited_item_area().emit();
+        }
+    }
+}
+
+#[derive(GodotClass)]
+#[class(init, base=Node)]
+pub struct GameItemSignalHandler {
+    base: Base<Node>,
+}
+
+#[godot_api]
+impl GameItemSignalHandler {
     #[signal]
     pub fn player_entered_item_area(item: Gd<GameItem>);
 
     #[signal]
     pub fn player_exited_item_area();
 
-    pub fn picked_up(&mut self) {
-        self.base_mut().queue_free();
-    }
-
-    pub fn new_gd(item: Item) -> Gd<Self> {
-        Gd::from_init_fn(|base| GameItem { item, base })
-    }
-
-    fn on_area_entered(&mut self, area: Gd<Area2D>) {
-        if let Ok(_area) = area.try_cast::<EntityHitbox>() {
-            let this = self.to_gd();
-            self.signals().player_entered_item_area().emit(&this);
-        }
-    }
-
-    fn on_area_exited(&mut self, area: Gd<Area2D>) {
-        if let Ok(_area) = area.try_cast::<EntityHitbox>() {
-            self.signals().player_exited_item_area().emit();
-        }
+    pub fn destroy(&mut self) {
+        self.base().get_parent().unwrap().queue_free();
     }
 }

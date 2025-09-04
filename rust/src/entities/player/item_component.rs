@@ -212,34 +212,3 @@ impl ItemComponent {
         }
     }
 }
-
-// TODO: More test in the future, moved out of this file.
-#[cfg(test)]
-mod tests {
-    use crate::{
-        entities::{
-            entity_stats::{StatModifier, Stats},
-            player::item_component::ItemComponent,
-        },
-        world::item::{Item, ItemKind},
-    };
-
-    #[test]
-    fn insert_item_into_empty_vec() {
-        let mut empty = ItemComponent::default();
-        let bead_1 = Item::new(
-            ItemKind::RosaryBead {
-                effect: StatModifier::new(
-                    Stats::Health,
-                    crate::entities::entity_stats::ModifierKind::Flat(10),
-                ),
-            },
-            "TestBead1".to_string(),
-            Some("Test description 1".to_string()),
-            "test".to_string(),
-        );
-        empty.unlocked_beads.insert(0, Some(bead_1.clone()));
-
-        assert_eq!(Some(bead_1), *empty.unlocked_beads.first().unwrap());
-    }
-}

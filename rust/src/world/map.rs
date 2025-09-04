@@ -7,11 +7,7 @@ use super::{
     environment_trigger::{EnvironmentTrigger, MapTransition},
     item::GameItem,
 };
-use crate::{
-    entities::entity_stats::{ModifierKind, StatModifier, Stats},
-    utils::global_data_singleton::GlobalData,
-    world::item::{Item, ItemKind},
-};
+use crate::utils::global_data_singleton::GlobalData;
 
 #[derive(GodotClass)]
 #[class(base = Node, init)]
@@ -44,23 +40,6 @@ impl INode for Map {
             .base()
             .get_node_as::<Marker2D>("PlayerSpawnPos")
             .get_global_position();
-
-        let test_item = Item::new(
-            ItemKind::Relic {
-                effect: StatModifier::new(Stats::MaxHealth, ModifierKind::Flat(10)),
-            },
-            "Test".to_string(),
-            Some("A test item".to_string()),
-            "res://assets/bullet.webp".to_string(),
-        );
-
-        let mut item_scene = load::<PackedScene>("uid://dt2v4rmlmrw0").instantiate_as::<GameItem>();
-        item_scene.bind_mut().item = test_item;
-        item_scene.set_global_position(Vector2::new(194.0, 60.0));
-
-        self.base()
-            .get_node_as::<Node>("Items")
-            .add_child(&item_scene);
 
         let map_trans = self
             .base()
