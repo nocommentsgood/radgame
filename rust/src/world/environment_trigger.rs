@@ -197,3 +197,22 @@ impl TriggerableEnvObject for MapTransition {
         self.signals().transition_maps().emit(&next);
     }
 }
+
+#[derive(GodotClass)]
+#[class(init, base = Node)]
+pub struct SceneTransition {
+    base: Base<Node>,
+}
+
+#[godot_api]
+impl SceneTransition {
+    #[signal]
+    pub fn scene_transition();
+}
+
+#[godot_dyn]
+impl TriggerableEnvObject for SceneTransition {
+    fn on_activated(&mut self) {
+        self.signals().scene_transition().emit();
+    }
+}
