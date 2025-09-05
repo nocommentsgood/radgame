@@ -1,11 +1,17 @@
-use godot::{classes::Area2D, prelude::*};
+use godot::{
+    classes::{Area2D, CanvasLayer, ColorRect, Marker2D},
+    prelude::*,
+};
 
 use super::map::Map;
 
 use crate::{
     entities::player::{item_component::ItemComponent, main_character::MainCharacter},
     utils::global_data_singleton::GlobalData,
-    world::item::{GameItem, GameItemSignalHandler},
+    world::{
+        environment_trigger::SceneTransition,
+        item::{GameItem, GameItemSignalHandler},
+    },
 };
 
 #[derive(GodotClass)]
@@ -27,6 +33,12 @@ impl INode for Main {
             .signals()
             .propigate_map_trans()
             .connect_other(&self.to_gd(), Self::on_transition_map_request);
+
+        // self.map
+        //     .get_node_as::<SceneTransition>("Environment/SceneTransition")
+        //     .signals()
+        //     .scene_transition()
+        //     .connect_other(&self.to_gd(), Self::on_scene_transition_request);
 
         if let Some(path) = &GlobalData::singleton().bind().paths.player {
             let player = self.base().get_node_as::<MainCharacter>(path);
@@ -65,6 +77,17 @@ impl Main {
         }
     }
 
+    fn on_scene_transition_request(&mut self, position: Gd<Marker2D>) {
+        println!("Got scene trnas sig");
+        if let Some(path) = dbg!(&GlobalData::singleton().bind().paths.player) {
+            let mut player = self.base().get_node_as::<MainCharacter>(path);
+            player
+                .bind_mut()
+                .camera
+                .set_global_position(position.get_global_position());
+        }
+    }
+
     fn on_transition_map_request(&mut self, next_map: Gd<PackedScene>) {
         let mut world = self.base().get_node_as::<Node>("World");
         let next = next_map.instantiate();
@@ -73,9 +96,11 @@ impl Main {
         if let Some(scene) = next
             && let Ok(map) = scene.try_cast::<Map>()
         {
-            let value = map.clone();
+            self.fade_player_camera();
+
+            let map_clone = map.clone();
             world.apply_deferred(move |world| {
-                world.add_child(&value);
+                world.add_child(&map_clone);
                 world.remove_child(&cur_map);
                 cur_map.queue_free();
             });
@@ -172,5 +197,30 @@ impl Main {
                 .area_exited()
                 .connect(move |area| gi.bind_mut().on_area_exited(area));
         }
+    }
+
+    fn fade_player_camera(&mut self) {
+        let mut this = self.to_gd();
+        let mut tree = self.base().get_tree().unwrap();
+        let mut layer = CanvasLayer::new_alloc();
+        let mut rect = ColorRect::new_alloc();
+        // rect.set_color(Color::BLACK);
+        rect.set_anchor(Side::RIGHT, 1.0);
+        rect.set_anchor(Side::BOTTOM, 1.0);
+        rect.set_modulate(Color::from_rgba(0.0, 0.0, 0.0, 0.0));
+        rect.set_name("tween_rect");
+        layer.add_child(&rect);
+        layer.set_name("tween_layer");
+        self.base_mut().add_child(&layer);
+
+        let mut tween = tree.create_tween().unwrap();
+        tween.tween_property(&rect, "modulate:a", &1.0.to_variant(), 0.5);
+        tween.tween_property(&rect, "modulate:a", &0.0.to_variant(), 1.0);
+
+        godot::task::spawn(async move {
+            tween.signals().finished().to_future().await;
+            this.apply_deferred(move |this| this.base_mut().remove_child(&layer));
+            // this.bind_mut().fade_out_player_camera();
+        });
     }
 }
