@@ -99,6 +99,8 @@ impl ICharacterBody2D for TestEnemy {
     }
 
     fn physics_process(&mut self, _delta: f64) {
+        self.raycast_check();
+
         if self.previous_velocity.x != self.get_velocity().x {
             self.previous_velocity = self.get_velocity();
             self.update_animation();

@@ -190,6 +190,17 @@ where
     }
 
     /// Run in `process()`
+    fn raycast_check(&mut self) {
+        if self.left_wall_cast().is_colliding()
+            || self.right_wall_cast().is_colliding()
+            || !self.left_ground_cast().is_colliding()
+            || !self.right_ground_cast().is_colliding()
+        {
+            self.transition_sm(&EnemyEvent::RayCastNotColliding);
+        }
+    }
+
+    /// Run in `process()`
     fn chase_player(&mut self) {
         let speed = self.speeds().aggro;
         self.track_player();

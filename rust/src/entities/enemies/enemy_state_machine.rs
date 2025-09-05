@@ -4,6 +4,7 @@ use statig::{Response, state_machine};
 #[derive(Default, Debug, Clone)]
 pub struct EnemyStateMachine {
     just_chain_attacked: bool,
+    disable_movement: bool,
 }
 
 #[derive(Default, Debug)]
@@ -13,6 +14,7 @@ pub enum EnemyEvent {
     OnFloor,
     LostPlayer,
     InAttackRange,
+    RayCastNotColliding,
     TimerElapsed,
     #[default]
     None,
@@ -40,9 +42,15 @@ impl State {
 #[state_machine(initial = "State::idle()", state(derive(Debug, Clone)))]
 impl EnemyStateMachine {
     #[state(superstate = "passive")]
-    fn idle(event: &EnemyEvent) -> Response<State> {
+    fn idle(&self, event: &EnemyEvent) -> Response<State> {
         match event {
-            EnemyEvent::TimerElapsed => Response::Transition(State::patrol()),
+            EnemyEvent::TimerElapsed => {
+                if !self.disable_movement {
+                    Response::Transition(State::patrol())
+                } else {
+                    Handled
+                }
+            }
             EnemyEvent::FoundPlayer => Response::Super,
             EnemyEvent::FailedFloorCheck => Response::Transition(State::falling()),
             _ => Response::Handled,
@@ -50,9 +58,13 @@ impl EnemyStateMachine {
     }
 
     #[state(superstate = "passive")]
-    fn patrol(event: &EnemyEvent) -> Response<State> {
+    fn patrol(&mut self, event: &EnemyEvent) -> Response<State> {
         match event {
             EnemyEvent::TimerElapsed => Response::Transition(State::idle()),
+            EnemyEvent::RayCastNotColliding => {
+                self.disable_movement = true;
+                Response::Transition(State::idle())
+            }
             EnemyEvent::FoundPlayer => Response::Super,
             EnemyEvent::FailedFloorCheck => Response::Transition(State::falling()),
             _ => Handled,
@@ -62,6 +74,10 @@ impl EnemyStateMachine {
     #[state(superstate = "aggresive")]
     fn chase_player(&mut self, event: &EnemyEvent) -> Response<State> {
         match event {
+            EnemyEvent::RayCastNotColliding => {
+                self.disable_movement = true;
+                Response::Transition(State::idle())
+            }
             EnemyEvent::LostPlayer => Response::Super,
             EnemyEvent::FailedFloorCheck => Response::Transition(State::falling()),
             EnemyEvent::InAttackRange => {
