@@ -163,6 +163,8 @@ impl MainCharacter {
     /// Moves the camera if the player's velocity has changed.
     fn accelerate(&mut self, delta: &f32) {
         let stat = |map: &HashMap<Stats, StatVal>, stat: &Stats| map.get(stat).unwrap().0 as f32;
+
+        let velocity = self.velocity;
         match self.state.state() {
             State::FallingRight {} | State::AirAttackRight {} => {
                 self.velocity.x = 0.0;
@@ -239,6 +241,11 @@ impl MainCharacter {
             _ => self.velocity.x = 0.0,
         }
 
+        // Player velocity changed.
+        if self.velocity != velocity && !self.velocity.is_zero_approx() {
+            self.update_camera();
+        }
+
         let velocity = self.velocity;
         self.base_mut().set_velocity(velocity);
         self.base_mut().move_and_slide();
@@ -252,10 +259,6 @@ impl MainCharacter {
             self.velocity = self.velocity.bounce(c.get_normal().normalized_or_zero());
             let velocity = self.velocity;
             self.base_mut().set_velocity(velocity);
-        }
-
-        if self.velocity != velocity {
-            self.update_camera();
         }
     }
 
@@ -533,20 +536,11 @@ impl MainCharacter {
     }
 
     fn update_camera(&mut self) {
-        if !self.velocity.x.is_zero_approx() {
-            if self.velocity.x.is_sign_positive() {
-                let mut camera = self
-                    .base()
-                    .get_node_as::<ShakyPlayerCamera>("ShakyPlayerCamera");
-                camera.bind_mut().set_right = true;
-            }
-
-            if self.velocity.x.is_sign_negative() {
-                let mut camera = self
-                    .base()
-                    .get_node_as::<ShakyPlayerCamera>("ShakyPlayerCamera");
-                camera.bind_mut().set_right = false;
-            }
+        if self.velocity.x.is_sign_positive() {
+            self.camera.bind_mut().set_right(Some(true));
+        }
+        if self.velocity.x.is_sign_negative() {
+            self.camera.bind_mut().set_right(Some(false));
         }
     }
 

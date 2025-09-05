@@ -3821,8 +3821,6 @@ collide_with_areas = true
 
 [node name="ShakyPlayerCamera" type="ShakyPlayerCamera" parent="."]
 decay = 0.8
-max_offset = Vector2(50, -55)
-max_rot = 0.0
 offset = Vector2(0, -55)
 ignore_rotation = false
 zoom = Vector2(1.2, 1.2)

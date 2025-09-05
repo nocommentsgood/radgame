@@ -4,12 +4,6 @@ use godot::{
     prelude::*,
 };
 
-// Credit to Squirrel GDC presentation.
-// shake = trauma.sqrt() or traume.cube()
-// angle = max_angle * shake * get_random_float_negone_to_one
-// x_offset = max_offset * shake * PerlinNoise[-1, 1]
-// y_offset = max_offset * shake * PerlinNoise[-1, 1]
-
 #[allow(dead_code)]
 pub enum TraumaLevel {
     Low,
@@ -34,19 +28,15 @@ pub struct ShakyPlayerCamera {
     // TODO: Finalize and remove exports.
     #[export]
     decay: f32,
-    #[export]
-    #[init(val = Vector2::new(100.0, 75.0))]
     max_offset: Vector2,
     #[export]
-    #[init(val = 20.0)]
     max_rot: f32,
     #[init(val = FastNoiseLite::new())]
     noise: FastNoiseLite,
     original_offset: Vector2,
     trauma: f32,
     noise_y: i32,
-
-    pub set_right: bool,
+    set_right: Option<bool>,
     base: Base<Camera2D>,
 }
 
@@ -57,16 +47,19 @@ impl ICamera2D for ShakyPlayerCamera {
             self.trauma = f32::max(self.trauma - self.decay * delta, 0.0);
             self.rust_shake();
         }
-        // Lerp towards the players last movement.
-        let cur_pos = self.base().get_offset();
-        let target = if self.set_right {
-            Vector2::new(50.0, self.base().get_offset().y)
-        } else {
-            Vector2::new(-50.0, self.base().get_offset().y)
-        };
 
-        let vel = cur_pos.lerp(target, 2.0 * delta);
-        self.base_mut().set_offset(vel);
+        // Lerp towards the players last movement.
+        if let Some(b) = self.set_right {
+            let cur_pos = self.base().get_offset();
+            let target = if b {
+                Vector2::new(50.0, self.base().get_offset().y)
+            } else {
+                Vector2::new(-50.0, self.base().get_offset().y)
+            };
+
+            let vel = cur_pos.lerp(target, 2.0 * delta);
+            self.base_mut().set_offset(vel);
+        }
     }
 
     fn ready(&mut self) {
@@ -111,5 +104,17 @@ impl ShakyPlayerCamera {
         let o = self.original_offset;
         self.base_mut()
             .set_offset(o + Vector2::new(offset_x, offset_y));
+    }
+
+    pub fn set_right(&mut self, value: Option<bool>) {
+        self.set_right = value;
+
+        if let Some(b) = self.set_right {
+            if b {
+                self.max_offset = Vector2::new(55.0, -55.0);
+            } else {
+                self.max_offset = Vector2::new(-55.0, -55.0);
+            }
+        }
     }
 }
