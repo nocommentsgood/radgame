@@ -1,7 +1,6 @@
 use godot::{
     classes::{Area2D, CanvasLayer, ColorRect, Marker2D},
     prelude::*,
-    task::TaskHandle,
 };
 
 use super::map::Map;
@@ -35,11 +34,6 @@ impl INode for Main {
             .propigate_map_trans()
             .connect_other(&self.to_gd(), Self::on_transition_map_request);
 
-        // self.map
-        //     .get_node_as::<SceneTransition>("Environment/SceneTransition")
-        //     .signals()
-        //     .scene_transition()
-        //     .connect_other(&self.to_gd(), Self::on_scene_transition_request);
         self.signals()
             .map_ready()
             .connect_self(Self::fade_camera_in);
@@ -85,7 +79,6 @@ impl Main {
     }
 
     fn on_scene_transition_request(&mut self, position: Gd<Marker2D>) {
-        println!("Got scene trnas sig");
         if let Some(path) = dbg!(&GlobalData::singleton().bind().paths.player) {
             let mut player = self.base().get_node_as::<MainCharacter>(path);
             player
@@ -97,7 +90,7 @@ impl Main {
 
     fn on_transition_map_request(&mut self, next_map: Gd<PackedScene>) {
         let mut this = self.to_gd();
-        let future = self.fade_player_camera();
+        let future = self.fade_camera_out();
         godot::task::spawn(async move {
             future.await;
             let mut world = this.get_node_as::<Node>("World");
@@ -179,7 +172,6 @@ impl Main {
                 let sig_handler = guard.sig_handler.as_ref().unwrap();
                 let mut p_comp = comp.clone();
 
-                // sig_handler.signals().ready().to_future().await;
                 sig_handler
                     .signals()
                     .player_entered_item_area()
@@ -218,8 +210,17 @@ impl Main {
         }
     }
 
-    fn fade_player_camera(&mut self) -> godot::task::SignalFuture<()> {
-        // let mut this = self.to_gd();
+    fn fade_camera_out(&mut self) -> godot::task::SignalFuture<()> {
+        let mut player = self.base().get_node_as::<MainCharacter>(
+            GlobalData::singleton()
+                .bind()
+                .paths
+                .player
+                .as_ref()
+                .unwrap(),
+        );
+        player.set_process_unhandled_input(false);
+        player.set_physics_process(false);
         let mut tree = self.base().get_tree().unwrap();
         let mut layer = CanvasLayer::new_alloc();
         let mut rect = ColorRect::new_alloc();
@@ -238,7 +239,17 @@ impl Main {
     }
 
     fn fade_camera_in(&mut self) {
+        let mut this = self.to_gd();
         let mut tree = self.base().get_tree().unwrap();
+        let mut player = self.base().get_node_as::<MainCharacter>(
+            GlobalData::singleton()
+                .bind()
+                .paths
+                .player
+                .as_ref()
+                .unwrap(),
+        );
+
         let layer = self.base().get_node_as::<CanvasLayer>("tween_layer");
         let rect = layer.get_node_as::<ColorRect>("tween_rect");
 
@@ -246,6 +257,9 @@ impl Main {
             let mut tween = tree.create_tween().unwrap();
             tween.tween_property(&rect, "modulate:a", &0.0.to_variant(), 0.7);
             tween.signals().finished().to_future().await;
+            player.set_process_unhandled_input(true);
+            player.set_physics_process(true);
+            this.apply_deferred(move |this| this.base_mut().remove_child(&layer));
         });
     }
 }
