@@ -7,7 +7,9 @@ use super::{
     environment_trigger::{EnvironmentTrigger, MapTransition},
     item::GameItem,
 };
-use crate::utils::global_data_singleton::GlobalData;
+use crate::{
+    utils::global_data_singleton::GlobalData, world::environment_trigger::SceneTransition,
+};
 
 #[derive(GodotClass)]
 #[class(base = Node, init)]
@@ -17,6 +19,7 @@ pub struct Map {
     pub triggers: Vec<Gd<EnvironmentTrigger>>,
     pub nav_regions: Vec<Gd<NavigationRegion2D>>,
     pub items: Vec<Gd<GameItem>>,
+    pub scene_trans: Vec<Gd<SceneTransition>>,
 
     base: Base<Node>,
 }

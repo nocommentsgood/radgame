@@ -3,7 +3,7 @@ use crate::{
     utils::collision_layers::CollisionLayers,
 };
 use godot::{
-    classes::{Area2D, CollisionShape2D, IArea2D, IStaticBody2D, StaticBody2D},
+    classes::{Area2D, Camera2D, CollisionShape2D, IArea2D, IStaticBody2D, Marker2D, StaticBody2D},
     prelude::*,
 };
 
@@ -195,5 +195,27 @@ impl TriggerableEnvObject for MapTransition {
     fn on_activated(&mut self) {
         let next = load(self.next_map_scene.arg());
         self.signals().transition_maps().emit(&next);
+    }
+}
+
+#[derive(GodotClass)]
+#[class(init, base = Marker2D)]
+pub struct SceneTransition {
+    base: Base<Marker2D>,
+}
+
+#[godot_api]
+impl SceneTransition {
+    #[signal]
+    pub fn scene_transition(position: Gd<Marker2D>);
+}
+
+#[godot_dyn]
+impl TriggerableEnvObject for SceneTransition {
+    fn on_activated(&mut self) {
+        println!("Emitting scene trans signal");
+        // let marker = self.base().upcast().clone::<Gd<Marker2D>>();
+        let marker = self.to_gd().upcast();
+        self.signals().scene_transition().emit(&marker);
     }
 }
