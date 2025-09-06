@@ -98,13 +98,15 @@ impl Main {
             let mut cur_map = this.bind().map.clone();
 
             if let Some(scene) = next
-                && let Ok(map) = scene.try_cast::<Map>()
+                && let Ok(mut map) = scene.try_cast::<Map>()
             {
+                map.set_name("Map");
                 let map_clone = map.clone();
 
                 world.apply_deferred(move |world| {
                     world.add_child(&map_clone);
                     world.remove_child(&cur_map);
+                    world.move_child(&map_clone, 0);
                     cur_map.queue_free();
                 });
 
