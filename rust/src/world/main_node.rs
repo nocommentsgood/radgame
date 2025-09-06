@@ -40,6 +40,9 @@ impl INode for Main {
         //     .signals()
         //     .scene_transition()
         //     .connect_other(&self.to_gd(), Self::on_scene_transition_request);
+        self.signals()
+            .map_ready()
+            .connect_self(Self::fade_camera_in);
 
         if let Some(path) = &GlobalData::singleton().bind().paths.player {
             let player = self.base().get_node_as::<MainCharacter>(path);
@@ -61,6 +64,9 @@ impl INode for Main {
 
 #[godot_api]
 impl Main {
+    #[signal]
+    fn map_ready();
+
     // Update world data when player path changes.
     fn on_player_entered_tree(&mut self, node: Gd<Node>) {
         if let Ok(player) = node.try_cast::<MainCharacter>() {
@@ -90,34 +96,36 @@ impl Main {
     }
 
     fn on_transition_map_request(&mut self, next_map: Gd<PackedScene>) {
-        let mut world = self.base().get_node_as::<Node>("World");
-        let next = next_map.instantiate();
-        let mut cur_map = self.map.clone();
+        let mut this = self.to_gd();
+        let future = self.fade_player_camera();
+        godot::task::spawn(async move {
+            future.await;
+            let mut world = this.get_node_as::<Node>("World");
+            let next = next_map.instantiate();
+            let mut cur_map = this.bind().map.clone();
 
-        if let Some(scene) = next
-            && let Ok(map) = scene.try_cast::<Map>()
-        {
-            self.fade_player_camera();
+            if let Some(scene) = next
+                && let Ok(map) = scene.try_cast::<Map>()
+            {
+                let map_clone = map.clone();
 
-            let map_clone = map.clone();
-            world.apply_deferred(move |world| {
-                world.add_child(&map_clone);
-                world.remove_child(&cur_map);
-                cur_map.queue_free();
-            });
+                world.apply_deferred(move |world| {
+                    world.add_child(&map_clone);
+                    world.remove_child(&cur_map);
+                    cur_map.queue_free();
+                });
 
-            let mut player = self.base().get_node_as::<MainCharacter>(
-                GlobalData::singleton()
-                    .bind()
-                    .paths
-                    .player
-                    .as_ref()
-                    .unwrap(),
-            );
-            let new_map = map.clone();
-            let timer = self.base().get_tree().unwrap().create_timer(0.1).unwrap();
+                let mut player = this.get_node_as::<MainCharacter>(
+                    GlobalData::singleton()
+                        .bind()
+                        .paths
+                        .player
+                        .as_ref()
+                        .unwrap(),
+                );
+                let new_map = map.clone();
+                let timer = this.get_tree().unwrap().create_timer(0.1).unwrap();
 
-            godot::task::spawn(async move {
                 new_map.signals().ready().to_future().await;
                 let pos = new_map.bind().player_spawn_pos;
                 player.set_position(pos);
@@ -134,25 +142,26 @@ impl Main {
                     camera.set_drag_horizontal_enabled(true);
                     camera.set_position_smoothing_enabled(true);
                 }
-            });
 
-            // Connect items in the new map to player item component.
-            let player = self.base().get_node_as::<MainCharacter>(
-                GlobalData::singleton()
-                    .bind()
-                    .paths
-                    .player
-                    .as_ref()
-                    .unwrap(),
-            );
-            let mut new_map = map.clone();
-            let mut item_comp = player.get_node_as::<ItemComponent>("ItemComponent");
-            Self::connect_map_items(&mut new_map.bind_mut().items, &mut item_comp);
-            map.signals()
-                .propigate_map_trans()
-                .connect_other(&self.to_gd(), Self::on_transition_map_request);
-            *self.map = map;
-        }
+                let player = this.get_node_as::<MainCharacter>(
+                    GlobalData::singleton()
+                        .bind()
+                        .paths
+                        .player
+                        .as_ref()
+                        .unwrap(),
+                );
+                let mut new_map = map.clone();
+                let mut item_comp = player.get_node_as::<ItemComponent>("ItemComponent");
+                Self::connect_map_items(&mut new_map.bind_mut().items, &mut item_comp);
+                map.signals()
+                    .propigate_map_trans()
+                    .connect_other(&this, Self::on_transition_map_request);
+                *this.bind_mut().map = map;
+
+                this.signals().map_ready().emit();
+            }
+        });
     }
 
     fn connect_map_items(map_items: &mut [Gd<GameItem>], player_item_comp: &mut Gd<ItemComponent>) {
@@ -170,7 +179,7 @@ impl Main {
                 let sig_handler = guard.sig_handler.as_ref().unwrap();
                 let mut p_comp = comp.clone();
 
-                sig_handler.signals().ready().to_future().await;
+                // sig_handler.signals().ready().to_future().await;
                 sig_handler
                     .signals()
                     .player_entered_item_area()
@@ -209,8 +218,8 @@ impl Main {
         }
     }
 
-    fn fade_player_camera(&mut self) {
-        let mut this = self.to_gd();
+    fn fade_player_camera(&mut self) -> godot::task::SignalFuture<()> {
+        // let mut this = self.to_gd();
         let mut tree = self.base().get_tree().unwrap();
         let mut layer = CanvasLayer::new_alloc();
         let mut rect = ColorRect::new_alloc();
@@ -225,16 +234,18 @@ impl Main {
 
         let mut tween = tree.create_tween().unwrap();
         tween.tween_property(&rect, "modulate:a", &1.0.to_variant(), 0.5);
+        tween.signals().finished().to_future()
+    }
+
+    fn fade_camera_in(&mut self) {
+        let mut tree = self.base().get_tree().unwrap();
+        let layer = self.base().get_node_as::<CanvasLayer>("tween_layer");
+        let rect = layer.get_node_as::<ColorRect>("tween_rect");
 
         godot::task::spawn(async move {
-            tween.signals().finished().to_future();
-            let timer = tree.create_timer(2.0).unwrap();
-            timer.signals().timeout().to_future().await;
             let mut tween = tree.create_tween().unwrap();
-            tween.tween_property(&rect, "modulate:a", &0.0.to_variant(), 1.0);
+            tween.tween_property(&rect, "modulate:a", &0.0.to_variant(), 0.7);
             tween.signals().finished().to_future().await;
-
-            this.apply_deferred(move |this| this.base_mut().remove_child(&layer));
         });
     }
 }
