@@ -16,7 +16,7 @@ impl std::fmt::Display for State {
             State::AttackingRight {} => write!(f, "attack_right"),
             State::AttackRight2 {} => write!(f, "chainattack_right"),
             State::DodgingRight {} => write!(f, "dodge_right"),
-            State::IdleRight {} => write!(f, "idle_right"),
+            State::IdleRight {} | State::ForcedDisabledRight {} => write!(f, "idle_right"),
             State::MoveRight {} => write!(f, "run_right"),
             State::FallingRight {} | State::MoveFallingRight {} => write!(f, "falling_right"),
             State::JumpingRight {} => write!(f, "jumping_right"),
@@ -30,7 +30,7 @@ impl std::fmt::Display for State {
             State::AttackingLeft {} => write!(f, "attack_left"),
             State::AttackLeft2 {} => write!(f, "chainattack_left"),
             State::DodgingLeft {} => write!(f, "dodge_left"),
-            State::IdleLeft {} => write!(f, "idle_left"),
+            State::IdleLeft {} | State::ForcedDisabledLeft {} => write!(f, "idle_left"),
             State::MoveLeft {} => write!(f, "run_left"),
             State::FallingLeft {} | State::MoveFallingLeft {} => write!(f, "falling_left"),
             State::JumpingLeft {} => write!(f, "jumping_left"),
@@ -55,6 +55,8 @@ pub enum Event {
     FailedFloorCheck(Inputs),
     Landed(Inputs),
     Hurt,
+    ForceDisabled,
+    ForceEnabled,
     #[default]
     None,
 }
@@ -133,6 +135,7 @@ impl CharacterStateMachine {
 
             // Hurt
             Event::Hurt => Response::Transition(State::hurt_right()),
+            Event::ForceDisabled => Response::Transition(State::forced_disabled_right()),
             _ => Handled,
         }
     }
@@ -205,6 +208,7 @@ impl CharacterStateMachine {
             },
             // Hurt
             Event::Hurt => Response::Transition(State::hurt_left()),
+            Event::ForceDisabled => Response::Transition(State::forced_disabled_left()),
             _ => Handled,
         }
     }
@@ -280,6 +284,7 @@ impl CharacterStateMachine {
 
             // Hurt
             Event::Hurt => Response::Transition(State::hurt_right()),
+            Event::ForceDisabled => Response::Transition(State::forced_disabled_right()),
             _ => Handled,
         }
     }
@@ -353,6 +358,7 @@ impl CharacterStateMachine {
             },
             // Hurt
             Event::Hurt => Response::Transition(State::hurt_left()),
+            Event::ForceDisabled => Response::Transition(State::forced_disabled_left()),
             _ => Handled,
         }
     }
@@ -377,6 +383,7 @@ impl CharacterStateMachine {
                 (None, None) => Response::Transition(State::falling_right()),
                 _ => Response::Transition(State::falling_right()),
             },
+            Event::ForceDisabled => Response::Transition(State::forced_disabled_right()),
             _ => Handled,
         }
     }
@@ -401,6 +408,7 @@ impl CharacterStateMachine {
                 (None, None) => Response::Transition(State::falling_left()),
                 _ => Response::Transition(State::falling_left()),
             },
+            Event::ForceDisabled => Response::Transition(State::forced_disabled_left()),
             _ => Handled,
         }
     }
@@ -423,6 +431,7 @@ impl CharacterStateMachine {
                 (None, None) => Response::Transition(State::falling_right()),
                 _ => Response::Transition(State::falling_right()),
             },
+            Event::ForceDisabled => Response::Transition(State::forced_disabled_right()),
             _ => Handled,
         }
     }
@@ -445,6 +454,7 @@ impl CharacterStateMachine {
                 (None, None) => Response::Transition(State::falling_left()),
                 _ => Response::Transition(State::falling_left()),
             },
+            Event::ForceDisabled => Response::Transition(State::forced_disabled_left()),
             _ => Handled,
         }
     }
@@ -480,6 +490,7 @@ impl CharacterStateMachine {
                 (None, None) => Response::Transition(State::idle_right()),
                 _ => Handled,
             },
+            Event::ForceDisabled => Response::Transition(State::forced_disabled_right()),
             _ => Handled,
         }
     }
@@ -515,6 +526,7 @@ impl CharacterStateMachine {
                 (None, None) => Response::Transition(State::idle_left()),
                 _ => Handled,
             },
+            Event::ForceDisabled => Response::Transition(State::forced_disabled_left()),
             _ => Handled,
         }
     }
@@ -548,6 +560,7 @@ impl CharacterStateMachine {
                 (None, None) => Response::Transition(State::idle_right()),
                 _ => Handled,
             },
+            Event::ForceDisabled => Response::Transition(State::forced_disabled_right()),
             _ => Handled,
         }
     }
@@ -583,6 +596,7 @@ impl CharacterStateMachine {
                 (None, None) => Response::Transition(State::idle_left()),
                 _ => Handled,
             },
+            Event::ForceDisabled => Response::Transition(State::forced_disabled_left()),
             _ => Handled,
         }
     }
@@ -627,6 +641,7 @@ impl CharacterStateMachine {
 
             // Hurt
             (Event::Hurt, _) => Response::Transition(State::hurt_right()),
+            (Event::ForceDisabled, _) => Response::Transition(State::forced_disabled_right()),
             (_, _) => Handled,
         }
     }
@@ -671,6 +686,7 @@ impl CharacterStateMachine {
 
             // Hurt
             (Event::Hurt, _) => Response::Transition(State::hurt_right()),
+            (Event::ForceDisabled, _) => Response::Transition(State::forced_disabled_left()),
             (_, _) => Handled,
         }
     }
@@ -686,6 +702,7 @@ impl CharacterStateMachine {
                 _ => Handled,
             },
             Event::Hurt => Response::Transition(State::hurt_right()),
+            Event::ForceDisabled => Response::Transition(State::forced_disabled_right()),
             _ => Handled,
         }
     }
@@ -701,6 +718,7 @@ impl CharacterStateMachine {
                 _ => Handled,
             },
             Event::Hurt => Response::Transition(State::hurt_right()),
+            Event::ForceDisabled => Response::Transition(State::forced_disabled_left()),
             _ => Handled,
         }
     }
@@ -717,6 +735,7 @@ impl CharacterStateMachine {
                 (None, None) => Response::Transition(State::idle_right()),
                 _ => Handled,
             },
+            Event::ForceDisabled => Response::Transition(State::forced_disabled_right()),
             _ => Handled,
         }
     }
@@ -733,6 +752,7 @@ impl CharacterStateMachine {
                 (None, None) => Response::Transition(State::idle_left()),
                 _ => Handled,
             },
+            Event::ForceDisabled => Response::Transition(State::forced_disabled_left()),
             _ => Handled,
         }
     }
@@ -768,6 +788,7 @@ impl CharacterStateMachine {
                 (None, None) => Response::Transition(State::idle_right()),
                 _ => Handled,
             },
+            Event::ForceDisabled => Response::Transition(State::forced_disabled_right()),
             _ => Handled,
         }
     }
@@ -803,6 +824,7 @@ impl CharacterStateMachine {
                 (None, None) => Response::Transition(State::idle_right()),
                 _ => Handled,
             },
+            Event::ForceDisabled => Response::Transition(State::forced_disabled_right()),
             _ => Handled,
         }
     }
@@ -837,6 +859,7 @@ impl CharacterStateMachine {
                 (None, None) => Response::Transition(State::idle_left()),
                 _ => Handled,
             },
+            Event::ForceDisabled => Response::Transition(State::forced_disabled_left()),
             _ => Handled,
         }
     }
@@ -872,6 +895,7 @@ impl CharacterStateMachine {
                 (None, None) => Response::Transition(State::idle_left()),
                 _ => Handled,
             },
+            Event::ForceDisabled => Response::Transition(State::forced_disabled_left()),
             _ => Handled,
         }
     }
@@ -886,6 +910,7 @@ impl CharacterStateMachine {
                 (None, None) => Response::Transition(State::idle_right()),
                 _ => Handled,
             },
+            Event::ForceDisabled => Response::Transition(State::forced_disabled_right()),
             _ => Handled,
         }
     }
@@ -900,6 +925,7 @@ impl CharacterStateMachine {
                 (None, None) => Response::Transition(State::idle_left()),
                 _ => Handled,
             },
+            Event::ForceDisabled => Response::Transition(State::forced_disabled_left()),
             _ => Handled,
         }
     }
@@ -914,6 +940,7 @@ impl CharacterStateMachine {
                 (None, None) => Response::Transition(State::idle_right()),
                 _ => Handled,
             },
+            Event::ForceDisabled => Response::Transition(State::forced_disabled_right()),
             _ => Handled,
         }
     }
@@ -928,6 +955,23 @@ impl CharacterStateMachine {
                 (None, None) => Response::Transition(State::idle_left()),
                 _ => Handled,
             },
+            Event::ForceDisabled => Response::Transition(State::forced_disabled_left()),
+            _ => Handled,
+        }
+    }
+
+    #[state]
+    fn forced_disabled_right(event: &Event) -> Response<State> {
+        match event {
+            Event::ForceEnabled => Response::Transition(State::idle_right()),
+            _ => Handled,
+        }
+    }
+
+    #[state]
+    fn forced_disabled_left(event: &Event) -> Response<State> {
+        match event {
+            Event::ForceEnabled => Response::Transition(State::idle_left()),
             _ => Handled,
         }
     }

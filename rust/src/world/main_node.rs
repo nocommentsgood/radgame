@@ -219,8 +219,8 @@ impl Main {
                 .as_ref()
                 .unwrap(),
         );
-        player.set_process_unhandled_input(false);
-        player.set_physics_process(false);
+        player.bind_mut().force_disabled();
+
         let mut tree = self.base().get_tree().unwrap();
         let mut layer = CanvasLayer::new_alloc();
         let mut rect = ColorRect::new_alloc();
@@ -249,6 +249,7 @@ impl Main {
                 .as_ref()
                 .unwrap(),
         );
+        player.bind_mut().force_enabled();
 
         let layer = self.base().get_node_as::<CanvasLayer>("tween_layer");
         let rect = layer.get_node_as::<ColorRect>("tween_rect");
@@ -257,8 +258,6 @@ impl Main {
             let mut tween = tree.create_tween().unwrap();
             tween.tween_property(&rect, "modulate:a", &0.0.to_variant(), 0.7);
             tween.signals().finished().to_future().await;
-            player.set_process_unhandled_input(true);
-            player.set_physics_process(true);
             this.apply_deferred(move |this| this.base_mut().remove_child(&layer));
         });
     }

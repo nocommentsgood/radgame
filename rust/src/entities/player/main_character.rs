@@ -564,6 +564,17 @@ impl MainCharacter {
             Direction::West
         }
     }
+
+    /// Transitions state machine from it's current state to `disabled`.
+    /// Effectively disables input handling.
+    pub fn force_disabled(&mut self) {
+        self.transition_sm(&csm::Event::ForceDisabled);
+    }
+
+    /// Transitions state machine from `disabled` to `idle`.
+    pub fn force_enabled(&mut self) {
+        self.transition_sm(&csm::Event::ForceEnabled);
+    }
 }
 
 #[godot_dyn]
