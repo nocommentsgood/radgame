@@ -1,6 +1,7 @@
 use godot::{
     classes::{Area2D, CanvasLayer, ColorRect, Marker2D},
     prelude::*,
+    task::TaskHandle,
 };
 
 use super::map::Map;
@@ -113,7 +114,7 @@ impl Main {
                     .as_ref()
                     .unwrap(),
             );
-            let mut new_map = map.clone();
+            let new_map = map.clone();
             let timer = self.base().get_tree().unwrap().create_timer(0.1).unwrap();
 
             godot::task::spawn(async move {
@@ -133,12 +134,20 @@ impl Main {
                     camera.set_drag_horizontal_enabled(true);
                     camera.set_position_smoothing_enabled(true);
                 }
-
-                // Connect items in the new map to player item component.
-                let mut item_comp = player.get_node_as::<ItemComponent>("ItemComponent");
-                Self::connect_map_items(&mut new_map.bind_mut().items, &mut item_comp);
             });
 
+            // Connect items in the new map to player item component.
+            let player = self.base().get_node_as::<MainCharacter>(
+                GlobalData::singleton()
+                    .bind()
+                    .paths
+                    .player
+                    .as_ref()
+                    .unwrap(),
+            );
+            let mut new_map = map.clone();
+            let mut item_comp = player.get_node_as::<ItemComponent>("ItemComponent");
+            Self::connect_map_items(&mut new_map.bind_mut().items, &mut item_comp);
             map.signals()
                 .propigate_map_trans()
                 .connect_other(&self.to_gd(), Self::on_transition_map_request);
@@ -159,13 +168,14 @@ impl Main {
             for item in mp {
                 let guard = item.bind();
                 let sig_handler = guard.sig_handler.as_ref().unwrap();
-                sig_handler.signals().ready().to_future().await;
-
                 let mut p_comp = comp.clone();
+
+                sig_handler.signals().ready().to_future().await;
                 sig_handler
                     .signals()
                     .player_entered_item_area()
                     .connect(move |item| p_comp.bind_mut().set_in_item_area(item));
+
                 let mut t_comp = comp.clone();
                 sig_handler
                     .signals()
@@ -204,7 +214,7 @@ impl Main {
         let mut tree = self.base().get_tree().unwrap();
         let mut layer = CanvasLayer::new_alloc();
         let mut rect = ColorRect::new_alloc();
-        // rect.set_color(Color::BLACK);
+
         rect.set_anchor(Side::RIGHT, 1.0);
         rect.set_anchor(Side::BOTTOM, 1.0);
         rect.set_modulate(Color::from_rgba(0.0, 0.0, 0.0, 0.0));
@@ -215,12 +225,16 @@ impl Main {
 
         let mut tween = tree.create_tween().unwrap();
         tween.tween_property(&rect, "modulate:a", &1.0.to_variant(), 0.5);
-        tween.tween_property(&rect, "modulate:a", &0.0.to_variant(), 1.0);
 
         godot::task::spawn(async move {
+            tween.signals().finished().to_future();
+            let timer = tree.create_timer(2.0).unwrap();
+            timer.signals().timeout().to_future().await;
+            let mut tween = tree.create_tween().unwrap();
+            tween.tween_property(&rect, "modulate:a", &0.0.to_variant(), 1.0);
             tween.signals().finished().to_future().await;
+
             this.apply_deferred(move |this| this.base_mut().remove_child(&layer));
-            // this.bind_mut().fade_out_player_camera();
         });
     }
 }
