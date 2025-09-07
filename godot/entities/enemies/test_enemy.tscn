@@ -1071,6 +1071,7 @@ hframes = 2
 vframes = 4
 
 [node name="AnimationPlayer" type="AnimationPlayer" parent="."]
+callback_mode_process = 0
 libraries = {
 &"": SubResource("AnimationLibrary_o5fgf")
 }

@@ -191,12 +191,25 @@ where
 
     /// Run in `process()`
     fn raycast_check(&mut self) {
-        if self.left_wall_cast().is_colliding()
-            || self.right_wall_cast().is_colliding()
+        if self.wall_collision()
             || !self.left_ground_cast().is_colliding()
             || !self.right_ground_cast().is_colliding()
         {
             self.transition_sm(&EnemyEvent::RayCastNotColliding);
+        }
+    }
+
+    fn wall_collision(&self) -> bool {
+        if self.left_wall_cast().is_colliding() || self.right_wall_cast().is_colliding() {
+            self.left_wall_cast()
+                .get_collider()
+                .is_some_and(|obj| obj.try_cast::<MainCharacter>().is_err())
+                || self
+                    .right_wall_cast()
+                    .get_collider()
+                    .is_some_and(|obj| obj.try_cast::<MainCharacter>().is_err())
+        } else {
+            false
         }
     }
 
