@@ -57,7 +57,7 @@ impl ICamera2D for ShakyPlayerCamera {
                 Vector2::new(-50.0, self.base().get_offset().y)
             };
 
-            let vel = cur_pos.lerp(target, 2.0 * delta);
+            let vel = cur_pos.lerp(target, 3.0 * delta);
             self.base_mut().set_offset(vel);
         }
     }

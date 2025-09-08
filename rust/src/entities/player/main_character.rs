@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, mem::discriminant};
 
 use godot::{
     classes::{
@@ -34,7 +34,7 @@ use crate::{
 type State = csm::State;
 type PT = PlayerTimer;
 type Event = csm::Event;
-const GRAVITY: f32 = 1000.0;
+const GRAVITY: f32 = 980.0;
 const TERMINAL_VELOCITY: f32 = 500.0;
 
 #[derive(GodotClass)]
@@ -98,8 +98,8 @@ impl ICharacterBody2D for MainCharacter {
         self.stats.insert(Stats::MaxHealth, StatVal::new(50));
         self.stats.insert(Stats::HealAmount, StatVal::new(10));
         self.stats.insert(Stats::AttackDamage, StatVal::new(30));
-        self.stats.insert(Stats::RunningSpeed, StatVal::new(150));
-        self.stats.insert(Stats::JumpingSpeed, StatVal::new(350));
+        self.stats.insert(Stats::RunningSpeed, StatVal::new(180));
+        self.stats.insert(Stats::JumpingSpeed, StatVal::new(400));
         self.stats.insert(Stats::DodgingSpeed, StatVal::new(250));
         self.stats.insert(Stats::AttackingSpeed, StatVal::new(10));
         self.stats.insert(Stats::Level, StatVal::new(1));
@@ -192,8 +192,14 @@ impl MainCharacter {
                     )));
                 }
             }
+
             State::MoveFallingLeft {} | State::MoveLeftAirAttack {} => {
-                self.velocity.x = stat(&self.stats, &Stats::RunningSpeed) * Vector2::LEFT.x;
+                if discriminant(&self.previous_state) == discriminant(&State::MoveFallingLeft {}) {
+                    self.velocity.x = self.velocity.x.lerp(-120.0, 0.2);
+                } else {
+                    // self.velocity.x = stat(&self.stats, &Stats::RunningSpeed) * Vector2::LEFT.x;
+                    self.velocity.x = 160.0 * Vector2::LEFT.x;
+                }
                 if self.velocity.y < TERMINAL_VELOCITY {
                     self.velocity.y += GRAVITY * delta;
                 }
@@ -206,7 +212,12 @@ impl MainCharacter {
                 }
             }
             State::MoveFallingRight {} | State::MoveRightAirAttack {} => {
-                self.velocity.x = stat(&self.stats, &Stats::RunningSpeed) * Vector2::RIGHT.x;
+                // self.velocity.x = stat(&self.stats, &Stats::RunningSpeed) * Vector2::RIGHT.x;
+                if discriminant(&self.previous_state) == discriminant(&State::MoveFallingRight {}) {
+                    self.velocity.x = self.velocity.x.lerp(120.0, 0.2);
+                } else {
+                    self.velocity.x = 160.0 * Vector2::RIGHT.x;
+                }
                 if self.velocity.y < TERMINAL_VELOCITY {
                     self.velocity.y += GRAVITY * delta;
                 }
