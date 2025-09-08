@@ -35,7 +35,11 @@ impl InputHandler {
                 Some(ModifierButton::Attack),
             )));
         }
-        if event.is_action_pressed("jump") && entity.base().is_on_floor() {
+        if event.is_action_pressed("jump")
+            && entity.base().is_on_floor()
+            && timer_ok(entity.timers.get(&PT::JumpTimeLimit))
+        {
+            entity.timers.get_mut(&PT::JumpTimeLimit).unwrap().start();
             entity.transition_sm(&Event::InputChanged(Inputs(
                 InputHandler::handle_input(&Input::singleton()).0,
                 Some(ModifierButton::Jump),

@@ -24,4 +24,5 @@ pub enum PlayerTimer {
     PerfectParry,
     Coyote,
     DodgeCooldown,
+    JumpTimeLimit,
 }

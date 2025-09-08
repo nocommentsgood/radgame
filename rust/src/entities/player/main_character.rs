@@ -135,10 +135,21 @@ impl ICharacterBody2D for MainCharacter {
         }
 
         if self.not_on_floor() {
+            println!("Not on floor");
             self.transition_sm(&Event::FailedFloorCheck(input));
         }
 
-        // dbg!(&self.state.state());
+        // if !self.base().is_on_floor() {
+        //     if (*self.state.state() == State::JumpingLeft {})
+        //         || (*self.state.state() == State::JumpingRight {})
+        //     {
+        //         if self.velocity.y.is_sign_positive() {
+        //             self.transition_sm(&Event::FailedFloorCheck(input));
+        //         }
+        //     }
+        // }
+
+        dbg!(&self.state.state());
         self.accelerate(&delta);
     }
 }
@@ -171,26 +182,14 @@ impl MainCharacter {
                 if self.velocity.y < TERMINAL_VELOCITY {
                     self.velocity.y += GRAVITY * delta;
                 }
-                if self.base().is_on_floor() {
-                    self.velocity.y = 0.0;
-                    self.transition_sm(&Event::Landed(Inputs(
-                        InputHandler::handle_input(&Input::singleton()).0,
-                        None,
-                    )));
-                }
+                self.player_landed_check();
             }
             State::FallingLeft {} | State::AirAttackLeft {} => {
                 self.velocity.x = 0.0;
                 if self.velocity.y < TERMINAL_VELOCITY {
                     self.velocity.y += GRAVITY * delta;
                 }
-                if self.base().is_on_floor() {
-                    self.velocity.y = 0.0;
-                    self.transition_sm(&Event::Landed(Inputs(
-                        InputHandler::handle_input(&Input::singleton()).0,
-                        None,
-                    )));
-                }
+                self.player_landed_check();
             }
 
             State::MoveFallingLeft {} | State::MoveLeftAirAttack {} => {
@@ -203,13 +202,7 @@ impl MainCharacter {
                 if self.velocity.y < TERMINAL_VELOCITY {
                     self.velocity.y += GRAVITY * delta;
                 }
-                if self.base().is_on_floor() {
-                    self.velocity.y = 0.0;
-                    self.transition_sm(&Event::Landed(Inputs(
-                        InputHandler::handle_input(&Input::singleton()).0,
-                        None,
-                    )));
-                }
+                self.player_landed_check();
             }
             State::MoveFallingRight {} | State::MoveRightAirAttack {} => {
                 // self.velocity.x = stat(&self.stats, &Stats::RunningSpeed) * Vector2::RIGHT.x;
@@ -221,13 +214,7 @@ impl MainCharacter {
                 if self.velocity.y < TERMINAL_VELOCITY {
                     self.velocity.y += GRAVITY * delta;
                 }
-                if self.base().is_on_floor() {
-                    self.velocity.y = 0.0;
-                    self.transition_sm(&Event::Landed(Inputs(
-                        InputHandler::handle_input(&Input::singleton()).0,
-                        None,
-                    )));
-                }
+                self.player_landed_check();
             }
             State::DodgingLeft {} => {
                 self.velocity.x = stat(&self.stats, &Stats::DodgingSpeed) * Vector2::LEFT.x;
@@ -275,6 +262,15 @@ impl MainCharacter {
 
     /// Used to prevent sending `Event::FailedFloorCheck` to state machine every physics tick.
     fn not_on_floor(&self) -> bool {
+        // if !self.base().is_on_floor() {
+        //     if (*self.state.state() == State::JumpingLeft {})
+        //         || (*self.state.state() == State::JumpingRight {})
+        //     {
+        //         if self.velocity.y.is_sign_positive() {
+        //             self.transition_sm(&Event::FailedFloorCheck(input));
+        //         }
+        //     }
+        // }
         !self.base().is_on_floor()
             && !matches!(
                 self.state.state(),
@@ -283,6 +279,19 @@ impl MainCharacter {
                     | State::FallingLeft {}
                     | State::FallingRight {}
             )
+    }
+
+    /// Checks if the player is on the floor.
+    /// If so, sends the `Landed` event to the state machine.
+    fn player_landed_check(&mut self) {
+        if self.base().is_on_floor() {
+            self.timers.get_mut(&PT::JumpTimeLimit).unwrap().reset();
+            self.velocity.y = 0.0;
+            self.transition_sm(&Event::Landed(Inputs(
+                InputHandler::handle_input(&Input::singleton()).0,
+                None,
+            )));
+        }
     }
 
     // TODO: The comment below isn't currently true. Started making an attacking system then became
@@ -367,6 +376,13 @@ impl MainCharacter {
     }
 
     fn on_hurt_animation_timeout(&mut self) {
+        self.transition_sm(&Event::TimerElapsed(Inputs(
+            InputHandler::handle_input(&Input::singleton()).0,
+            None,
+        )));
+    }
+
+    fn on_jump_limit_timeout(&mut self) {
         self.transition_sm(&Event::TimerElapsed(Inputs(
             InputHandler::handle_input(&Input::singleton()).0,
             None,
@@ -539,6 +555,15 @@ impl MainCharacter {
             .connect_other(this, Self::on_hurt_animation_timeout);
         self.timers.insert(PlayerTimer::HurtAnimation, timer);
 
+        // Jump time limit
+        let mut timer = Timer::new_alloc();
+        timer.set_wait_time(1.0);
+        timer
+            .signals()
+            .timeout()
+            .connect_other(this, Self::on_jump_limit_timeout);
+        self.timers.insert(PlayerTimer::JumpTimeLimit, timer);
+
         let mut pt = self.timers.clone();
         pt.values_mut().for_each(|timer| {
             timer.set_one_shot(true);
@@ -643,5 +668,19 @@ impl Damageable for MainCharacter {
 impl Damaging for MainCharacter {
     fn damage_amount(&self) -> u32 {
         self.stats.get(&Stats::AttackDamage).unwrap().0
+    }
+}
+
+trait Reset {
+    fn reset(&mut self);
+}
+
+impl Reset for Gd<Timer> {
+    fn reset(&mut self) {
+        if self.get_time_left() != 0.0 {
+            self.stop();
+            self.start();
+            self.stop();
+        }
     }
 }
