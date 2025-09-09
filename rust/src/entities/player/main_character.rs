@@ -134,23 +134,12 @@ impl ICharacterBody2D for MainCharacter {
             self.transition_sm(&Event::InputChanged(input));
         }
 
-        if self.not_on_floor() {
-            println!("Not on floor");
-            self.transition_sm(&Event::FailedFloorCheck(input));
-        }
-
-        // if !self.base().is_on_floor() {
-        //     if (*self.state.state() == State::JumpingLeft {})
-        //         || (*self.state.state() == State::JumpingRight {})
-        //     {
-        //         if self.velocity.y.is_sign_positive() {
-        //             self.transition_sm(&Event::FailedFloorCheck(input));
-        //         }
-        //     }
-        // }
-
-        dbg!(&self.state.state());
+        self.apply_gravity(&delta);
+        self.not_on_floor();
+        // dbg!(&self.state.state());
         self.accelerate(&delta);
+        self.player_landed_check();
+        self.update_state();
     }
 }
 
@@ -172,26 +161,11 @@ impl MainCharacter {
 
     /// Applies accelerated movement depending on current state.
     /// Moves the camera if the player's velocity has changed.
-    fn accelerate(&mut self, delta: &f32) {
+    fn accelerate(&mut self, _delta: &f32) {
         let stat = |map: &HashMap<Stats, StatVal>, stat: &Stats| map.get(stat).unwrap().0 as f32;
 
         let velocity = self.velocity;
         match self.state.state() {
-            State::FallingRight {} | State::AirAttackRight {} => {
-                self.velocity.x = 0.0;
-                if self.velocity.y < TERMINAL_VELOCITY {
-                    self.velocity.y += GRAVITY * delta;
-                }
-                self.player_landed_check();
-            }
-            State::FallingLeft {} | State::AirAttackLeft {} => {
-                self.velocity.x = 0.0;
-                if self.velocity.y < TERMINAL_VELOCITY {
-                    self.velocity.y += GRAVITY * delta;
-                }
-                self.player_landed_check();
-            }
-
             State::MoveFallingLeft {} | State::MoveLeftAirAttack {} => {
                 if discriminant(&self.previous_state) == discriminant(&State::MoveFallingLeft {}) {
                     self.velocity.x = self.velocity.x.lerp(-120.0, 0.2);
@@ -199,22 +173,13 @@ impl MainCharacter {
                     // self.velocity.x = stat(&self.stats, &Stats::RunningSpeed) * Vector2::LEFT.x;
                     self.velocity.x = 160.0 * Vector2::LEFT.x;
                 }
-                if self.velocity.y < TERMINAL_VELOCITY {
-                    self.velocity.y += GRAVITY * delta;
-                }
-                self.player_landed_check();
             }
             State::MoveFallingRight {} | State::MoveRightAirAttack {} => {
-                // self.velocity.x = stat(&self.stats, &Stats::RunningSpeed) * Vector2::RIGHT.x;
                 if discriminant(&self.previous_state) == discriminant(&State::MoveFallingRight {}) {
                     self.velocity.x = self.velocity.x.lerp(120.0, 0.2);
                 } else {
                     self.velocity.x = 160.0 * Vector2::RIGHT.x;
                 }
-                if self.velocity.y < TERMINAL_VELOCITY {
-                    self.velocity.y += GRAVITY * delta;
-                }
-                self.player_landed_check();
             }
             State::DodgingLeft {} => {
                 self.velocity.x = stat(&self.stats, &Stats::DodgingSpeed) * Vector2::LEFT.x;
@@ -229,11 +194,27 @@ impl MainCharacter {
                 self.velocity.x = Vector2::RIGHT.x * stat(&self.stats, &Stats::RunningSpeed)
             }
             State::JumpingRight {} => {
-                self.velocity.y = stat(&self.stats, &Stats::JumpingSpeed) * Vector2::UP.y;
-                self.velocity.x = stat(&self.stats, &Stats::RunningSpeed) * Vector2::RIGHT.x;
+                if !self.state_matches() && !self.was_jumping() {
+                    self.velocity.y = stat(&self.stats, &Stats::JumpingSpeed) * Vector2::UP.y;
+                }
+                self.velocity.x = 0.0;
             }
             State::JumpingLeft {} => {
-                self.velocity.y = stat(&self.stats, &Stats::JumpingSpeed) * Vector2::UP.y;
+                if !self.state_matches() && !self.was_jumping() {
+                    self.velocity.y = stat(&self.stats, &Stats::JumpingSpeed) * Vector2::UP.y;
+                }
+                self.velocity.x = 0.0;
+            }
+            State::MoveJumpingRight {} => {
+                if !self.state_matches() && !self.was_jumping() {
+                    self.velocity.y = stat(&self.stats, &Stats::JumpingSpeed) * Vector2::UP.y;
+                }
+                self.velocity.x = stat(&self.stats, &Stats::RunningSpeed) * Vector2::RIGHT.x;
+            }
+            State::MoveJumpingLeft {} => {
+                if !self.state_matches() && !self.was_jumping() {
+                    self.velocity.y = stat(&self.stats, &Stats::JumpingSpeed) * Vector2::UP.y;
+                }
                 self.velocity.x = stat(&self.stats, &Stats::RunningSpeed) * Vector2::LEFT.x;
             }
             _ => self.velocity.x = 0.0,
@@ -244,7 +225,9 @@ impl MainCharacter {
             self.update_camera();
         }
 
+        // Apply movement.
         let velocity = self.velocity;
+        dbg!(&self.velocity);
         self.base_mut().set_velocity(velocity);
         self.base_mut().move_and_slide();
 
@@ -260,38 +243,61 @@ impl MainCharacter {
         }
     }
 
-    /// Used to prevent sending `Event::FailedFloorCheck` to state machine every physics tick.
-    fn not_on_floor(&self) -> bool {
-        // if !self.base().is_on_floor() {
-        //     if (*self.state.state() == State::JumpingLeft {})
-        //         || (*self.state.state() == State::JumpingRight {})
-        //     {
-        //         if self.velocity.y.is_sign_positive() {
-        //             self.transition_sm(&Event::FailedFloorCheck(input));
-        //         }
-        //     }
-        // }
-        !self.base().is_on_floor()
-            && !matches!(
+    fn apply_gravity(&mut self, delta: &f32) {
+        if !self.base().is_on_floor() && self.velocity.y < TERMINAL_VELOCITY {
+            self.velocity.y += GRAVITY * delta;
+        }
+    }
+
+    /// Transition state to `falling` when Y axis velocity is positive.
+    fn not_on_floor(&mut self) {
+        if !self.base().is_on_floor() {
+            let is_falling = matches!(
                 self.state.state(),
                 State::MoveFallingLeft {}
                     | State::MoveFallingRight {}
                     | State::FallingLeft {}
                     | State::FallingRight {}
-            )
+            );
+
+            if self.velocity.y.is_sign_positive() && !is_falling {
+                self.transition_sm(&Event::FailedFloorCheck(Inputs(
+                    InputHandler::handle_input(&Input::singleton()).0,
+                    None,
+                )));
+            }
+        }
     }
 
     /// Checks if the player is on the floor.
-    /// If so, sends the `Landed` event to the state machine.
+    /// If so, sends the `Landed` event to the state machine and sets Y axis velocity to 0.
     fn player_landed_check(&mut self) {
-        if self.base().is_on_floor() {
-            self.timers.get_mut(&PT::JumpTimeLimit).unwrap().reset();
+        let was_falling = matches!(
+            self.state.state(),
+            State::FallingRight {}
+                | State::MoveFallingLeft {}
+                | State::MoveFallingRight {}
+                | State::FallingLeft {}
+        );
+
+        if self.base().is_on_floor() && was_falling {
             self.velocity.y = 0.0;
+            self.timers.get_mut(&PT::JumpTimeLimit).unwrap().reset();
             self.transition_sm(&Event::Landed(Inputs(
                 InputHandler::handle_input(&Input::singleton()).0,
                 None,
             )));
         }
+    }
+
+    fn was_jumping(&self) -> bool {
+        matches!(
+            self.previous_state,
+            State::JumpingLeft {}
+                | State::JumpingRight {}
+                | State::MoveJumpingRight {}
+                | State::MoveJumpingLeft {}
+        )
     }
 
     // TODO: The comment below isn't currently true. Started making an attacking system then became
@@ -420,12 +426,21 @@ impl MainCharacter {
         }
     }
 
+    /// Transitions the state machine, checking and returning if the previous state is equal to the
+    /// current state.
     pub fn transition_sm(&mut self, event: &Event) {
         self.state.handle(event);
-        if self.previous_state != *self.state.state() {
-            self.previous_state = *self.state.state();
-            self.update_animation();
-        }
+        self.update_animation();
+    }
+
+    /// Checks if the previous state is equal to the current state.
+    fn state_matches(&self) -> bool {
+        *self.state.state() == self.previous_state
+    }
+
+    /// Updates the state, setting `previous_state` to the current state.
+    fn update_state(&mut self) {
+        self.previous_state = *self.state.state();
     }
 
     fn update_animation(&mut self) {

@@ -19,7 +19,7 @@ impl std::fmt::Display for State {
             State::IdleRight {} | State::ForcedDisabledRight {} => write!(f, "idle_right"),
             State::MoveRight {} => write!(f, "run_right"),
             State::FallingRight {} | State::MoveFallingRight {} => write!(f, "falling_right"),
-            State::JumpingRight {} => write!(f, "jumping_right"),
+            State::JumpingRight {} | State::MoveJumpingRight {} => write!(f, "jumping_right"),
             // State::GrapplingRight {} => write!(f, "grapple_right"),
             State::HealingRight {} => write!(f, "heal_right"),
             State::ParryRight {} => write!(f, "parry_right"),
@@ -33,7 +33,7 @@ impl std::fmt::Display for State {
             State::IdleLeft {} | State::ForcedDisabledLeft {} => write!(f, "idle_left"),
             State::MoveLeft {} => write!(f, "run_left"),
             State::FallingLeft {} | State::MoveFallingLeft {} => write!(f, "falling_left"),
-            State::JumpingLeft {} => write!(f, "jumping_left"),
+            State::JumpingLeft {} | State::MoveJumpingLeft {} => write!(f, "jumping_left"),
             // State::GrapplingLeft {} => write!(f, "grapple_left"),
             State::HealingLeft {} => write!(f, "heal_left"),
             State::ParryLeft {} => write!(f, "parry_left"),
@@ -85,10 +85,10 @@ impl CharacterStateMachine {
 
                 // Jumping
                 (Some(MoveButton::Right), Some(ModifierButton::Jump)) => {
-                    Response::Transition(State::jumping_right())
+                    Response::Transition(State::move_jumping_right())
                 }
                 (Some(MoveButton::Left), Some(ModifierButton::Jump)) => {
-                    Response::Transition(State::jumping_left())
+                    Response::Transition(State::move_jumping_left())
                 }
                 (None, Some(ModifierButton::Jump)) => Response::Transition(State::jumping_right()),
 
@@ -159,10 +159,10 @@ impl CharacterStateMachine {
 
                 // Jumping
                 (Some(MoveButton::Right), Some(ModifierButton::Jump)) => {
-                    Response::Transition(State::jumping_right())
+                    Response::Transition(State::move_jumping_right())
                 }
                 (Some(MoveButton::Left), Some(ModifierButton::Jump)) => {
-                    Response::Transition(State::jumping_left())
+                    Response::Transition(State::move_jumping_left())
                 }
                 (None, Some(ModifierButton::Jump)) => Response::Transition(State::jumping_left()),
 
@@ -222,10 +222,10 @@ impl CharacterStateMachine {
 
                 // Jumping
                 (Some(MoveButton::Right), Some(ModifierButton::Jump)) => {
-                    Response::Transition(State::jumping_right())
+                    Response::Transition(State::move_jumping_right())
                 }
                 (Some(MoveButton::Left), Some(ModifierButton::Jump)) => {
-                    Response::Transition(State::jumping_left())
+                    Response::Transition(State::move_jumping_left())
                 }
                 (None, Some(ModifierButton::Jump)) => Response::Transition(State::jumping_right()),
 
@@ -298,10 +298,10 @@ impl CharacterStateMachine {
 
                 // Jumping
                 (Some(MoveButton::Right), Some(ModifierButton::Jump)) => {
-                    Response::Transition(State::jumping_right())
+                    Response::Transition(State::move_jumping_right())
                 }
                 (Some(MoveButton::Left), Some(ModifierButton::Jump)) => {
-                    Response::Transition(State::jumping_left())
+                    Response::Transition(State::move_jumping_left())
                 }
                 (None, Some(ModifierButton::Jump)) => Response::Transition(State::jumping_left()),
 
@@ -414,11 +414,12 @@ impl CharacterStateMachine {
     }
 
     #[state]
-    fn jumping_right(&mut self, event: &Event) -> Response<State> {
+    fn move_jumping_right(&mut self, event: &Event) -> Response<State> {
         match event {
             // Jumping
             Event::InputChanged(inputs) => match (&inputs.0, &inputs.1) {
-                (Some(MoveButton::Left), None) => Response::Transition(State::jumping_left()),
+                (Some(MoveButton::Left), None) => Response::Transition(State::move_jumping_left()),
+                (None, None) => Response::Transition(State::jumping_right()),
                 _ => Handled,
             },
 
@@ -431,6 +432,82 @@ impl CharacterStateMachine {
                 (None, None) => Response::Transition(State::falling_right()),
                 _ => Response::Transition(State::falling_right()),
             },
+
+            // On floor
+            Event::Landed(inputs) => match (&inputs.0, &inputs.1) {
+                (Some(MoveButton::Right), None) => Response::Transition(State::move_right()),
+                (Some(MoveButton::Left), None) => Response::Transition(State::move_left()),
+                (None, None) => Response::Transition(State::idle_right()),
+                _ => Handled,
+            },
+            Event::ForceDisabled => Response::Transition(State::forced_disabled_right()),
+            _ => Handled,
+        }
+    }
+
+    #[state]
+    fn move_jumping_left(&mut self, event: &Event) -> Response<State> {
+        match event {
+            // Jumping
+            Event::InputChanged(inputs) => match (&inputs.0, &inputs.1) {
+                (Some(MoveButton::Right), None) => {
+                    Response::Transition(State::move_jumping_right())
+                }
+                (None, None) => Response::Transition(State::jumping_left()),
+                _ => Handled,
+            },
+
+            // Falling
+            Event::FailedFloorCheck(inputs) => match (&inputs.0, &inputs.1) {
+                (Some(MoveButton::Right), None) => {
+                    Response::Transition(State::move_falling_right())
+                }
+                (Some(MoveButton::Left), None) => Response::Transition(State::move_falling_left()),
+                (None, None) => Response::Transition(State::falling_right()),
+                _ => Response::Transition(State::falling_right()),
+            },
+
+            // On floor
+            Event::Landed(inputs) => match (&inputs.0, &inputs.1) {
+                (Some(MoveButton::Right), None) => Response::Transition(State::move_right()),
+                (Some(MoveButton::Left), None) => Response::Transition(State::move_left()),
+                (None, None) => Response::Transition(State::idle_left()),
+                _ => Handled,
+            },
+            Event::ForceDisabled => Response::Transition(State::forced_disabled_right()),
+            _ => Handled,
+        }
+    }
+
+    #[state]
+    fn jumping_right(&mut self, event: &Event) -> Response<State> {
+        match event {
+            // Jumping
+            Event::InputChanged(inputs) => match (&inputs.0, &inputs.1) {
+                (Some(MoveButton::Left), None) => Response::Transition(State::move_jumping_left()),
+                (Some(MoveButton::Right), None) => {
+                    Response::Transition(State::move_jumping_right())
+                }
+                _ => Handled,
+            },
+
+            // Falling
+            Event::FailedFloorCheck(inputs) => match (&inputs.0, &inputs.1) {
+                (Some(MoveButton::Right), None) => {
+                    Response::Transition(State::move_falling_right())
+                }
+                (Some(MoveButton::Left), None) => Response::Transition(State::move_falling_left()),
+                (None, None) => Response::Transition(State::falling_right()),
+                _ => Response::Transition(State::falling_right()),
+            },
+
+            // On floor
+            Event::Landed(inputs) => match (&inputs.0, &inputs.1) {
+                (Some(MoveButton::Right), None) => Response::Transition(State::move_right()),
+                (Some(MoveButton::Left), None) => Response::Transition(State::move_left()),
+                (None, None) => Response::Transition(State::idle_right()),
+                _ => Handled,
+            },
             Event::ForceDisabled => Response::Transition(State::forced_disabled_right()),
             _ => Handled,
         }
@@ -441,7 +518,10 @@ impl CharacterStateMachine {
         match event {
             // Jumping
             Event::InputChanged(inputs) => match (&inputs.0, &inputs.1) {
-                (Some(MoveButton::Right), None) => Response::Transition(State::jumping_right()),
+                (Some(MoveButton::Right), None) => {
+                    Response::Transition(State::move_jumping_right())
+                }
+                (Some(MoveButton::Left), None) => Response::Transition(State::move_jumping_left()),
                 _ => Handled,
             },
 
@@ -453,6 +533,14 @@ impl CharacterStateMachine {
                 (Some(MoveButton::Left), None) => Response::Transition(State::move_falling_left()),
                 (None, None) => Response::Transition(State::falling_left()),
                 _ => Response::Transition(State::falling_left()),
+            },
+
+            // On floor
+            Event::Landed(inputs) => match (&inputs.0, &inputs.1) {
+                (Some(MoveButton::Right), None) => Response::Transition(State::move_right()),
+                (Some(MoveButton::Left), None) => Response::Transition(State::move_left()),
+                (None, None) => Response::Transition(State::idle_left()),
+                _ => Handled,
             },
             Event::ForceDisabled => Response::Transition(State::forced_disabled_left()),
             _ => Handled,
