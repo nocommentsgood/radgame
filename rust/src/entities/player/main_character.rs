@@ -121,25 +121,23 @@ impl ICharacterBody2D for MainCharacter {
         self.previous_state = State::IdleRight {};
     }
 
-    fn unhandled_input(&mut self, input: Gd<godot::classes::InputEvent>) {
-        InputHandler::handle_unhandled(&input, self);
-        DevInputHandler::handle_unhandled(&input, self);
-    }
-
-    fn physics_process(&mut self, delta: f32) {
-        let input = InputHandler::handle_input(&Input::singleton());
-
+    fn process(&mut self, _delta: f32) {
+        // let input = InputHandler::handle(&Input::singleton(), self);
+        let input = DevInputHandler::handle_unhandled(&Input::singleton(), self);
         if self.inputs != input {
             self.inputs = input;
             self.transition_sm(&Event::InputChanged(input));
         }
 
-        self.apply_gravity(&delta);
         self.not_on_floor();
-        // dbg!(&self.state.state());
-        self.accelerate(&delta);
         self.player_landed_check();
         self.update_state();
+    }
+
+    fn physics_process(&mut self, delta: f32) {
+        self.apply_gravity(&delta);
+        // dbg!(&self.state.state());
+        self.accelerate();
     }
 }
 
@@ -161,7 +159,7 @@ impl MainCharacter {
 
     /// Applies accelerated movement depending on current state.
     /// Moves the camera if the player's velocity has changed.
-    fn accelerate(&mut self, _delta: &f32) {
+    fn accelerate(&mut self) {
         let stat = |map: &HashMap<Stats, StatVal>, stat: &Stats| map.get(stat).unwrap().0 as f32;
 
         let velocity = self.velocity;
@@ -194,27 +192,31 @@ impl MainCharacter {
                 self.velocity.x = Vector2::RIGHT.x * stat(&self.stats, &Stats::RunningSpeed)
             }
             State::JumpingRight {} => {
-                if !self.state_matches() && !self.was_jumping() {
-                    self.velocity.y = stat(&self.stats, &Stats::JumpingSpeed) * Vector2::UP.y;
-                }
+                self.velocity.y = self
+                    .velocity
+                    .y
+                    .lerp(stat(&self.stats, &Stats::JumpingSpeed) * Vector2::UP.y, 0.5);
                 self.velocity.x = 0.0;
             }
             State::JumpingLeft {} => {
-                if !self.state_matches() && !self.was_jumping() {
-                    self.velocity.y = stat(&self.stats, &Stats::JumpingSpeed) * Vector2::UP.y;
-                }
+                self.velocity.y = self
+                    .velocity
+                    .y
+                    .lerp(stat(&self.stats, &Stats::JumpingSpeed) * Vector2::UP.y, 0.5);
                 self.velocity.x = 0.0;
             }
             State::MoveJumpingRight {} => {
-                if !self.state_matches() && !self.was_jumping() {
-                    self.velocity.y = stat(&self.stats, &Stats::JumpingSpeed) * Vector2::UP.y;
-                }
+                self.velocity.y = self
+                    .velocity
+                    .y
+                    .lerp(stat(&self.stats, &Stats::JumpingSpeed) * Vector2::UP.y, 0.5);
                 self.velocity.x = stat(&self.stats, &Stats::RunningSpeed) * Vector2::RIGHT.x;
             }
             State::MoveJumpingLeft {} => {
-                if !self.state_matches() && !self.was_jumping() {
-                    self.velocity.y = stat(&self.stats, &Stats::JumpingSpeed) * Vector2::UP.y;
-                }
+                self.velocity.y = self
+                    .velocity
+                    .y
+                    .lerp(stat(&self.stats, &Stats::JumpingSpeed) * Vector2::UP.y, 0.5);
                 self.velocity.x = stat(&self.stats, &Stats::RunningSpeed) * Vector2::LEFT.x;
             }
             _ => self.velocity.x = 0.0,
@@ -227,7 +229,7 @@ impl MainCharacter {
 
         // Apply movement.
         let velocity = self.velocity;
-        dbg!(&self.velocity);
+        // dbg!(&self.velocity);
         self.base_mut().set_velocity(velocity);
         self.base_mut().move_and_slide();
 
@@ -261,10 +263,8 @@ impl MainCharacter {
             );
 
             if self.velocity.y.is_sign_positive() && !is_falling {
-                self.transition_sm(&Event::FailedFloorCheck(Inputs(
-                    InputHandler::handle_input(&Input::singleton()).0,
-                    None,
-                )));
+                let input = InputHandler::handle(&Input::singleton(), self);
+                self.transition_sm(&Event::FailedFloorCheck(input));
             }
         }
     }
@@ -284,20 +284,10 @@ impl MainCharacter {
             self.velocity.y = 0.0;
             self.timers.get_mut(&PT::JumpTimeLimit).unwrap().reset();
             self.transition_sm(&Event::Landed(Inputs(
-                InputHandler::handle_input(&Input::singleton()).0,
+                InputHandler::get_movement(&Input::singleton()).0,
                 None,
             )));
         }
-    }
-
-    fn was_jumping(&self) -> bool {
-        matches!(
-            self.previous_state,
-            State::JumpingLeft {}
-                | State::JumpingRight {}
-                | State::MoveJumpingRight {}
-                | State::MoveJumpingLeft {}
-        )
     }
 
     // TODO: The comment below isn't currently true. Started making an attacking system then became
@@ -345,7 +335,7 @@ impl MainCharacter {
 
     fn on_parry_timeout(&mut self) {
         self.transition_sm(&Event::TimerElapsed(Inputs(
-            InputHandler::handle_input(&Input::singleton()).0,
+            InputHandler::get_movement(&Input::singleton()).0,
             None,
         )));
     }
@@ -353,14 +343,14 @@ impl MainCharacter {
     // TODO: Chain attacking.
     fn on_attack_timeout(&mut self) {
         self.transition_sm(&Event::TimerElapsed(Inputs(
-            InputHandler::handle_input(&Input::singleton()).0,
+            InputHandler::get_movement(&Input::singleton()).0,
             None,
         )));
     }
 
     fn on_attack_2_timeout(&mut self) {
         self.transition_sm(&Event::TimerElapsed(Inputs(
-            InputHandler::handle_input(&Input::singleton()).0,
+            InputHandler::get_movement(&Input::singleton()).0,
             None,
         )));
     }
@@ -368,7 +358,7 @@ impl MainCharacter {
     fn on_healing_timeout(&mut self) {
         self.timers.get_mut(&PT::HealingCooldown).unwrap().start();
         self.transition_sm(&Event::TimerElapsed(Inputs(
-            InputHandler::handle_input(&Input::singleton()).0,
+            InputHandler::get_movement(&Input::singleton()).0,
             None,
         )));
     }
@@ -376,23 +366,21 @@ impl MainCharacter {
     fn on_dodge_animation_timeout(&mut self) {
         self.timers.get_mut(&PT::DodgeCooldown).unwrap().start();
         self.transition_sm(&Event::TimerElapsed(Inputs(
-            InputHandler::handle_input(&Input::singleton()).0,
+            InputHandler::get_movement(&Input::singleton()).0,
             None,
         )));
     }
 
     fn on_hurt_animation_timeout(&mut self) {
         self.transition_sm(&Event::TimerElapsed(Inputs(
-            InputHandler::handle_input(&Input::singleton()).0,
+            InputHandler::get_movement(&Input::singleton()).0,
             None,
         )));
     }
 
     fn on_jump_limit_timeout(&mut self) {
-        self.transition_sm(&Event::TimerElapsed(Inputs(
-            InputHandler::handle_input(&Input::singleton()).0,
-            None,
-        )));
+        let input = InputHandler::handle(&Input::singleton(), self);
+        self.transition_sm(&Event::TimerElapsed(input));
     }
 
     fn parried_attack(&mut self, area: &Gd<Hurtbox>) -> bool {
@@ -429,8 +417,13 @@ impl MainCharacter {
     /// Transitions the state machine, checking and returning if the previous state is equal to the
     /// current state.
     pub fn transition_sm(&mut self, event: &Event) {
+        let prev = *self.state.state();
         self.state.handle(event);
-        self.update_animation();
+        let new = *self.state.state();
+        if prev != new {
+            println!("Updating animation");
+            self.update_animation();
+        }
     }
 
     /// Checks if the previous state is equal to the current state.
@@ -572,7 +565,7 @@ impl MainCharacter {
 
         // Jump time limit
         let mut timer = Timer::new_alloc();
-        timer.set_wait_time(1.0);
+        timer.set_wait_time(0.2);
         timer
             .signals()
             .timeout()
