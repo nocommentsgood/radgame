@@ -185,31 +185,31 @@ impl MainCharacter {
                 );
             }
             State::JumpingRight {} => {
-                self.velocity.y = self
-                    .velocity
-                    .y
-                    .lerp(stat(&self.stats, &Stats::JumpingSpeed) * Vector2::UP.y, 0.4);
+                self.velocity.y = self.velocity.y.lerp(
+                    stat(&self.stats, &Stats::JumpingSpeed) * Vector2::UP.y,
+                    0.35,
+                );
                 self.velocity.x = 0.0;
             }
             State::JumpingLeft {} => {
-                self.velocity.y = self
-                    .velocity
-                    .y
-                    .lerp(stat(&self.stats, &Stats::JumpingSpeed) * Vector2::UP.y, 0.5);
+                self.velocity.y = self.velocity.y.lerp(
+                    stat(&self.stats, &Stats::JumpingSpeed) * Vector2::UP.y,
+                    0.35,
+                );
                 self.velocity.x = 0.0;
             }
             State::MoveJumpingRight {} => {
-                self.velocity.y = self
-                    .velocity
-                    .y
-                    .lerp(stat(&self.stats, &Stats::JumpingSpeed) * Vector2::UP.y, 0.5);
+                self.velocity.y = self.velocity.y.lerp(
+                    stat(&self.stats, &Stats::JumpingSpeed) * Vector2::UP.y,
+                    0.35,
+                );
                 self.velocity.x = self.velocity.x.lerp(120.0, 0.7);
             }
             State::MoveJumpingLeft {} => {
-                self.velocity.y = self
-                    .velocity
-                    .y
-                    .lerp(stat(&self.stats, &Stats::JumpingSpeed) * Vector2::UP.y, 0.5);
+                self.velocity.y = self.velocity.y.lerp(
+                    stat(&self.stats, &Stats::JumpingSpeed) * Vector2::UP.y,
+                    0.35,
+                );
                 self.velocity.x = self.velocity.x.lerp(-120.0, 0.7);
             }
             _ => self.velocity.x = 0.0,
@@ -579,7 +579,7 @@ impl MainCharacter {
 
         // Jump time limit
         let mut timer = Timer::new_alloc();
-        timer.set_wait_time(0.2);
+        timer.set_wait_time(0.4);
         timer.set_one_shot(true);
         timer
             .signals()
