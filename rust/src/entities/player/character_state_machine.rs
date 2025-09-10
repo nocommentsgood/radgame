@@ -6,7 +6,7 @@ use crate::utils::input_hanlder::{Inputs, ModifierButton, MoveButton};
 pub struct CharacterStateMachine {
     #[allow(unused)]
     chain_attacked: bool,
-    can_jump: bool,
+    pub can_jump: bool,
 }
 
 impl Default for CharacterStateMachine {
