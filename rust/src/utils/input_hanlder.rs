@@ -31,7 +31,9 @@ impl InputHandler {
     }
 
     pub fn handle(input: &Gd<Input>, entity: &mut MainCharacter) -> Inputs {
-        let timer_ok = |timer: Option<&Gd<Timer>>| timer.is_some_and(|t| t.get_time_left() == 0.0);
+        let timer_ok = |timer: Option<&Gd<Timer>>| {
+            timer.is_some_and(|t| t.get_time_left() == 0.0 && t.is_stopped())
+        };
         let mut inputs = Self::get_movement(input);
 
         if input.is_action_pressed("attack") && timer_ok(entity.timers.get(&PT::AttackAnimation)) {

@@ -132,7 +132,7 @@ impl ICharacterBody2D for MainCharacter {
         self.player_landed_check();
         self.update_state();
         self.apply_gravity(&delta);
-        // dbg!(&self.state.state());
+        dbg!(&self.state.state());
         self.accelerate();
     }
 }
@@ -161,10 +161,10 @@ impl MainCharacter {
         let velocity = self.velocity;
         match self.state.state() {
             State::MoveFallingLeft {} | State::MoveLeftAirAttack {} => {
-                self.velocity.x = self.velocity.x.lerp(-120.0, 0.2);
+                self.velocity.x = self.velocity.x.lerp(-120.0, 0.7);
             }
             State::MoveFallingRight {} | State::MoveRightAirAttack {} => {
-                self.velocity.x = self.velocity.x.lerp(120.0, 0.2);
+                self.velocity.x = self.velocity.x.lerp(120.0, 0.7);
             }
             State::DodgingLeft {} => {
                 self.velocity.x = stat(&self.stats, &Stats::DodgingSpeed) * Vector2::LEFT.x;
@@ -188,7 +188,7 @@ impl MainCharacter {
                 self.velocity.y = self
                     .velocity
                     .y
-                    .lerp(stat(&self.stats, &Stats::JumpingSpeed) * Vector2::UP.y, 0.5);
+                    .lerp(stat(&self.stats, &Stats::JumpingSpeed) * Vector2::UP.y, 0.4);
                 self.velocity.x = 0.0;
             }
             State::JumpingLeft {} => {
@@ -203,14 +203,14 @@ impl MainCharacter {
                     .velocity
                     .y
                     .lerp(stat(&self.stats, &Stats::JumpingSpeed) * Vector2::UP.y, 0.5);
-                self.velocity.x = self.velocity.x.lerp(120.0, 0.2);
+                self.velocity.x = self.velocity.x.lerp(120.0, 0.7);
             }
             State::MoveJumpingLeft {} => {
                 self.velocity.y = self
                     .velocity
                     .y
                     .lerp(stat(&self.stats, &Stats::JumpingSpeed) * Vector2::UP.y, 0.5);
-                self.velocity.x = self.velocity.x.lerp(-120.0, 0.2);
+                self.velocity.x = self.velocity.x.lerp(-120.0, 0.7);
             }
             _ => self.velocity.x = 0.0,
         }
@@ -263,17 +263,28 @@ impl MainCharacter {
     }
 
     /// Checks if the player is on the floor.
-    /// If so, sends the `Landed` event to the state machine and sets Y axis velocity to 0.
+    /// If so, sends the `Landed` event to the state machine, sets Y axis velocity to 0, and resets
+    /// jumping timer.
     fn player_landed_check(&mut self) {
-        let was_falling = matches!(
+        let was_airborne = (matches!(
             self.state.state(),
             State::FallingRight {}
                 | State::MoveFallingLeft {}
                 | State::MoveFallingRight {}
                 | State::FallingLeft {}
-        );
+        ) || matches!(
+            self.previous_state,
+            State::JumpingLeft {}
+                | State::JumpingRight {}
+                | State::MoveJumpingRight {}
+                | State::MoveJumpingLeft {}
+                | State::AirAttackRight {}
+                | State::AirAttackLeft {}
+                | State::MoveLeftAirAttack {}
+                | State::MoveRightAirAttack {}
+        ));
 
-        if self.base().is_on_floor() && was_falling {
+        if self.base().is_on_floor() && was_airborne {
             self.velocity.y = 0.0;
             self.timers.get_mut(&PT::JumpTimeLimit).unwrap().reset();
             self.transition_sm(&Event::Landed(Inputs(
@@ -372,6 +383,7 @@ impl MainCharacter {
     }
 
     fn on_jump_limit_timeout(&mut self) {
+        println!("Jump timer timeout");
         let input = InputHandler::handle(&Input::singleton(), self);
         self.transition_sm(&Event::TimerElapsed(input));
     }
@@ -483,6 +495,7 @@ impl MainCharacter {
         // Dodge animation
         let mut timer = Timer::new_alloc();
         timer.set_wait_time(dodge_animation_length);
+        timer.set_one_shot(true);
         timer
             .signals()
             .timeout()
@@ -492,11 +505,13 @@ impl MainCharacter {
         // Dodge cooldown
         let mut timer = Timer::new_alloc();
         timer.set_wait_time(2.5);
+        timer.set_one_shot(true);
         self.timers.insert(PT::DodgeCooldown, timer);
 
         // Attack anim
         let mut timer = Timer::new_alloc();
         timer.set_wait_time(attack_animation_length);
+        timer.set_one_shot(true);
         timer
             .signals()
             .timeout()
@@ -506,6 +521,7 @@ impl MainCharacter {
         // Attack 2 animation
         let mut timer = Timer::new_alloc();
         timer.set_wait_time(attack_2_animation_length);
+        timer.set_one_shot(true);
         timer
             .signals()
             .timeout()
@@ -515,6 +531,7 @@ impl MainCharacter {
         // Healing animation
         let mut timer = Timer::new_alloc();
         timer.set_wait_time(healing_animation_length);
+        timer.set_one_shot(true);
         timer
             .signals()
             .timeout()
@@ -524,11 +541,13 @@ impl MainCharacter {
         // Healing cooldown
         let mut timer = Timer::new_alloc();
         timer.set_wait_time(1.5);
+        timer.set_one_shot(true);
         self.timers.insert(PlayerTimer::HealingCooldown, timer);
 
         // Parry animation
         let mut timer = Timer::new_alloc();
         timer.set_wait_time(parry_animation_length);
+        timer.set_one_shot(true);
         timer
             .signals()
             .timeout()
@@ -538,11 +557,13 @@ impl MainCharacter {
         // Successful parry
         let mut timer = Timer::new_alloc();
         timer.set_wait_time(0.3);
+        timer.set_one_shot(true);
         self.timers.insert(PlayerTimer::Parry, Timer::new_alloc());
 
         // Perfect parry
         let mut timer = Timer::new_alloc();
         timer.set_wait_time(0.15);
+        timer.set_one_shot(true);
         self.timers.insert(PlayerTimer::PerfectParry, timer);
 
         self.timers.insert(PlayerTimer::Coyote, Timer::new_alloc());
@@ -550,6 +571,7 @@ impl MainCharacter {
         // Hurt animation
         let mut timer = Timer::new_alloc();
         timer.set_wait_time(hurt_animation_length);
+        timer.set_one_shot(true);
         timer
             .signals()
             .timeout()
@@ -559,6 +581,7 @@ impl MainCharacter {
         // Jump time limit
         let mut timer = Timer::new_alloc();
         timer.set_wait_time(0.2);
+        timer.set_one_shot(true);
         timer
             .signals()
             .timeout()
