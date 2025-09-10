@@ -42,7 +42,7 @@ const TERMINAL_VELOCITY: f32 = 500.0;
 pub struct MainCharacter {
     inputs: Inputs,
     pub velocity: Vector2,
-    previous_state: State,
+    pub previous_state: State,
     pub timers: HashMap<PlayerTimer, Gd<Timer>>,
     pub state: StateMachine<csm::CharacterStateMachine>,
     pub stats: HashMap<Stats, StatVal>,
@@ -132,7 +132,7 @@ impl ICharacterBody2D for MainCharacter {
         self.player_landed_check();
         self.update_state();
         self.apply_gravity(&delta);
-        dbg!(&self.state.state());
+        // dbg!(&self.state.state());
         self.accelerate();
     }
 }
@@ -286,11 +286,11 @@ impl MainCharacter {
 
         if self.base().is_on_floor() && was_airborne {
             self.velocity.y = 0.0;
-            self.timers.get_mut(&PT::JumpTimeLimit).unwrap().reset();
             self.transition_sm(&Event::Landed(Inputs(
                 InputHandler::get_movement(&Input::singleton()).0,
                 None,
             )));
+            self.timers.get_mut(&PT::JumpTimeLimit).unwrap().reset();
         }
     }
 
@@ -423,10 +423,9 @@ impl MainCharacter {
     /// current state.
     pub fn transition_sm(&mut self, event: &Event) {
         let prev = *self.state.state();
-        self.state.handle(event);
+        self.state.handle_with_context(event, &mut self.timers);
         let new = *self.state.state();
         if prev != new {
-            println!("Updating animation");
             self.update_animation();
         }
     }

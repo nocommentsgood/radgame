@@ -1,6 +1,12 @@
+use std::collections::HashMap;
+
+use godot::{classes::Timer, obj::Gd};
 use statig::blocking::*;
 
-use crate::utils::input_hanlder::{Inputs, ModifierButton, MoveButton};
+use crate::{
+    entities::time::PlayerTimer,
+    utils::input_hanlder::{Inputs, ModifierButton, MoveButton},
+};
 
 #[derive(Debug, Clone)]
 pub struct CharacterStateMachine {
@@ -78,7 +84,12 @@ pub enum Event {
 )]
 impl CharacterStateMachine {
     #[state]
-    fn idle_right(&mut self, event: &Event) -> Response<State> {
+    fn idle_right(
+        &mut self,
+        event: &Event,
+        context: &mut HashMap<PlayerTimer, Gd<Timer>>,
+    ) -> Response<State> {
+        self.can_jump = true;
         match event {
             Event::InputChanged(inputs) => match (&inputs.0, &inputs.1, self.can_jump) {
                 // Moving
@@ -98,16 +109,19 @@ impl CharacterStateMachine {
 
                 // Jumping
                 (Some(MoveButton::Right), Some(ModifierButton::Jump), true) => {
-                    self.can_jump = false;
-                    Response::Transition(State::move_jumping_right())
+                    try_jump(context, &mut self.can_jump, || {
+                        Response::Transition(State::move_jumping_right())
+                    })
                 }
                 (Some(MoveButton::Left), Some(ModifierButton::Jump), true) => {
-                    self.can_jump = false;
-                    Response::Transition(State::move_jumping_left())
+                    try_jump(context, &mut self.can_jump, || {
+                        Response::Transition(State::move_jumping_left())
+                    })
                 }
                 (None, Some(ModifierButton::Jump), true) => {
-                    self.can_jump = false;
-                    Response::Transition(State::jumping_right())
+                    try_jump(context, &mut self.can_jump, || {
+                        Response::Transition(State::jumping_right())
+                    })
                 }
 
                 // Healing
@@ -163,7 +177,12 @@ impl CharacterStateMachine {
     }
 
     #[state]
-    fn idle_left(&mut self, event: &Event) -> Response<State> {
+    fn idle_left(
+        &mut self,
+        event: &Event,
+        context: &mut HashMap<PlayerTimer, Gd<Timer>>,
+    ) -> Response<State> {
+        self.can_jump = true;
         match event {
             Event::InputChanged(inputs) => match (&inputs.0, &inputs.1, self.can_jump) {
                 // Moving
@@ -183,16 +202,19 @@ impl CharacterStateMachine {
 
                 // Jumping
                 (Some(MoveButton::Right), Some(ModifierButton::Jump), true) => {
-                    self.can_jump = false;
-                    Response::Transition(State::move_jumping_right())
+                    try_jump(context, &mut self.can_jump, || {
+                        Response::Transition(State::move_jumping_right())
+                    })
                 }
                 (Some(MoveButton::Left), Some(ModifierButton::Jump), true) => {
-                    self.can_jump = false;
-                    Response::Transition(State::move_jumping_left())
+                    try_jump(context, &mut self.can_jump, || {
+                        Response::Transition(State::move_jumping_left())
+                    })
                 }
                 (None, Some(ModifierButton::Jump), true) => {
-                    self.can_jump = false;
-                    Response::Transition(State::jumping_left())
+                    try_jump(context, &mut self.can_jump, || {
+                        Response::Transition(State::jumping_left())
+                    })
                 }
 
                 // Healing
@@ -247,7 +269,12 @@ impl CharacterStateMachine {
     }
 
     #[state]
-    fn move_right(&mut self, event: &Event) -> Response<State> {
+    fn move_right(
+        &mut self,
+        event: &Event,
+        context: &mut HashMap<PlayerTimer, Gd<Timer>>,
+    ) -> Response<State> {
+        self.can_jump = true;
         match event {
             Event::InputChanged(input) => match (&input.0, &input.1, self.can_jump) {
                 // Moving
@@ -255,16 +282,19 @@ impl CharacterStateMachine {
 
                 // Jumping
                 (Some(MoveButton::Right), Some(ModifierButton::Jump), true) => {
-                    self.can_jump = false;
-                    Response::Transition(State::move_jumping_right())
+                    try_jump(context, &mut self.can_jump, || {
+                        Response::Transition(State::move_jumping_right())
+                    })
                 }
                 (Some(MoveButton::Left), Some(ModifierButton::Jump), true) => {
-                    self.can_jump = false;
-                    Response::Transition(State::move_jumping_left())
+                    try_jump(context, &mut self.can_jump, || {
+                        Response::Transition(State::move_jumping_left())
+                    })
                 }
                 (None, Some(ModifierButton::Jump), true) => {
-                    self.can_jump = false;
-                    Response::Transition(State::jumping_right())
+                    try_jump(context, &mut self.can_jump, || {
+                        Response::Transition(State::jumping_right())
+                    })
                 }
 
                 // Dodging
@@ -333,7 +363,12 @@ impl CharacterStateMachine {
         }
     }
     #[state]
-    fn move_left(&mut self, event: &Event) -> Response<State> {
+    fn move_left(
+        &mut self,
+        event: &Event,
+        context: &mut HashMap<PlayerTimer, Gd<Timer>>,
+    ) -> Response<State> {
+        self.can_jump = true;
         match event {
             Event::InputChanged(input) => match (&input.0, &input.1, self.can_jump) {
                 // Moving
@@ -341,16 +376,19 @@ impl CharacterStateMachine {
 
                 // Jumping
                 (Some(MoveButton::Right), Some(ModifierButton::Jump), true) => {
-                    self.can_jump = false;
-                    Response::Transition(State::move_jumping_right())
+                    try_jump(context, &mut self.can_jump, || {
+                        Response::Transition(State::move_jumping_right())
+                    })
                 }
                 (Some(MoveButton::Left), Some(ModifierButton::Jump), true) => {
-                    self.can_jump = false;
-                    Response::Transition(State::move_jumping_left())
+                    try_jump(context, &mut self.can_jump, || {
+                        Response::Transition(State::move_jumping_left())
+                    })
                 }
                 (None, Some(ModifierButton::Jump), true) => {
-                    self.can_jump = false;
-                    Response::Transition(State::jumping_left())
+                    try_jump(context, &mut self.can_jump, || {
+                        Response::Transition(State::jumping_left())
+                    })
                 }
 
                 // Dodging
@@ -486,15 +524,11 @@ impl CharacterStateMachine {
             },
 
             // On floor
-            Event::Landed(inputs) => {
-                self.can_jump = true;
-                match (&inputs.0, &inputs.1) {
-                    (Some(MoveButton::Right), None) => Response::Transition(State::move_right()),
-                    (Some(MoveButton::Left), None) => Response::Transition(State::move_left()),
-                    (None, None) => Response::Transition(State::idle_right()),
-                    _ => Handled,
-                }
-            }
+            Event::Landed(inputs) => match (&inputs.0, &inputs.1) {
+                (Some(MoveButton::Right), _) => Response::Transition(State::move_right()),
+                (Some(MoveButton::Left), _) => Response::Transition(State::move_left()),
+                (None, _) => Response::Transition(State::idle_right()),
+            },
             Event::ForceDisabled => Response::Transition(State::forced_disabled_right()),
             _ => Handled,
         }
@@ -523,15 +557,11 @@ impl CharacterStateMachine {
             },
 
             // On floor
-            Event::Landed(inputs) => {
-                self.can_jump = true;
-                match (&inputs.0, &inputs.1) {
-                    (Some(MoveButton::Right), None) => Response::Transition(State::move_right()),
-                    (Some(MoveButton::Left), None) => Response::Transition(State::move_left()),
-                    (None, None) => Response::Transition(State::idle_left()),
-                    _ => Handled,
-                }
-            }
+            Event::Landed(inputs) => match (&inputs.0, &inputs.1) {
+                (Some(MoveButton::Right), _) => Response::Transition(State::move_right()),
+                (Some(MoveButton::Left), _) => Response::Transition(State::move_left()),
+                (None, _) => Response::Transition(State::idle_left()),
+            },
             Event::ForceDisabled => Response::Transition(State::forced_disabled_right()),
             _ => Handled,
         }
@@ -562,15 +592,11 @@ impl CharacterStateMachine {
             },
 
             // On floor
-            Event::Landed(inputs) => {
-                self.can_jump = true;
-                match (&inputs.0, &inputs.1) {
-                    (Some(MoveButton::Right), None) => Response::Transition(State::move_right()),
-                    (Some(MoveButton::Left), None) => Response::Transition(State::move_left()),
-                    (None, None) => Response::Transition(State::idle_right()),
-                    _ => Handled,
-                }
-            }
+            Event::Landed(inputs) => match (&inputs.0, &inputs.1) {
+                (Some(MoveButton::Right), _) => Response::Transition(State::move_right()),
+                (Some(MoveButton::Left), _) => Response::Transition(State::move_left()),
+                (None, _) => Response::Transition(State::idle_right()),
+            },
             Event::ForceDisabled => Response::Transition(State::forced_disabled_right()),
             _ => Handled,
         }
@@ -601,15 +627,11 @@ impl CharacterStateMachine {
             },
 
             // On floor
-            Event::Landed(inputs) => {
-                self.can_jump = true;
-                match (&inputs.0, &inputs.1) {
-                    (Some(MoveButton::Right), None) => Response::Transition(State::move_right()),
-                    (Some(MoveButton::Left), None) => Response::Transition(State::move_left()),
-                    (None, None) => Response::Transition(State::idle_left()),
-                    _ => Handled,
-                }
-            }
+            Event::Landed(inputs) => match (&inputs.0, &inputs.1) {
+                (Some(MoveButton::Right), _) => Response::Transition(State::move_right()),
+                (Some(MoveButton::Left), _) => Response::Transition(State::move_left()),
+                (None, _) => Response::Transition(State::idle_left()),
+            },
             Event::ForceDisabled => Response::Transition(State::forced_disabled_left()),
             _ => Handled,
         }
@@ -637,15 +659,11 @@ impl CharacterStateMachine {
             },
 
             // On floor
-            Event::Landed(inputs) => {
-                self.can_jump = true;
-                match (&inputs.0, &inputs.1) {
-                    (Some(MoveButton::Left), None) => Response::Transition(State::move_left()),
-                    (Some(MoveButton::Right), None) => Response::Transition(State::move_right()),
-                    (None, None) => Response::Transition(State::idle_right()),
-                    _ => Handled,
-                }
-            }
+            Event::Landed(inputs) => match (&inputs.0, &inputs.1) {
+                (Some(MoveButton::Left), _) => Response::Transition(State::move_left()),
+                (Some(MoveButton::Right), _) => Response::Transition(State::move_right()),
+                (None, _) => Response::Transition(State::idle_right()),
+            },
             Event::ForceDisabled => Response::Transition(State::forced_disabled_right()),
             _ => Handled,
         }
@@ -672,15 +690,11 @@ impl CharacterStateMachine {
             },
 
             // On floor
-            Event::Landed(inputs) => {
-                self.can_jump = true;
-                match (&inputs.0, &inputs.1) {
-                    (Some(MoveButton::Left), None) => Response::Transition(State::move_left()),
-                    (Some(MoveButton::Right), None) => Response::Transition(State::move_right()),
-                    (None, None) => Response::Transition(State::idle_left()),
-                    _ => Handled,
-                }
-            }
+            Event::Landed(inputs) => match (&inputs.0, &inputs.1) {
+                (Some(MoveButton::Left), _) => Response::Transition(State::move_left()),
+                (Some(MoveButton::Right), _) => Response::Transition(State::move_right()),
+                (None, _) => Response::Transition(State::idle_left()),
+            },
             Event::ForceDisabled => Response::Transition(State::forced_disabled_left()),
             _ => Handled,
         }
@@ -709,15 +723,11 @@ impl CharacterStateMachine {
             },
 
             // On floor
-            Event::Landed(inputs) => {
-                self.can_jump = true;
-                match (&inputs.0, &inputs.1) {
-                    (Some(MoveButton::Left), None) => Response::Transition(State::move_left()),
-                    (Some(MoveButton::Right), None) => Response::Transition(State::move_right()),
-                    (None, None) => Response::Transition(State::idle_right()),
-                    _ => Handled,
-                }
-            }
+            Event::Landed(inputs) => match (&inputs.0, &inputs.1) {
+                (Some(MoveButton::Left), _) => Response::Transition(State::move_left()),
+                (Some(MoveButton::Right), _) => Response::Transition(State::move_right()),
+                (None, _) => Response::Transition(State::idle_right()),
+            },
             Event::ForceDisabled => Response::Transition(State::forced_disabled_right()),
             _ => Handled,
         }
@@ -745,15 +755,11 @@ impl CharacterStateMachine {
             },
 
             // On floor
-            Event::Landed(inputs) => {
-                self.can_jump = true;
-                match (&inputs.0, &inputs.1) {
-                    (Some(MoveButton::Left), None) => Response::Transition(State::move_left()),
-                    (Some(MoveButton::Right), None) => Response::Transition(State::move_right()),
-                    (None, None) => Response::Transition(State::idle_left()),
-                    _ => Handled,
-                }
-            }
+            Event::Landed(inputs) => match (&inputs.0, &inputs.1) {
+                (Some(MoveButton::Left), _) => Response::Transition(State::move_left()),
+                (Some(MoveButton::Right), _) => Response::Transition(State::move_right()),
+                (None, _) => Response::Transition(State::idle_left()),
+            },
             Event::ForceDisabled => Response::Transition(State::forced_disabled_left()),
             _ => Handled,
         }
@@ -1132,5 +1138,24 @@ impl CharacterStateMachine {
             Event::ForceEnabled => Response::Transition(State::idle_left()),
             _ => Handled,
         }
+    }
+}
+fn try_jump<F>(
+    context: &mut HashMap<PlayerTimer, Gd<Timer>>,
+    can_jump: &mut bool,
+    completed: F,
+) -> Response<State>
+where
+    F: FnOnce() -> Response<State>,
+{
+    if let Some(timer) = context.get_mut(&PlayerTimer::JumpTimeLimit)
+        && timer.get_time_left() == 0.0
+    {
+        println!("Starting timer");
+        timer.start();
+        *can_jump = false;
+        completed()
+    } else {
+        Handled
     }
 }

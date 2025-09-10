@@ -41,9 +41,6 @@ impl InputHandler {
             inputs.1 = Some(ModifierButton::Attack);
         }
         if input.is_action_pressed("jump") {
-            if timer_ok(entity.timers.get(&PT::JumpTimeLimit)) && entity.state.can_jump {
-                entity.timers.get_mut(&PT::JumpTimeLimit).unwrap().start()
-            }
             inputs.1 = Some(ModifierButton::Jump);
         }
         if input.is_action_pressed("dodge")
