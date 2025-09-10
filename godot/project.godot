@@ -159,6 +159,7 @@ dev_decrease_level={
 
 [physics]
 
+common/physics_ticks_per_second=15
 common/physics_interpolation=true
 
 [rendering]

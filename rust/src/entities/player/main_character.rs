@@ -34,7 +34,7 @@ use crate::{
 type State = csm::State;
 type PT = PlayerTimer;
 type Event = csm::Event;
-const GRAVITY: f32 = 980.0;
+const GRAVITY: f32 = 1500.0;
 const TERMINAL_VELOCITY: f32 = 500.0;
 
 #[derive(GodotClass)]
@@ -99,7 +99,7 @@ impl ICharacterBody2D for MainCharacter {
         self.stats.insert(Stats::HealAmount, StatVal::new(10));
         self.stats.insert(Stats::AttackDamage, StatVal::new(30));
         self.stats.insert(Stats::RunningSpeed, StatVal::new(180));
-        self.stats.insert(Stats::JumpingSpeed, StatVal::new(400));
+        self.stats.insert(Stats::JumpingSpeed, StatVal::new(500));
         self.stats.insert(Stats::DodgingSpeed, StatVal::new(250));
         self.stats.insert(Stats::AttackingSpeed, StatVal::new(10));
         self.stats.insert(Stats::Level, StatVal::new(1));
@@ -121,8 +121,7 @@ impl ICharacterBody2D for MainCharacter {
         self.previous_state = State::IdleRight {};
     }
 
-    fn process(&mut self, _delta: f32) {
-        // let input = InputHandler::handle(&Input::singleton(), self);
+    fn physics_process(&mut self, delta: f32) {
         let input = DevInputHandler::handle_unhandled(&Input::singleton(), self);
         if self.inputs != input {
             self.inputs = input;
@@ -132,9 +131,6 @@ impl ICharacterBody2D for MainCharacter {
         self.not_on_floor();
         self.player_landed_check();
         self.update_state();
-    }
-
-    fn physics_process(&mut self, delta: f32) {
         self.apply_gravity(&delta);
         // dbg!(&self.state.state());
         self.accelerate();
@@ -165,19 +161,10 @@ impl MainCharacter {
         let velocity = self.velocity;
         match self.state.state() {
             State::MoveFallingLeft {} | State::MoveLeftAirAttack {} => {
-                if discriminant(&self.previous_state) == discriminant(&State::MoveFallingLeft {}) {
-                    self.velocity.x = self.velocity.x.lerp(-120.0, 0.2);
-                } else {
-                    // self.velocity.x = stat(&self.stats, &Stats::RunningSpeed) * Vector2::LEFT.x;
-                    self.velocity.x = 160.0 * Vector2::LEFT.x;
-                }
+                self.velocity.x = self.velocity.x.lerp(-120.0, 0.2);
             }
             State::MoveFallingRight {} | State::MoveRightAirAttack {} => {
-                if discriminant(&self.previous_state) == discriminant(&State::MoveFallingRight {}) {
-                    self.velocity.x = self.velocity.x.lerp(120.0, 0.2);
-                } else {
-                    self.velocity.x = 160.0 * Vector2::RIGHT.x;
-                }
+                self.velocity.x = self.velocity.x.lerp(120.0, 0.2);
             }
             State::DodgingLeft {} => {
                 self.velocity.x = stat(&self.stats, &Stats::DodgingSpeed) * Vector2::LEFT.x;
@@ -186,10 +173,16 @@ impl MainCharacter {
                 self.velocity.x = stat(&self.stats, &Stats::DodgingSpeed) * Vector2::RIGHT.x;
             }
             State::MoveLeft {} => {
-                self.velocity.x = Vector2::LEFT.x * stat(&self.stats, &Stats::RunningSpeed)
+                self.velocity.x = self.velocity.x.lerp(
+                    stat(&self.stats, &Stats::RunningSpeed) * Vector2::LEFT.x,
+                    0.7,
+                );
             }
             State::MoveRight {} => {
-                self.velocity.x = Vector2::RIGHT.x * stat(&self.stats, &Stats::RunningSpeed)
+                self.velocity.x = self.velocity.x.lerp(
+                    stat(&self.stats, &Stats::RunningSpeed) * Vector2::RIGHT.x,
+                    0.7,
+                );
             }
             State::JumpingRight {} => {
                 self.velocity.y = self
@@ -210,14 +203,14 @@ impl MainCharacter {
                     .velocity
                     .y
                     .lerp(stat(&self.stats, &Stats::JumpingSpeed) * Vector2::UP.y, 0.5);
-                self.velocity.x = stat(&self.stats, &Stats::RunningSpeed) * Vector2::RIGHT.x;
+                self.velocity.x = self.velocity.x.lerp(120.0, 0.2);
             }
             State::MoveJumpingLeft {} => {
                 self.velocity.y = self
                     .velocity
                     .y
                     .lerp(stat(&self.stats, &Stats::JumpingSpeed) * Vector2::UP.y, 0.5);
-                self.velocity.x = stat(&self.stats, &Stats::RunningSpeed) * Vector2::LEFT.x;
+                self.velocity.x = self.velocity.x.lerp(-120.0, 0.2);
             }
             _ => self.velocity.x = 0.0,
         }

@@ -686,7 +686,7 @@ impl CharacterStateMachine {
         }
     }
 
-    /// Player is falling and providing positive x axis movement.
+    /// Player is falling and providing positive X axis movement.
     #[state]
     fn move_falling_right(&mut self, event: &Event) -> Response<State> {
         match event {
