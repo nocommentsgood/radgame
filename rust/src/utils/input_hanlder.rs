@@ -42,8 +42,13 @@ impl InputHandler {
             inputs.1 = Some(ModifierButton::Attack);
         }
         if input.is_action_pressed("jump") {
-            inputs.1 = Some(ModifierButton::Jump);
+            if inputs.1.is_some_and(|btn| btn == ModifierButton::Attack) {
+                inputs.1 = Some(ModifierButton::JumpAttack);
+            } else {
+                inputs.1 = Some(ModifierButton::Jump);
+            }
         }
+
         if input.is_action_pressed("dodge")
             && timer_ok(entity.timers.get(&PT::DodgeAnimation))
             && timer_ok(entity.timers.get(&PT::DodgeCooldown))
@@ -150,6 +155,7 @@ pub enum ModifierButton {
     Dodge,
     Jump,
     Attack,
+    JumpAttack,
     Heal,
     Parry,
 }
