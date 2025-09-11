@@ -125,6 +125,7 @@ impl ICharacterBody2D for MainCharacter {
         let input = DevInputHandler::handle_unhandled(&Input::singleton(), self);
         if self.inputs != input {
             self.inputs = input;
+            dbg!(&input);
             self.transition_sm(&Event::InputChanged(input));
         }
 
@@ -132,7 +133,7 @@ impl ICharacterBody2D for MainCharacter {
         self.player_landed_check();
         self.update_state();
         self.apply_gravity(&delta);
-        // dbg!(&self.state.state());
+        dbg!(&self.state.state());
         self.accelerate();
     }
 }
@@ -262,6 +263,12 @@ impl MainCharacter {
         }
     }
 
+    // fn wall_grab(&mut self) {
+    //     if !self.base().is_on_floor() && self.base().is_on_wall_only() {
+    //         let input = InputHandler::
+    //     }
+    // }
+
     /// Checks if the player is on the floor.
     /// If so, sends the `Landed` event to the state machine, sets Y axis velocity to 0, and resets
     /// jumping timer.
@@ -338,52 +345,39 @@ impl MainCharacter {
     }
 
     fn on_parry_timeout(&mut self) {
-        self.transition_sm(&Event::TimerElapsed(Inputs(
-            InputHandler::get_movement(&Input::singleton()).0,
-            None,
-        )));
+        let input = InputHandler::handle(&Input::singleton(), self);
+        self.transition_sm(&Event::TimerElapsed(input));
     }
 
     // TODO: Chain attacking.
     fn on_attack_timeout(&mut self) {
-        self.transition_sm(&Event::TimerElapsed(Inputs(
-            InputHandler::get_movement(&Input::singleton()).0,
-            None,
-        )));
+        let input = InputHandler::handle(&Input::singleton(), self);
+        self.transition_sm(&Event::TimerElapsed(input));
     }
 
     fn on_attack_2_timeout(&mut self) {
-        self.transition_sm(&Event::TimerElapsed(Inputs(
-            InputHandler::get_movement(&Input::singleton()).0,
-            None,
-        )));
+        let input = InputHandler::handle(&Input::singleton(), self);
+        self.transition_sm(&Event::TimerElapsed(input));
     }
 
     fn on_healing_timeout(&mut self) {
         self.timers.get_mut(&PT::HealingCooldown).unwrap().start();
-        self.transition_sm(&Event::TimerElapsed(Inputs(
-            InputHandler::get_movement(&Input::singleton()).0,
-            None,
-        )));
+        let input = InputHandler::handle(&Input::singleton(), self);
+        self.transition_sm(&Event::TimerElapsed(input));
     }
 
     fn on_dodge_animation_timeout(&mut self) {
         self.timers.get_mut(&PT::DodgeCooldown).unwrap().start();
-        self.transition_sm(&Event::TimerElapsed(Inputs(
-            InputHandler::get_movement(&Input::singleton()).0,
-            None,
-        )));
+        let input = InputHandler::handle(&Input::singleton(), self);
+        self.transition_sm(&Event::TimerElapsed(input));
     }
 
     fn on_hurt_animation_timeout(&mut self) {
-        self.transition_sm(&Event::TimerElapsed(Inputs(
-            InputHandler::get_movement(&Input::singleton()).0,
-            None,
-        )));
+        let input = InputHandler::handle(&Input::singleton(), self);
+        self.transition_sm(&Event::TimerElapsed(input));
     }
 
     fn on_jump_limit_timeout(&mut self) {
-        println!("Jump timer timeout");
         let input = InputHandler::handle(&Input::singleton(), self);
         self.transition_sm(&Event::TimerElapsed(input));
     }

@@ -424,20 +424,16 @@ impl CharacterStateMachine {
         match event {
             // Moving
             Event::TimerElapsed(inputs) => match (&inputs.0, &inputs.1) {
-                (None, None) => Response::Transition(State::idle_right()),
-                (Some(MoveButton::Left), None) => Response::Transition(State::move_left()),
-                (Some(MoveButton::Right), None) => Response::Transition(State::move_right()),
-                _ => Handled,
+                (None, _) => Response::Transition(State::idle_right()),
+                (Some(MoveButton::Left), _) => Response::Transition(State::move_left()),
+                (Some(MoveButton::Right), _) => Response::Transition(State::move_right()),
             },
 
             // Falling
             Event::FailedFloorCheck(inputs) => match (&inputs.0, &inputs.1) {
-                (Some(MoveButton::Right), None) => {
-                    Response::Transition(State::move_falling_right())
-                }
-                (Some(MoveButton::Left), None) => Response::Transition(State::move_falling_left()),
-                (None, None) => Response::Transition(State::falling_right()),
-                _ => Response::Transition(State::falling_right()),
+                (Some(MoveButton::Right), _) => Response::Transition(State::move_falling_right()),
+                (Some(MoveButton::Left), _) => Response::Transition(State::move_falling_left()),
+                (None, _) => Response::Transition(State::falling_right()),
             },
             Event::ForceDisabled => Response::Transition(State::forced_disabled_right()),
             _ => Handled,
@@ -449,20 +445,16 @@ impl CharacterStateMachine {
         match event {
             // Moving
             Event::TimerElapsed(inputs) => match (&inputs.0, &inputs.1) {
-                (None, None) => Response::Transition(State::idle_left()),
-                (Some(MoveButton::Left), None) => Response::Transition(State::move_left()),
-                (Some(MoveButton::Right), None) => Response::Transition(State::move_right()),
-                _ => Handled,
+                (None, _) => Response::Transition(State::idle_left()),
+                (Some(MoveButton::Left), _) => Response::Transition(State::move_left()),
+                (Some(MoveButton::Right), _) => Response::Transition(State::move_right()),
             },
 
             // Dodging
             Event::FailedFloorCheck(inputs) => match (&inputs.0, &inputs.1) {
-                (Some(MoveButton::Right), None) => {
-                    Response::Transition(State::move_falling_right())
-                }
-                (Some(MoveButton::Left), None) => Response::Transition(State::move_falling_left()),
-                (None, None) => Response::Transition(State::falling_left()),
-                _ => Response::Transition(State::falling_left()),
+                (Some(MoveButton::Right), _) => Response::Transition(State::move_falling_right()),
+                (Some(MoveButton::Left), _) => Response::Transition(State::move_falling_left()),
+                (None, _) => Response::Transition(State::falling_left()),
             },
             Event::ForceDisabled => Response::Transition(State::forced_disabled_left()),
             _ => Handled,
@@ -736,90 +728,56 @@ impl CharacterStateMachine {
     // TODO: Chain attacking.
     #[state]
     fn attacking_right(&mut self, event: &Event) -> Response<State> {
-        let chain_attacked = match event {
-            Event::InputChanged(inputs) => matches!(
-                (&inputs.0, &inputs.1),
-                (Some(MoveButton::Right), Some(ModifierButton::Attack))
-                    | (Some(MoveButton::Left), Some(ModifierButton::Attack))
-                    | (None, Some(ModifierButton::Attack))
-            ),
-            _ => false,
-        };
-
-        match (event, chain_attacked) {
-            // Attack chaining
-            (Event::TimerElapsed(inputs), true) => match (&inputs.0, &inputs.1) {
-                (Some(MoveButton::Right), Some(ModifierButton::Attack)) => {
-                    Response::Transition(State::attack_right_2())
-                }
+        match event {
+            Event::TimerElapsed(inputs) => match (&inputs.0, &inputs.1) {
+                // Chain attacking
                 (Some(MoveButton::Left), Some(ModifierButton::Attack)) => {
                     Response::Transition(State::attack_left_2())
                 }
-                (None, Some(ModifierButton::Attack)) => {
-                    Response::Transition(State::attack_left_2())
+                (Some(MoveButton::Right), Some(ModifierButton::Attack)) => {
+                    Response::Transition(State::attack_right_2())
                 }
-                _ => Handled,
-            },
+                (None, Some(ModifierButton::Attack)) => {
+                    Response::Transition(State::attack_right_2())
+                }
 
-            // Moving
-            (Event::TimerElapsed(inputs), false) => match (&inputs.0, &inputs.1) {
                 // Moving
-                (Some(MoveButton::Right), None) => Response::Transition(State::move_right()),
-                (Some(MoveButton::Left), None) => Response::Transition(State::move_left()),
-                (None, None) => Response::Transition(State::idle_right()),
-
-                _ => Handled,
+                (Some(MoveButton::Left), _) => Response::Transition(State::move_left()),
+                (Some(MoveButton::Right), _) => Response::Transition(State::move_right()),
+                (_, _) => Response::Transition(State::idle_right()),
             },
 
-            // Hurt
-            (Event::Hurt, _) => Response::Transition(State::hurt_right()),
-            (Event::ForceDisabled, _) => Response::Transition(State::forced_disabled_right()),
-            (_, _) => Handled,
+            Event::Hurt => Response::Transition(State::hurt_right()),
+            Event::ForceDisabled => Response::Transition(State::forced_disabled_right()),
+            _ => Handled,
         }
     }
 
     // TODO: Chain attacking.
     #[state]
     fn attacking_left(&mut self, event: &Event) -> Response<State> {
-        let chain_attacked = match event {
-            Event::InputChanged(inputs) => matches!(
-                (&inputs.0, &inputs.1),
-                (Some(MoveButton::Right), Some(ModifierButton::Attack))
-                    | (Some(MoveButton::Left), Some(ModifierButton::Attack))
-                    | (None, Some(ModifierButton::Attack))
-            ),
-            _ => false,
-        };
-
-        match (event, chain_attacked) {
-            // Attack chaining
-            (Event::TimerElapsed(inputs), true) => match (&inputs.0, &inputs.1) {
-                (Some(MoveButton::Right), Some(ModifierButton::Attack)) => {
-                    Response::Transition(State::attack_right_2())
-                }
+        match event {
+            Event::TimerElapsed(inputs) => match (&inputs.0, &inputs.1) {
+                // Chain attacking
                 (Some(MoveButton::Left), Some(ModifierButton::Attack)) => {
                     Response::Transition(State::attack_left_2())
                 }
-                (None, Some(ModifierButton::Attack)) => {
-                    Response::Transition(State::attack_left_2())
+                (Some(MoveButton::Right), Some(ModifierButton::Attack)) => {
+                    Response::Transition(State::attack_right_2())
                 }
-                _ => Handled,
-            },
+                (None, Some(ModifierButton::Attack)) => {
+                    Response::Transition(State::attack_right_2())
+                }
 
-            // Moving
-            (Event::TimerElapsed(inputs), false) => match (&inputs.0, &inputs.1) {
                 // Moving
-                (Some(MoveButton::Right), None) => Response::Transition(State::move_right()),
-                (Some(MoveButton::Left), None) => Response::Transition(State::move_left()),
-                (None, None) => Response::Transition(State::idle_left()),
-
-                _ => Handled,
+                (Some(MoveButton::Left), _) => Response::Transition(State::move_left()),
+                (Some(MoveButton::Right), _) => Response::Transition(State::move_right()),
+                (_, _) => Response::Transition(State::idle_left()),
             },
 
-            // Hurt
-            (Event::Hurt, _) => Response::Transition(State::hurt_right()),
-            (Event::ForceDisabled, _) => Response::Transition(State::forced_disabled_left()),
-            (_, _) => Handled,
+            Event::Hurt => Response::Transition(State::hurt_left()),
+            Event::ForceDisabled => Response::Transition(State::forced_disabled_left()),
+            _ => Handled,
         }
     }
 
@@ -828,10 +786,9 @@ impl CharacterStateMachine {
     fn attack_right_2(&mut self, event: &Event) -> Response<State> {
         match event {
             Event::TimerElapsed(inputs) => match (&inputs.0, &inputs.1) {
-                (Some(MoveButton::Right), None) => Response::Transition(State::move_right()),
-                (Some(MoveButton::Left), None) => Response::Transition(State::move_left()),
-                (None, None) => Response::Transition(State::idle_right()),
-                _ => Handled,
+                (Some(MoveButton::Right), _) => Response::Transition(State::move_right()),
+                (Some(MoveButton::Left), _) => Response::Transition(State::move_left()),
+                (None, _) => Response::Transition(State::idle_right()),
             },
             Event::Hurt => Response::Transition(State::hurt_right()),
             Event::ForceDisabled => Response::Transition(State::forced_disabled_right()),
@@ -844,10 +801,9 @@ impl CharacterStateMachine {
     fn attack_left_2(&mut self, event: &Event) -> Response<State> {
         match event {
             Event::TimerElapsed(inputs) => match (&inputs.0, &inputs.1) {
-                (Some(MoveButton::Right), None) => Response::Transition(State::move_right()),
-                (Some(MoveButton::Left), None) => Response::Transition(State::move_left()),
-                (None, None) => Response::Transition(State::idle_left()),
-                _ => Handled,
+                (Some(MoveButton::Right), _) => Response::Transition(State::move_right()),
+                (Some(MoveButton::Left), _) => Response::Transition(State::move_left()),
+                (None, _) => Response::Transition(State::idle_left()),
             },
             Event::Hurt => Response::Transition(State::hurt_right()),
             Event::ForceDisabled => Response::Transition(State::forced_disabled_left()),
@@ -860,12 +816,11 @@ impl CharacterStateMachine {
         match event {
             Event::TimerElapsed(input) => match (&input.0, &input.1) {
                 // Moving
-                (Some(MoveButton::Left), None) => Response::Transition(State::move_left()),
-                (Some(MoveButton::Right), None) => Response::Transition(State::move_right()),
+                (Some(MoveButton::Left), _) => Response::Transition(State::move_left()),
+                (Some(MoveButton::Right), _) => Response::Transition(State::move_right()),
 
                 // Idle
-                (None, None) => Response::Transition(State::idle_right()),
-                _ => Handled,
+                (None, _) => Response::Transition(State::idle_right()),
             },
             Event::ForceDisabled => Response::Transition(State::forced_disabled_right()),
             _ => Handled,
@@ -877,12 +832,11 @@ impl CharacterStateMachine {
         match event {
             Event::TimerElapsed(input) => match (&input.0, &input.1) {
                 // Moving
-                (Some(MoveButton::Left), None) => Response::Transition(State::move_left()),
-                (Some(MoveButton::Right), None) => Response::Transition(State::move_right()),
+                (Some(MoveButton::Left), _) => Response::Transition(State::move_left()),
+                (Some(MoveButton::Right), _) => Response::Transition(State::move_right()),
 
                 // Idle
-                (None, None) => Response::Transition(State::idle_left()),
-                _ => Handled,
+                (None, _) => Response::Transition(State::idle_left()),
             },
             Event::ForceDisabled => Response::Transition(State::forced_disabled_left()),
             _ => Handled,
@@ -894,12 +848,6 @@ impl CharacterStateMachine {
         match event {
             // Moving
             Event::TimerElapsed(input) => match (&input.0, &input.1) {
-                (Some(MoveButton::Left), None) => Response::Transition(State::move_falling_left()),
-                (Some(MoveButton::Right), None) => {
-                    Response::Transition(State::move_falling_right())
-                }
-                (None, None) => Response::Transition(State::falling_right()),
-
                 // Air attacking
                 (Some(MoveButton::Right), Some(ModifierButton::Attack)) => {
                     Response::Transition(State::move_right_air_attack())
@@ -910,15 +858,18 @@ impl CharacterStateMachine {
                 (None, Some(ModifierButton::Attack)) => {
                     Response::Transition(State::air_attack_right())
                 }
-                _ => Handled,
+
+                // Moving
+                (Some(MoveButton::Left), _) => Response::Transition(State::move_falling_left()),
+                (Some(MoveButton::Right), _) => Response::Transition(State::move_falling_right()),
+                (None, _) => Response::Transition(State::falling_right()),
             },
 
             // On floor
             Event::Landed(inputs) => match (&inputs.0, &inputs.1) {
-                (Some(MoveButton::Left), None) => Response::Transition(State::move_left()),
-                (Some(MoveButton::Right), None) => Response::Transition(State::move_right()),
-                (None, None) => Response::Transition(State::idle_right()),
-                _ => Handled,
+                (Some(MoveButton::Left), _) => Response::Transition(State::move_left()),
+                (Some(MoveButton::Right), _) => Response::Transition(State::move_right()),
+                (None, _) => Response::Transition(State::idle_right()),
             },
             Event::ForceDisabled => Response::Transition(State::forced_disabled_right()),
             _ => Handled,
@@ -929,13 +880,6 @@ impl CharacterStateMachine {
     fn move_right_air_attack(&mut self, event: &Event) -> Response<State> {
         match event {
             Event::TimerElapsed(input) => match (&input.0, &input.1) {
-                // Moving
-                (Some(MoveButton::Left), None) => Response::Transition(State::move_falling_left()),
-                (Some(MoveButton::Right), None) => {
-                    Response::Transition(State::move_falling_right())
-                }
-                (None, None) => Response::Transition(State::falling_right()),
-
                 // Air attacking
                 (Some(MoveButton::Right), Some(ModifierButton::Attack)) => {
                     Response::Transition(State::move_right_air_attack())
@@ -946,15 +890,18 @@ impl CharacterStateMachine {
                 (None, Some(ModifierButton::Attack)) => {
                     Response::Transition(State::air_attack_right())
                 }
-                _ => Handled,
+
+                // Moving
+                (Some(MoveButton::Left), _) => Response::Transition(State::move_falling_left()),
+                (Some(MoveButton::Right), _) => Response::Transition(State::move_falling_right()),
+                (None, _) => Response::Transition(State::falling_right()),
             },
 
             // On floor
             Event::Landed(inputs) => match (&inputs.0, &inputs.1) {
-                (Some(MoveButton::Left), None) => Response::Transition(State::move_left()),
-                (Some(MoveButton::Right), None) => Response::Transition(State::move_right()),
-                (None, None) => Response::Transition(State::idle_right()),
-                _ => Handled,
+                (Some(MoveButton::Left), _) => Response::Transition(State::move_left()),
+                (Some(MoveButton::Right), _) => Response::Transition(State::move_right()),
+                (None, _) => Response::Transition(State::idle_right()),
             },
             Event::ForceDisabled => Response::Transition(State::forced_disabled_right()),
             _ => Handled,
@@ -965,12 +912,6 @@ impl CharacterStateMachine {
     fn air_attack_left(&mut self, event: &Event) -> Response<State> {
         match event {
             Event::TimerElapsed(input) => match (&input.0, &input.1) {
-                (Some(MoveButton::Left), None) => Response::Transition(State::move_falling_left()),
-                (Some(MoveButton::Right), None) => {
-                    Response::Transition(State::move_falling_right())
-                }
-                (None, None) => Response::Transition(State::falling_left()),
-
                 // Air attacking
                 (Some(MoveButton::Right), Some(ModifierButton::Attack)) => {
                     Response::Transition(State::move_right_air_attack())
@@ -981,15 +922,18 @@ impl CharacterStateMachine {
                 (None, Some(ModifierButton::Attack)) => {
                     Response::Transition(State::air_attack_left())
                 }
-                _ => Handled,
+
+                // Moving
+                (Some(MoveButton::Left), _) => Response::Transition(State::move_falling_left()),
+                (Some(MoveButton::Right), _) => Response::Transition(State::move_falling_right()),
+                (None, _) => Response::Transition(State::falling_left()),
             },
 
             // On floor
             Event::Landed(inputs) => match (&inputs.0, &inputs.1) {
-                (Some(MoveButton::Left), None) => Response::Transition(State::move_left()),
-                (Some(MoveButton::Right), None) => Response::Transition(State::move_right()),
-                (None, None) => Response::Transition(State::idle_left()),
-                _ => Handled,
+                (Some(MoveButton::Left), _) => Response::Transition(State::move_left()),
+                (Some(MoveButton::Right), _) => Response::Transition(State::move_right()),
+                (None, _) => Response::Transition(State::idle_left()),
             },
             Event::ForceDisabled => Response::Transition(State::forced_disabled_left()),
             _ => Handled,
@@ -1000,13 +944,6 @@ impl CharacterStateMachine {
     fn move_left_air_attack(&mut self, event: &Event) -> Response<State> {
         match event {
             Event::TimerElapsed(input) => match (&input.0, &input.1) {
-                // Moving
-                (Some(MoveButton::Left), None) => Response::Transition(State::move_falling_left()),
-                (Some(MoveButton::Right), None) => {
-                    Response::Transition(State::move_falling_right())
-                }
-                (None, None) => Response::Transition(State::falling_left()),
-
                 // Air attacking
                 (Some(MoveButton::Right), Some(ModifierButton::Attack)) => {
                     Response::Transition(State::move_right_air_attack())
@@ -1017,15 +954,18 @@ impl CharacterStateMachine {
                 (None, Some(ModifierButton::Attack)) => {
                     Response::Transition(State::air_attack_left())
                 }
-                _ => Handled,
+
+                // Moving
+                (Some(MoveButton::Left), _) => Response::Transition(State::move_falling_left()),
+                (Some(MoveButton::Right), _) => Response::Transition(State::move_falling_right()),
+                (None, _) => Response::Transition(State::falling_left()),
             },
 
             // On floor
             Event::Landed(inputs) => match (&inputs.0, &inputs.1) {
-                (Some(MoveButton::Left), None) => Response::Transition(State::move_left()),
-                (Some(MoveButton::Right), None) => Response::Transition(State::move_right()),
-                (None, None) => Response::Transition(State::idle_left()),
-                _ => Handled,
+                (Some(MoveButton::Left), _) => Response::Transition(State::move_left()),
+                (Some(MoveButton::Right), _) => Response::Transition(State::move_right()),
+                (None, _) => Response::Transition(State::idle_left()),
             },
             Event::ForceDisabled => Response::Transition(State::forced_disabled_left()),
             _ => Handled,
@@ -1037,10 +977,9 @@ impl CharacterStateMachine {
         match event {
             Event::TimerElapsed(inputs) => match (&inputs.0, &inputs.1) {
                 // Moving
-                (Some(MoveButton::Left), None) => Response::Transition(State::move_left()),
-                (Some(MoveButton::Right), None) => Response::Transition(State::move_right()),
-                (None, None) => Response::Transition(State::idle_right()),
-                _ => Handled,
+                (Some(MoveButton::Left), _) => Response::Transition(State::move_left()),
+                (Some(MoveButton::Right), _) => Response::Transition(State::move_right()),
+                (None, _) => Response::Transition(State::idle_right()),
             },
             Event::ForceDisabled => Response::Transition(State::forced_disabled_right()),
             _ => Handled,
@@ -1052,10 +991,9 @@ impl CharacterStateMachine {
         match event {
             Event::TimerElapsed(inputs) => match (&inputs.0, &inputs.1) {
                 // Moving
-                (Some(MoveButton::Left), None) => Response::Transition(State::move_left()),
-                (Some(MoveButton::Right), None) => Response::Transition(State::move_right()),
-                (None, None) => Response::Transition(State::idle_left()),
-                _ => Handled,
+                (Some(MoveButton::Left), _) => Response::Transition(State::move_left()),
+                (Some(MoveButton::Right), _) => Response::Transition(State::move_right()),
+                (None, _) => Response::Transition(State::idle_left()),
             },
             Event::ForceDisabled => Response::Transition(State::forced_disabled_left()),
             _ => Handled,
@@ -1067,10 +1005,9 @@ impl CharacterStateMachine {
         match event {
             Event::TimerElapsed(inputs) => match (&inputs.0, &inputs.1) {
                 // Moving
-                (Some(MoveButton::Left), None) => Response::Transition(State::move_left()),
-                (Some(MoveButton::Right), None) => Response::Transition(State::move_right()),
-                (None, None) => Response::Transition(State::idle_right()),
-                _ => Handled,
+                (Some(MoveButton::Left), _) => Response::Transition(State::move_left()),
+                (Some(MoveButton::Right), _) => Response::Transition(State::move_right()),
+                (None, _) => Response::Transition(State::idle_right()),
             },
             Event::ForceDisabled => Response::Transition(State::forced_disabled_right()),
             _ => Handled,
@@ -1082,10 +1019,9 @@ impl CharacterStateMachine {
         match event {
             Event::TimerElapsed(inputs) => match (&inputs.0, &inputs.1) {
                 // Moving
-                (Some(MoveButton::Left), None) => Response::Transition(State::move_left()),
-                (Some(MoveButton::Right), None) => Response::Transition(State::move_right()),
-                (None, None) => Response::Transition(State::idle_left()),
-                _ => Handled,
+                (Some(MoveButton::Left), _) => Response::Transition(State::move_left()),
+                (Some(MoveButton::Right), _) => Response::Transition(State::move_right()),
+                (None, _) => Response::Transition(State::idle_left()),
             },
             Event::ForceDisabled => Response::Transition(State::forced_disabled_left()),
             _ => Handled,

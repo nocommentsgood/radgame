@@ -30,6 +30,7 @@ impl InputHandler {
         inputs
     }
 
+    // TODO: Move timer handling to state machine.
     pub fn handle(input: &Gd<Input>, entity: &mut MainCharacter) -> Inputs {
         let timer_ok = |timer: Option<&Gd<Timer>>| {
             timer.is_some_and(|t| t.get_time_left() == 0.0 && t.is_stopped())
@@ -141,6 +142,8 @@ pub enum MoveButton {
     Right,
 }
 
+// TODO: Add jumping + attack modifier.
+//
 /// Action buttons pressed by the player.
 #[derive(Clone, PartialEq, Eq, Debug, Copy)]
 pub enum ModifierButton {
