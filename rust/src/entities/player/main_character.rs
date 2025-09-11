@@ -125,7 +125,7 @@ impl ICharacterBody2D for MainCharacter {
         let input = DevInputHandler::handle_unhandled(&Input::singleton(), self);
         if self.inputs != input {
             self.inputs = input;
-            dbg!(&input);
+            // dbg!(&input);
             self.transition_sm(&Event::InputChanged(input));
         }
 
@@ -133,7 +133,7 @@ impl ICharacterBody2D for MainCharacter {
         self.player_landed_check();
         self.update_state();
         self.apply_gravity(&delta);
-        dbg!(&self.state.state());
+        // dbg!(&self.state.state());
         self.accelerate();
     }
 }
@@ -589,10 +589,9 @@ impl MainCharacter {
     }
 
     fn update_camera(&mut self) {
-        if self.velocity.x.is_sign_positive() {
+        if self.velocity.x > 5.0 {
             self.camera.bind_mut().set_right(Some(true));
-        }
-        if self.velocity.x.is_sign_negative() {
+        } else if self.velocity.x < -5.0 {
             self.camera.bind_mut().set_right(Some(false));
         }
     }

@@ -42,7 +42,7 @@ pub struct ShakyPlayerCamera {
 
 #[godot_api]
 impl ICamera2D for ShakyPlayerCamera {
-    fn process(&mut self, delta: f32) {
+    fn physics_process(&mut self, delta: f32) {
         if self.trauma > 0.0 {
             self.trauma = f32::max(self.trauma - self.decay * delta, 0.0);
             self.rust_shake();
