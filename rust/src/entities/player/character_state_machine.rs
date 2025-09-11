@@ -647,13 +647,15 @@ impl CharacterStateMachine {
         match event {
             Event::InputChanged(inputs) => match (&inputs.0, &inputs.1) {
                 // Air attack
-                (Some(MoveButton::Left), Some(ModifierButton::Attack)) => {
-                    Response::Transition(State::move_left_air_attack())
-                }
-                (Some(MoveButton::Right), Some(ModifierButton::Attack)) => {
-                    Response::Transition(State::move_right_air_attack())
-                }
-                (None, Some(ModifierButton::Attack)) => {
+                (
+                    Some(MoveButton::Left),
+                    Some(ModifierButton::Attack | ModifierButton::JumpAttack),
+                ) => Response::Transition(State::move_left_air_attack()),
+                (
+                    Some(MoveButton::Right),
+                    Some(ModifierButton::Attack | ModifierButton::JumpAttack),
+                ) => Response::Transition(State::move_right_air_attack()),
+                (None, Some(ModifierButton::Attack | ModifierButton::JumpAttack)) => {
                     Response::Transition(State::air_attack_right())
                 }
 
@@ -679,13 +681,15 @@ impl CharacterStateMachine {
         match event {
             Event::InputChanged(inputs) => match (&inputs.0, &inputs.1) {
                 // Air attack
-                (Some(MoveButton::Left), Some(ModifierButton::Attack)) => {
-                    Response::Transition(State::move_left_air_attack())
-                }
-                (Some(MoveButton::Right), Some(ModifierButton::Attack)) => {
-                    Response::Transition(State::move_right_air_attack())
-                }
-                (None, Some(ModifierButton::Attack)) => {
+                (
+                    Some(MoveButton::Left),
+                    Some(ModifierButton::Attack | ModifierButton::JumpAttack),
+                ) => Response::Transition(State::move_left_air_attack()),
+                (
+                    Some(MoveButton::Right),
+                    Some(ModifierButton::Attack | ModifierButton::JumpAttack),
+                ) => Response::Transition(State::move_right_air_attack()),
+                (None, Some(ModifierButton::Attack | ModifierButton::JumpAttack)) => {
                     Response::Transition(State::air_attack_left())
                 }
                 (Some(MoveButton::Left), _) => Response::Transition(State::move_falling_left()),
@@ -710,13 +714,17 @@ impl CharacterStateMachine {
         match event {
             Event::InputChanged(inputs) => match (&inputs.0, &inputs.1) {
                 // Air attack
-                (Some(MoveButton::Left), Some(ModifierButton::Attack)) => {
-                    Response::Transition(State::move_left_air_attack())
-                }
-                (Some(MoveButton::Right), Some(ModifierButton::Attack)) => {
-                    Response::Transition(State::move_right_air_attack())
-                }
-                (None, Some(ModifierButton::Attack)) => {
+                (
+                    Some(MoveButton::Left),
+                    Some(ModifierButton::Attack | ModifierButton::JumpAttack),
+                ) => Response::Transition(State::move_left_air_attack()),
+
+                (
+                    Some(MoveButton::Right),
+                    Some(ModifierButton::Attack | ModifierButton::JumpAttack),
+                ) => Response::Transition(State::move_right_air_attack()),
+
+                (None, Some(ModifierButton::Attack | ModifierButton::JumpAttack)) => {
                     Response::Transition(State::air_attack_right())
                 }
 
@@ -743,13 +751,15 @@ impl CharacterStateMachine {
         match event {
             Event::InputChanged(inputs) => match (&inputs.0, &inputs.1) {
                 // Air attack
-                (Some(MoveButton::Left), Some(ModifierButton::Attack)) => {
-                    Response::Transition(State::move_left_air_attack())
-                }
-                (Some(MoveButton::Right), Some(ModifierButton::Attack)) => {
-                    Response::Transition(State::move_right_air_attack())
-                }
-                (None, Some(ModifierButton::Attack)) => {
+                (
+                    Some(MoveButton::Left),
+                    Some(ModifierButton::Attack | ModifierButton::JumpAttack),
+                ) => Response::Transition(State::move_left_air_attack()),
+                (
+                    Some(MoveButton::Right),
+                    Some(ModifierButton::Attack | ModifierButton::JumpAttack),
+                ) => Response::Transition(State::move_right_air_attack()),
+                (None, Some(ModifierButton::Attack | ModifierButton::JumpAttack)) => {
                     Response::Transition(State::air_attack_right())
                 }
 

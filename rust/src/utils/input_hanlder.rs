@@ -147,8 +147,6 @@ pub enum MoveButton {
     Right,
 }
 
-// TODO: Add jumping + attack modifier.
-//
 /// Action buttons pressed by the player.
 #[derive(Clone, PartialEq, Eq, Debug, Copy)]
 pub enum ModifierButton {
