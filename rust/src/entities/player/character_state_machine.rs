@@ -465,6 +465,17 @@ impl CharacterStateMachine {
     fn move_jumping_right(&mut self, event: &Event) -> Response<State> {
         match event {
             Event::InputChanged(inputs) => match (&inputs.0, &inputs.1) {
+                // Attacking
+                (Some(MoveButton::Left), Some(ModifierButton::JumpAttack)) => {
+                    Response::Transition(State::move_left_air_attack())
+                }
+                (Some(MoveButton::Right), Some(ModifierButton::JumpAttack)) => {
+                    Response::Transition(State::move_right_air_attack())
+                }
+                (None, Some(ModifierButton::JumpAttack)) => {
+                    Response::Transition(State::air_attack_right())
+                }
+
                 // Jumping
                 (Some(MoveButton::Left), Some(ModifierButton::Jump)) => {
                     Response::Transition(State::move_jumping_left())
@@ -498,6 +509,17 @@ impl CharacterStateMachine {
     fn move_jumping_left(&mut self, event: &Event) -> Response<State> {
         match event {
             Event::InputChanged(inputs) => match (&inputs.0, &inputs.1) {
+                // Attacking
+                (Some(MoveButton::Left), Some(ModifierButton::JumpAttack)) => {
+                    Response::Transition(State::move_left_air_attack())
+                }
+                (Some(MoveButton::Right), Some(ModifierButton::JumpAttack)) => {
+                    Response::Transition(State::move_right_air_attack())
+                }
+                (None, Some(ModifierButton::JumpAttack)) => {
+                    Response::Transition(State::air_attack_left())
+                }
+
                 // Jumping
                 (Some(MoveButton::Right), Some(ModifierButton::Jump)) => {
                     Response::Transition(State::move_jumping_right())
@@ -531,6 +553,17 @@ impl CharacterStateMachine {
     fn jumping_right(&mut self, event: &Event) -> Response<State> {
         match event {
             Event::InputChanged(inputs) => match (&inputs.0, &inputs.1) {
+                // Attacking
+                (Some(MoveButton::Left), Some(ModifierButton::JumpAttack)) => {
+                    Response::Transition(State::move_left_air_attack())
+                }
+                (Some(MoveButton::Right), Some(ModifierButton::JumpAttack)) => {
+                    Response::Transition(State::move_right_air_attack())
+                }
+                (None, Some(ModifierButton::JumpAttack)) => {
+                    Response::Transition(State::air_attack_right())
+                }
+
                 // Jumping
                 (Some(MoveButton::Left), Some(ModifierButton::Jump)) => {
                     Response::Transition(State::move_jumping_left())
@@ -566,6 +599,17 @@ impl CharacterStateMachine {
     fn jumping_left(&mut self, event: &Event) -> Response<State> {
         match event {
             Event::InputChanged(inputs) => match (&inputs.0, &inputs.1) {
+                // Attacking
+                (Some(MoveButton::Left), Some(ModifierButton::JumpAttack)) => {
+                    Response::Transition(State::move_left_air_attack())
+                }
+                (Some(MoveButton::Right), Some(ModifierButton::JumpAttack)) => {
+                    Response::Transition(State::move_right_air_attack())
+                }
+                (None, Some(ModifierButton::JumpAttack)) => {
+                    Response::Transition(State::air_attack_left())
+                }
+
                 // Jumping
                 (Some(MoveButton::Left), Some(ModifierButton::Jump)) => {
                     Response::Transition(State::move_jumping_left())
