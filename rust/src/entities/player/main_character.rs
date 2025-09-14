@@ -21,7 +21,7 @@ use crate::{
             abilities::AbilityComp,
             character_state_machine as csm,
             item_component::ItemComponent,
-            shaky_player_camera::{ShakyPlayerCamera, TraumaLevel},
+            shaky_player_camera::{PlayerCamera, TraumaLevel},
         },
         time::PlayerTimer,
     },
@@ -74,7 +74,7 @@ pub struct MainCharacter {
     ledge_sensor: OnReady<Gd<RayCast2D>>,
 
     #[init(node = "ShakyPlayerCamera")]
-    pub camera: OnReady<Gd<ShakyPlayerCamera>>,
+    pub camera: OnReady<Gd<PlayerCamera>>,
 }
 
 #[godot_api]
@@ -334,9 +334,7 @@ impl MainCharacter {
             let damageable = DynGd::<Node2D, dyn Damageable>::from_godot(target);
             damaging.dyn_bind().do_damage(damageable);
             drop(guard);
-            let mut camera = self
-                .base()
-                .get_node_as::<ShakyPlayerCamera>("ShakyPlayerCamera");
+            let mut camera = self.base().get_node_as::<PlayerCamera>("ShakyPlayerCamera");
             camera
                 .bind_mut()
                 .add_trauma(TraumaLevel::from(damaging.dyn_bind().damage_amount()));

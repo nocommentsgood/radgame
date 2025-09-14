@@ -3820,8 +3820,7 @@ collide_with_areas = true
 
 [node name="ItemComponent" type="ItemComponent" parent="."]
 
-[node name="ShakyPlayerCamera" type="ShakyPlayerCamera" parent="."]
-decay = 0.8
+[node name="ShakyPlayerCamera" type="PlayerCamera" parent="."]
 offset = Vector2(0, -55)
 ignore_rotation = false
 zoom = Vector2(1.2, 1.2)

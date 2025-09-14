@@ -1,9 +1,18 @@
 use crate::{
-    entities::{entity_hitbox::EntityHitbox, player::main_character::MainCharacter},
+    entities::{
+        entity_hitbox::EntityHitbox,
+        player::{
+            main_character::MainCharacter,
+            shaky_player_camera::{CameraFollowType, PlayerCamera, TweenEase, TweenTransition},
+        },
+    },
     utils::collision_layers::CollisionLayers,
 };
 use godot::{
-    classes::{Area2D, Camera2D, CollisionShape2D, IArea2D, IStaticBody2D, Marker2D, StaticBody2D},
+    classes::{
+        Area2D, Camera2D, CollisionShape2D, IArea2D, IStaticBody2D, Marker2D, StaticBody2D,
+        tween::TransitionType,
+    },
     prelude::*,
 };
 
@@ -75,15 +84,15 @@ impl EnvironmentTrigger {
     fn on_player_enters_trigger(&mut self, area: Gd<Area2D>) {
         // TODO: This check of getting the player is used in a few other places too. Maybe it
         // should be exposed from a singleton.
-        if let Ok(h_box) = area.try_cast::<EntityHitbox>()
-            && let Some(player) = h_box.get_owner()
-            && let Ok(_player) = player.try_cast::<MainCharacter>()
-        {
-            // BUG: If the editor has an empty element, this will panic. Not sure how to guard
-            // against this as the type is Variant.
-            for mut i in self.triggerable_objects.iter_shared() {
-                i.dyn_bind_mut().on_activated();
-            }
+        // if let Ok(h_box) = area.try_cast::<EntityHitbox>()
+        //     && let Some(player) = h_box.get_owner()
+        //     && let Ok(_player) = player.try_cast::<MainCharacter>()
+        // {
+        // BUG: If the editor has an empty element, this will panic. Not sure how to guard
+        // against this as the type is Variant.
+        for mut i in self.triggerable_objects.iter_shared() {
+            i.dyn_bind_mut().on_activated();
+            // }
         }
 
         if let Some(t) = self.trigger_ty {
@@ -214,8 +223,116 @@ impl SceneTransition {
 impl TriggerableEnvObject for SceneTransition {
     fn on_activated(&mut self) {
         println!("Emitting scene trans signal");
-        // let marker = self.base().upcast().clone::<Gd<Marker2D>>();
         let marker = self.to_gd().upcast();
         self.signals().scene_transition().emit(&marker);
+    }
+}
+
+#[derive(GodotClass)]
+#[class(init, base = Node2D)]
+pub struct CameraData {
+    // Initialized by the `Main` node.
+    pub player_camera: Option<Gd<PlayerCamera>>,
+
+    #[export]
+    next_pos: Vector2,
+
+    #[export]
+    pub zoom: Vector2,
+
+    #[export]
+    #[export_group(name = "Tweening")]
+    duration: f32,
+    #[export]
+    #[export_group(name = "Tweening")]
+    pub transition: TweenTransition,
+
+    #[export]
+    #[export_group(name = "Tweening")]
+    pub ease: TweenEase,
+
+    #[export]
+    #[export_group(name = "Follow")]
+    follow: CameraFollowType,
+
+    base: Base<Node2D>,
+}
+
+#[godot_dyn]
+impl TriggerableEnvObject for CameraData {
+    fn on_activated(&mut self) {
+        let mut zoom_tween = self.base_mut().create_tween().unwrap();
+        zoom_tween.set_trans(self.transition.to_type());
+        zoom_tween.set_ease(self.ease.to_type());
+        zoom_tween.tween_property(
+            self.player_camera.as_ref().unwrap(),
+            "zoom",
+            &self.zoom.to_variant(),
+            self.duration.into(),
+        );
+
+        match self.follow {
+            CameraFollowType::Simple => {
+                // if let Ok(mut player) = self
+                //     .player_camera
+                //     .as_ref()
+                //     .unwrap()
+                //     .get_parent()
+                //     .unwrap()
+                //     .try_cast::<MainCharacter>()
+                if self.player_camera.as_ref().unwrap().get_parent().is_none() {
+                    // if player
+                    //     .try_get_node_as::<PlayerCamera>("ShakyPlayerCamera")
+                    //     .is_none()
+                    // {
+                    // player.add_child(self.player_camera.as_ref().unwrap());
+                    self.player_camera
+                        .as_mut()
+                        .unwrap()
+                        .signals()
+                        .request_attach()
+                        .emit();
+                    println!("Emitted attach request");
+                    //                     }
+                }
+            }
+            CameraFollowType::Frame => {
+                if let Ok(mut player) = self
+                    .player_camera
+                    .as_ref()
+                    .unwrap()
+                    .get_parent()
+                    .unwrap()
+                    .try_cast::<MainCharacter>()
+                {
+                    if player
+                        .try_get_node_as::<PlayerCamera>("ShakyPlayerCamera")
+                        .is_none()
+                    {
+                        player.add_child(self.player_camera.as_ref().unwrap());
+                    }
+                }
+            }
+            CameraFollowType::None => {
+                println!("Emitting cam sig becasue Non");
+                println!("Data position: {}", self.base().get_global_position());
+                let pos = self
+                    .player_camera
+                    .as_ref()
+                    .unwrap()
+                    .get_screen_center_position();
+                self.player_camera.as_mut().unwrap().set_enabled(false);
+                let mut temp_cam = Camera2D::new_alloc();
+                temp_cam.set_enabled(true);
+                temp_cam.set_position(pos);
+                self.base_mut().add_child(&temp_cam)
+                // self.player_camera
+                //     .as_ref()
+                //     .unwrap()
+                //     .signals()
+                //     .request_detach()
+                //     .emit(pos);
+            }
+        }
     }
 }

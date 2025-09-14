@@ -1,15 +1,18 @@
 use godot::{
-    classes::{Area2D, CanvasLayer, ColorRect, Marker2D},
+    classes::{Area2D, Camera2D, CanvasLayer, ColorRect, Marker2D},
     prelude::*,
 };
 
 use super::map::Map;
 
 use crate::{
-    entities::player::{item_component::ItemComponent, main_character::MainCharacter},
+    entities::player::{
+        item_component::ItemComponent, main_character::MainCharacter,
+        shaky_player_camera::PlayerCamera,
+    },
     utils::global_data_singleton::GlobalData,
     world::{
-        environment_trigger::SceneTransition,
+        environment_trigger::CameraData,
         item::{GameItem, GameItemSignalHandler},
     },
 };
@@ -19,6 +22,7 @@ use crate::{
 struct Main {
     #[init(val = OnReady::manual())]
     map: OnReady<Gd<Map>>,
+    temp_holder: Option<Gd<PlayerCamera>>,
     base: Base<Node>,
 }
 
@@ -29,6 +33,7 @@ impl INode for Main {
             self.base()
                 .get_node_as::<Map>(GlobalData::singleton().bind().paths.map.as_ref().unwrap()),
         );
+
         self.map
             .signals()
             .propigate_map_trans()
@@ -38,8 +43,28 @@ impl INode for Main {
             .map_ready()
             .connect_self(Self::fade_camera_in);
 
+        let this = self.to_gd();
         if let Some(path) = &GlobalData::singleton().bind().paths.player {
             let player = self.base().get_node_as::<MainCharacter>(path);
+
+            // Give the map's `CameraTransition` nodes a ref to the player's camera.
+            let player_cam = player.get_node_as::<PlayerCamera>("ShakyPlayerCamera");
+            self.map
+                .bind_mut()
+                .camera_data
+                .iter_mut()
+                .for_each(|c| c.bind_mut().player_camera = Some(player_cam.clone()));
+
+            player_cam
+                .signals()
+                .request_detach()
+                .connect_other(&this, Self::on_player_camera_request_detach);
+
+            player_cam
+                .signals()
+                .request_attach()
+                .connect_other(&this, Self::on_player_camera_request_attach);
+
             let mut item_comp = player.get_node_as::<ItemComponent>("ItemComponent");
             Self::connect_map_items(&mut self.map.bind_mut().items, &mut item_comp);
         }
@@ -262,5 +287,40 @@ impl Main {
             tween.signals().finished().to_future().await;
             this.apply_deferred(move |this| this.base_mut().remove_child(&layer));
         });
+    }
+
+    fn on_player_camera_request_detach(&mut self, pos: Vector2) {
+        if let Some(path) = &GlobalData::singleton().bind().paths.player {
+            let mut player = self.base().get_node_as::<MainCharacter>(path);
+
+            if let Some(mut p_cam) = player.try_get_node_as::<PlayerCamera>("ShakyPlayerCamera") {
+                println!("Removing camera");
+                player.remove_child(&p_cam);
+                self.base_mut().add_child(&p_cam);
+                p_cam.set_global_position(pos);
+                self.temp_holder = Some(p_cam);
+                println!("Main temp holder: {:?}", self.temp_holder);
+                println!(
+                    "Main temp holder path: {:?}",
+                    self.temp_holder.as_ref().unwrap().get_path()
+                );
+            } else {
+                println!("No camera");
+            }
+        }
+    }
+
+    fn on_player_camera_request_attach(&mut self) {
+        println!("Attaching camera");
+        if let Some(path) = &GlobalData::singleton().bind().paths.player {
+            let mut player = self.base().get_node_as::<MainCharacter>(path);
+            self.temp_holder
+                .as_mut()
+                .unwrap()
+                .set_position(Vector2::new(0.0, 0.0));
+            let p_cam = self.temp_holder.take().unwrap();
+            self.base_mut().remove_child(&p_cam);
+            player.add_child(self.temp_holder.as_ref().unwrap());
+        }
     }
 }

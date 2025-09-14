@@ -2,7 +2,7 @@ pub mod abilities;
 pub mod character_state_machine;
 pub mod item_component;
 pub mod main_character;
-mod shaky_player_camera;
+pub mod shaky_player_camera;
 
 // TODO: Actually write tests.
 #[cfg(test)]
