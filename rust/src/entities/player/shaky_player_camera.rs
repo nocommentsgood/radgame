@@ -44,7 +44,8 @@ pub struct PlayerCamera {
     noise_y: i32,
     set_right: Option<bool>,
     #[init(val = true)]
-    pub attached: bool,
+    pub is_following: bool,
+    pub player_position: Vector2,
     base: Base<Camera2D>,
 }
 
@@ -57,12 +58,16 @@ impl ICamera2D for PlayerCamera {
         }
 
         // Lerp towards the players last movement.
-        if let Some(b) = self.set_right {
+        if let Some(b) = self.set_right
+            && self.is_following
+        {
             let cur_pos = self.base().get_offset();
             let target = if b {
                 Vector2::new(50.0, self.base().get_offset().y)
+                // Vector2::new(self.player_position.x + 50.0, self.base().get_offset().y)
             } else {
                 Vector2::new(-50.0, self.base().get_offset().y)
+                // Vector2::new(self.player_position.x - 50.0, self.base().get_offset().y)
             };
 
             let vel = cur_pos.lerp(target, 3.0 * delta);
@@ -130,6 +135,11 @@ impl PlayerCamera {
                 self.max_offset = Vector2::new(-55.0, -55.0);
             }
         }
+    }
+
+    pub fn reset_x_offset(&mut self) {
+        let y = self.base().get_offset().y;
+        self.base_mut().set_offset(Vector2::new(0.0, y));
     }
 }
 

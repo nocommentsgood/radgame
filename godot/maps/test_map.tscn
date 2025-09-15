@@ -338,14 +338,14 @@ position = Vector2(797, 77)
 position = Vector2(1801, 41)
 
 [node name="CameraTransition" type="CameraData" parent="CameraData" index="0"]
-zoom = Vector2(0.5, 0.5)
-duration = 1.0
+zoom = Vector2(1.2, 1.2)
+duration = 0.5
 transition = 1
 follow = 0
 position = Vector2(248, 8)
 
 [node name="CameraTransition2" type="CameraData" parent="CameraData" index="1"]
-zoom = Vector2(1.5, 1.5)
+zoom = Vector2(1.2, 1.2)
 duration = 1.0
 transition = 1
 follow = 0
@@ -353,7 +353,8 @@ position = Vector2(334, -410)
 scale = Vector2(1.05515, -0.616279)
 
 [node name="CameraTransition3" type="CameraData" parent="CameraData" index="2"]
-zoom = Vector2(1, 1)
+next_pos = Vector2(542, -160)
+zoom = Vector2(1.2, 1.2)
 duration = 1.0
 transition = 1
 position = Vector2(511, -217)

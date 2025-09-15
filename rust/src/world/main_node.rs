@@ -55,15 +55,14 @@ impl INode for Main {
                 .iter_mut()
                 .for_each(|c| c.bind_mut().player_camera = Some(player_cam.clone()));
 
-            player_cam
-                .signals()
-                .request_detach()
-                .connect_other(&this, Self::on_player_camera_request_detach);
-
-            player_cam
-                .signals()
-                .request_attach()
-                .connect_other(&this, Self::on_player_camera_request_attach);
+            self.map.bind().camera_data.iter().for_each(|c| {
+                c.signals()
+                    .attach_camera()
+                    .connect_other(&this, Self::on_player_camera_request_attach);
+                c.signals()
+                    .detach_camera()
+                    .connect_other(&this, Self::on_player_camera_request_detach);
+            });
 
             let mut item_comp = player.get_node_as::<ItemComponent>("ItemComponent");
             Self::connect_map_items(&mut self.map.bind_mut().items, &mut item_comp);
@@ -289,38 +288,46 @@ impl Main {
         });
     }
 
-    fn on_player_camera_request_detach(&mut self, pos: Vector2) {
+    fn on_player_camera_request_detach(&mut self) {
         if let Some(path) = &GlobalData::singleton().bind().paths.player {
             let mut player = self.base().get_node_as::<MainCharacter>(path);
 
-            if let Some(mut p_cam) = player.try_get_node_as::<PlayerCamera>("ShakyPlayerCamera") {
-                println!("Removing camera");
-                player.remove_child(&p_cam);
-                self.base_mut().add_child(&p_cam);
-                p_cam.set_global_position(pos);
-                self.temp_holder = Some(p_cam);
-                println!("Main temp holder: {:?}", self.temp_holder);
-                println!(
-                    "Main temp holder path: {:?}",
-                    self.temp_holder.as_ref().unwrap().get_path()
-                );
-            } else {
-                println!("No camera");
+            if let Some(p_cam) = player.try_get_node_as::<PlayerCamera>("ShakyPlayerCamera") {
+                let mut cam = p_cam.clone();
+                let pos = cam.bind().player_position;
+
+                cam.bind_mut().is_following = false;
+                player.apply_deferred(move |this| {
+                    this.base_mut().remove_child(&cam);
+                    cam.bind_mut().reset_x_offset();
+                    cam.set_global_position(pos);
+                });
+
+                self.apply_deferred(move |this| {
+                    this.base_mut().add_child(&p_cam);
+                    this.temp_holder = Some(p_cam);
+                });
             }
         }
     }
 
     fn on_player_camera_request_attach(&mut self) {
-        println!("Attaching camera");
         if let Some(path) = &GlobalData::singleton().bind().paths.player {
             let mut player = self.base().get_node_as::<MainCharacter>(path);
-            self.temp_holder
-                .as_mut()
-                .unwrap()
-                .set_position(Vector2::new(0.0, 0.0));
-            let p_cam = self.temp_holder.take().unwrap();
-            self.base_mut().remove_child(&p_cam);
-            player.add_child(self.temp_holder.as_ref().unwrap());
+            let mut cam = self.temp_holder.take().unwrap();
+            let c_clone = cam.clone();
+            let pos = cam.bind().player_position;
+
+            self.apply_deferred(move |this| {
+                this.base_mut().remove_child(&c_clone);
+            });
+
+            player.apply_deferred(move |this| {
+                this.base_mut().add_child(&cam);
+                cam.set_global_position(pos);
+                cam.set_position(Vector2::new(0.0, 0.0));
+                cam.bind_mut().is_following = true;
+            });
         }
     }
 }

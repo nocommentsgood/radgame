@@ -235,14 +235,17 @@ pub struct CameraData {
     pub player_camera: Option<Gd<PlayerCamera>>,
 
     #[export]
+    #[export_group(name = "CameraProps")]
     next_pos: Vector2,
 
     #[export]
+    #[export_group(name = "CameraProps")]
     pub zoom: Vector2,
 
     #[export]
     #[export_group(name = "Tweening")]
     duration: f32,
+
     #[export]
     #[export_group(name = "Tweening")]
     pub transition: TweenTransition,
@@ -258,80 +261,73 @@ pub struct CameraData {
     base: Base<Node2D>,
 }
 
+#[godot_api]
+impl CameraData {
+    /// Removes the camera from the player, forcing the camera to stop following. Handled by the
+    /// `Main` node.
+    #[signal]
+    pub fn detach_camera();
+
+    /// Adds the camera as a child of the player, forcing the camera to follow. Handled by the
+    /// `Main` node.
+    #[signal]
+    pub fn attach_camera();
+}
+
 #[godot_dyn]
 impl TriggerableEnvObject for CameraData {
     fn on_activated(&mut self) {
-        let mut zoom_tween = self.base_mut().create_tween().unwrap();
-        zoom_tween.set_trans(self.transition.to_type());
-        zoom_tween.set_ease(self.ease.to_type());
-        zoom_tween.tween_property(
-            self.player_camera.as_ref().unwrap(),
-            "zoom",
-            &self.zoom.to_variant(),
-            self.duration.into(),
-        );
-
         match self.follow {
             CameraFollowType::Simple => {
-                // if let Ok(mut player) = self
-                //     .player_camera
-                //     .as_ref()
-                //     .unwrap()
-                //     .get_parent()
-                //     .unwrap()
-                //     .try_cast::<MainCharacter>()
-                if self.player_camera.as_ref().unwrap().get_parent().is_none() {
-                    // if player
-                    //     .try_get_node_as::<PlayerCamera>("ShakyPlayerCamera")
-                    //     .is_none()
-                    // {
-                    // player.add_child(self.player_camera.as_ref().unwrap());
-                    self.player_camera
-                        .as_mut()
-                        .unwrap()
-                        .signals()
-                        .request_attach()
-                        .emit();
-                    println!("Emitted attach request");
-                    //                     }
+                if let Some(p_cam) = self.player_camera.as_ref()
+                    && !p_cam.bind().is_following
+                {
+                    // Takes self mutably.
+                    self.signals().attach_camera().emit();
+                }
+
+                // let player_pos = self.player_camera.as_ref().unwrap().bind().player_position;
+                if self.player_camera.as_ref().unwrap().get_zoom() != self.zoom {
+                    // let mut tween = self.base_mut().create_tween().unwrap();
+                    // tween.set_trans(self.transition.to_type());
+                    // tween.set_ease(self.ease.to_type());
+                    // tween.tween_property(
+                    //     self.player_camera.as_ref().unwrap(),
+                    //     "zoom",
+                    //     &self.zoom.to_variant(),
+                    //     self.duration.into(),
+                    // );
                 }
             }
             CameraFollowType::Frame => {
-                if let Ok(mut player) = self
-                    .player_camera
-                    .as_ref()
-                    .unwrap()
-                    .get_parent()
-                    .unwrap()
-                    .try_cast::<MainCharacter>()
+                if let Some(p_cam) = &self.player_camera
+                    && !p_cam.bind().is_following
                 {
-                    if player
-                        .try_get_node_as::<PlayerCamera>("ShakyPlayerCamera")
-                        .is_none()
-                    {
-                        player.add_child(self.player_camera.as_ref().unwrap());
-                    }
+                    self.signals().attach_camera().emit();
                 }
             }
             CameraFollowType::None => {
-                println!("Emitting cam sig becasue Non");
-                println!("Data position: {}", self.base().get_global_position());
-                let pos = self
-                    .player_camera
-                    .as_ref()
-                    .unwrap()
-                    .get_screen_center_position();
-                self.player_camera.as_mut().unwrap().set_enabled(false);
-                let mut temp_cam = Camera2D::new_alloc();
-                temp_cam.set_enabled(true);
-                temp_cam.set_position(pos);
-                self.base_mut().add_child(&temp_cam)
-                // self.player_camera
-                //     .as_ref()
-                //     .unwrap()
-                //     .signals()
-                //     .request_detach()
-                //     .emit(pos);
+                if self.player_camera.as_ref().unwrap().bind().is_following {
+                    self.signals().detach_camera().emit();
+                }
+                // if self.player_camera.as_ref().unwrap().get_zoom() != self.zoom {
+                //     let player_pos = self.player_camera.as_ref().unwrap().bind().player_position;
+                //     let mut tween = self.base_mut().create_tween().unwrap();
+                //     tween.set_trans(self.transition.to_type());
+                //     tween.set_ease(self.ease.to_type());
+                //     tween.tween_property(
+                //         self.player_camera.as_ref().unwrap(),
+                //         "zoom",
+                //         &self.zoom.to_variant(),
+                //         self.duration.into(),
+                //     );
+                //     tween.parallel().unwrap().tween_property(
+                //         self.player_camera.as_ref().unwrap(),
+                //         "global_position",
+                //         &player_pos.to_variant(),
+                //         0.5,
+                //     );
+                // }
             }
         }
     }
