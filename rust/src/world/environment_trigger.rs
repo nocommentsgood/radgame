@@ -10,9 +10,10 @@ use crate::{
 };
 use godot::{
     classes::{
-        Area2D, Camera2D, CollisionShape2D, IArea2D, IStaticBody2D, Marker2D, StaticBody2D,
-        tween::TransitionType,
+        Area2D, Camera2D, CollisionShape2D, IArea2D, ICamera2D, IStaticBody2D, Marker2D,
+        StaticBody2D, Tween, tween::TransitionType,
     },
+    obj::WithBaseField,
     prelude::*,
 };
 
@@ -82,17 +83,10 @@ impl IArea2D for EnvironmentTrigger {
 #[godot_api]
 impl EnvironmentTrigger {
     fn on_player_enters_trigger(&mut self, area: Gd<Area2D>) {
-        // TODO: This check of getting the player is used in a few other places too. Maybe it
-        // should be exposed from a singleton.
-        // if let Ok(h_box) = area.try_cast::<EntityHitbox>()
-        //     && let Some(player) = h_box.get_owner()
-        //     && let Ok(_player) = player.try_cast::<MainCharacter>()
-        // {
         // BUG: If the editor has an empty element, this will panic. Not sure how to guard
         // against this as the type is Variant.
         for mut i in self.triggerable_objects.iter_shared() {
             i.dyn_bind_mut().on_activated();
-            // }
         }
 
         if let Some(t) = self.trigger_ty {
@@ -243,6 +237,45 @@ pub struct CameraData {
     pub zoom: Vector2,
 
     #[export]
+    #[export_subgroup(name = "Limits")]
+    #[init(val = i32::MIN)]
+    left: i32,
+
+    #[export]
+    #[export_subgroup(name = "Limits")]
+    #[init(val = i32::MIN)]
+    top: i32,
+
+    #[export]
+    #[export_subgroup(name = "Limits")]
+    #[init(val = i32::MAX)]
+    right: i32,
+
+    #[export]
+    #[export_subgroup(name = "Limits")]
+    #[init(val = i32::MAX)]
+    bottom: i32,
+
+    #[export]
+    #[export_subgroup(name = "Drag")]
+    horiztonal_enabled: bool,
+    #[export]
+    #[export_subgroup(name = "Drag")]
+    vertical_enabled: bool,
+    #[export]
+    #[export_subgroup(name = "Drag")]
+    left_margin: f32,
+    #[export]
+    #[export_subgroup(name = "Drag")]
+    top_margin: f32,
+    #[export]
+    #[export_subgroup(name = "Drag")]
+    right_margin: f32,
+    #[export]
+    #[export_subgroup(name = "Drag")]
+    bottom_margin: f32,
+
+    #[export]
     #[export_group(name = "Tweening")]
     duration: f32,
 
@@ -272,31 +305,91 @@ impl CameraData {
     /// `Main` node.
     #[signal]
     pub fn attach_camera();
+
+    fn apply_camera_properties(&mut self) {
+        if let Some(camera) = self.player_camera.as_mut() {
+            camera.set_limit(Side::LEFT, self.left);
+            camera.set_limit(Side::TOP, self.top);
+            camera.set_limit(Side::RIGHT, self.right);
+            camera.set_limit(Side::BOTTOM, self.bottom);
+
+            camera.set_drag_horizontal_enabled(self.horiztonal_enabled);
+            camera.set_drag_vertical_enabled(self.vertical_enabled);
+            if camera.is_drag_horizontal_enabled() {
+                camera.bind_mut().manual_drag = false;
+                camera.bind_mut().reset_x_offset();
+            } else {
+                camera.bind_mut().manual_drag = true;
+            }
+
+            camera.set_drag_margin(Side::LEFT, self.left_margin);
+            camera.set_drag_margin(Side::TOP, self.top_margin);
+            camera.set_drag_margin(Side::RIGHT, self.right_margin);
+            camera.set_drag_margin(Side::BOTTOM, self.bottom_margin);
+        }
+    }
 }
 
 #[godot_dyn]
 impl TriggerableEnvObject for CameraData {
     fn on_activated(&mut self) {
         match self.follow {
+            CameraFollowType::Tight => {
+                if let Some(p_cam) = self.player_camera.as_ref()
+                    && !p_cam.bind().is_following
+                {
+                    self.signals().attach_camera().emit();
+                }
+
+                self.apply_camera_properties();
+
+                if let Some(p_cam) = self.player_camera.as_mut() {
+                    p_cam.bind_mut().manual_drag = false;
+                    p_cam.bind_mut().reset_x_offset();
+                    if p_cam.is_drag_horizontal_enabled() | p_cam.is_drag_vertical_enabled() {
+                        godot_warn!(
+                            "FollowType set to Tight but drag is enabled. Change FollowType variant or disable drag. Defaulting to disabled"
+                        );
+                        p_cam.set_drag_vertical_enabled(false);
+                        p_cam.set_drag_horizontal_enabled(false);
+                        p_cam.set_position_smoothing_enabled(false);
+                    }
+                }
+                if self.player_camera.as_ref().unwrap().get_zoom() != self.zoom {
+                    let mut tween = self.base_mut().create_tween().unwrap();
+                    tween.set_trans(self.transition.to_type());
+                    tween.set_ease(self.ease.to_type());
+                    tween.tween_property(
+                        self.player_camera.as_ref().unwrap(),
+                        "zoom",
+                        &self.zoom.to_variant(),
+                        self.duration.into(),
+                    );
+                }
+            }
             CameraFollowType::Simple => {
                 if let Some(p_cam) = self.player_camera.as_ref()
                     && !p_cam.bind().is_following
                 {
-                    // Takes self mutably.
                     self.signals().attach_camera().emit();
                 }
 
-                // let player_pos = self.player_camera.as_ref().unwrap().bind().player_position;
+                self.apply_camera_properties();
+                self.player_camera.as_mut().unwrap().bind_mut().manual_drag = true;
+                self.player_camera
+                    .as_mut()
+                    .unwrap()
+                    .set_position_smoothing_enabled(true);
                 if self.player_camera.as_ref().unwrap().get_zoom() != self.zoom {
-                    // let mut tween = self.base_mut().create_tween().unwrap();
-                    // tween.set_trans(self.transition.to_type());
-                    // tween.set_ease(self.ease.to_type());
-                    // tween.tween_property(
-                    //     self.player_camera.as_ref().unwrap(),
-                    //     "zoom",
-                    //     &self.zoom.to_variant(),
-                    //     self.duration.into(),
-                    // );
+                    let mut tween = self.base_mut().create_tween().unwrap();
+                    tween.set_trans(self.transition.to_type());
+                    tween.set_ease(self.ease.to_type());
+                    tween.tween_property(
+                        self.player_camera.as_ref().unwrap(),
+                        "zoom",
+                        &self.zoom.to_variant(),
+                        self.duration.into(),
+                    );
                 }
             }
             CameraFollowType::Frame => {
@@ -305,30 +398,152 @@ impl TriggerableEnvObject for CameraData {
                 {
                     self.signals().attach_camera().emit();
                 }
+                self.apply_camera_properties();
+
+                if self.player_camera.as_ref().unwrap().get_zoom() != self.zoom {
+                    let mut tween = self.base_mut().create_tween().unwrap();
+                    tween.set_trans(self.transition.to_type());
+                    tween.set_ease(self.ease.to_type());
+                    tween.tween_property(
+                        self.player_camera.as_ref().unwrap(),
+                        "zoom",
+                        &self.zoom.to_variant(),
+                        self.duration.into(),
+                    );
+                }
             }
             CameraFollowType::None => {
                 if self.player_camera.as_ref().unwrap().bind().is_following {
                     self.signals().detach_camera().emit();
                 }
-                // if self.player_camera.as_ref().unwrap().get_zoom() != self.zoom {
-                //     let player_pos = self.player_camera.as_ref().unwrap().bind().player_position;
-                //     let mut tween = self.base_mut().create_tween().unwrap();
-                //     tween.set_trans(self.transition.to_type());
-                //     tween.set_ease(self.ease.to_type());
-                //     tween.tween_property(
-                //         self.player_camera.as_ref().unwrap(),
-                //         "zoom",
-                //         &self.zoom.to_variant(),
-                //         self.duration.into(),
-                //     );
-                //     tween.parallel().unwrap().tween_property(
-                //         self.player_camera.as_ref().unwrap(),
-                //         "global_position",
-                //         &player_pos.to_variant(),
-                //         0.5,
-                //     );
-                // }
+
+                self.apply_camera_properties();
+
+                if let Some(p_cam) = self.player_camera.as_mut() {
+                    p_cam.bind_mut().manual_drag = false;
+                    p_cam.set_drag_vertical_enabled(false);
+                    p_cam.set_drag_horizontal_enabled(false);
+                }
+
+                if self.player_camera.as_ref().unwrap().get_zoom() != self.zoom {
+                    let mut tween = self.base_mut().create_tween().unwrap();
+                    tween.set_trans(self.transition.to_type());
+                    tween.set_ease(self.ease.to_type());
+                    tween.tween_property(
+                        self.player_camera.as_ref().unwrap(),
+                        "zoom",
+                        &self.zoom.to_variant(),
+                        self.duration.into(),
+                    );
+                }
             }
         }
     }
 }
+
+#[derive(GodotClass)]
+#[class(base = Camera2D, init)]
+pub struct NewTestCamera {
+    #[init(node = "Area2D")]
+    area: OnReady<Gd<Area2D>>,
+    prev_pos: Option<Vector2>,
+    prev_zoom: Option<Vector2>,
+    #[init(val = Box::new(MoveZoomCameraEffect))]
+    effect: Box<dyn CameraEffect>,
+    base: Base<Camera2D>,
+}
+
+#[godot_api]
+impl ICamera2D for NewTestCamera {
+    fn ready(&mut self) {
+        self.base_mut().set_physics_process(false);
+        self.base_mut().set_process(false);
+        self.area
+            .signals()
+            .area_entered()
+            .connect_other(&self.to_gd(), Self::on_player_entered);
+
+        self.area
+            .signals()
+            .area_exited()
+            .connect_other(&self.to_gd(), Self::on_player_exit);
+    }
+
+    fn physics_process(&mut self, delta: f32) {
+        println!("Zooming");
+        MoveZoomCameraEffect::zoom(
+            self,
+            Vector2::new(1.2, 1.2),
+            Vector2::new(0.9, 0.9),
+            Vector2::new(1887.0, 35.0),
+            delta,
+        );
+    }
+}
+
+#[godot_api]
+impl NewTestCamera {
+    fn on_player_entered(&mut self, area: Gd<Area2D>) {
+        let mut player = area.get_node_as::<MainCharacter>("..");
+        player.bind_mut().camera.set_enabled(false);
+        self.prev_pos = Some(player.bind().camera.get_global_position());
+        self.prev_zoom = Some(player.bind().camera.get_zoom());
+        self.apply_deferred(move |this| {
+            this.base_mut().set_physics_process(true);
+            this.base_mut().set_enabled(true);
+            this.base_mut().make_current();
+            this.base_mut()
+                .set_global_position(player.bind().camera.get_global_position());
+            // let mut tween = self.base().create_tween().unwrap();
+            // tween.tween_property(&self, "zoom", );
+        });
+    }
+
+    fn on_player_exit(&mut self, area: Gd<Area2D>) {
+        let mut player = area.get_node_as::<MainCharacter>("..");
+        self.base_mut().set_enabled(false);
+        player.bind_mut().camera.set_enabled(true);
+        player.bind_mut().camera.make_current();
+        self.prev_pos = None;
+        self.prev_zoom = None;
+    }
+}
+
+struct MoveZoomCameraEffect;
+
+trait CameraEffect {}
+
+impl MoveZoomCameraEffect {
+    fn zoom(
+        camera: &mut NewTestCamera,
+        max_zoom: Vector2,
+        min_zoom: Vector2,
+        target_position: Vector2,
+        delta: f32,
+    ) {
+        let area = &*camera.area;
+        let areas = area.get_overlapping_areas();
+        for area in areas.iter_shared() {
+            if let Ok(h_box) = area.try_cast::<EntityHitbox>() {
+                let player = h_box.get_node_as::<MainCharacter>("..");
+                if player.bind().velocity.x > 0.0 {
+                    let cur_zoom = camera.base().get_zoom();
+                    let cur_pos = camera.base().get_global_position();
+                    let new_pos = cur_pos.move_toward(target_position, 50.0 * delta);
+                    let target = cur_zoom.lerp(max_zoom, delta * 1.0);
+                    camera.base_mut().set_zoom(target);
+                    camera.base_mut().set_global_position(new_pos);
+                } else if player.bind().velocity.x < 0.0 {
+                    let z = camera.base().get_zoom();
+                    let cur_pos = camera.base().get_global_position();
+                    let new_pos = cur_pos.move_toward(-target_position, 50.0 * delta);
+                    let target = z.lerp(min_zoom, delta * 1.0);
+                    camera.base_mut().set_zoom(target);
+                    camera.base_mut().set_global_position(new_pos);
+                }
+            }
+        }
+    }
+}
+
+impl CameraEffect for MoveZoomCameraEffect {}

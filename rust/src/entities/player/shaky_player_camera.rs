@@ -46,6 +46,7 @@ pub struct PlayerCamera {
     #[init(val = true)]
     pub is_following: bool,
     pub player_position: Vector2,
+    pub manual_drag: bool,
     base: Base<Camera2D>,
 }
 
@@ -60,14 +61,13 @@ impl ICamera2D for PlayerCamera {
         // Lerp towards the players last movement.
         if let Some(b) = self.set_right
             && self.is_following
+            && self.manual_drag
         {
             let cur_pos = self.base().get_offset();
             let target = if b {
                 Vector2::new(50.0, self.base().get_offset().y)
-                // Vector2::new(self.player_position.x + 50.0, self.base().get_offset().y)
             } else {
                 Vector2::new(-50.0, self.base().get_offset().y)
-                // Vector2::new(self.player_position.x - 50.0, self.base().get_offset().y)
             };
 
             let vel = cur_pos.lerp(target, 3.0 * delta);
@@ -194,8 +194,16 @@ impl TweenEase {
 #[derive(GodotConvert, Default, PartialEq, Var, Export)]
 #[godot(via = i32)]
 pub enum CameraFollowType {
+    /// Disables all smoothing and offset effects.
+    Tight,
+
+    /// Enabels camera smoothing and offset effects.
     Simple,
+
+    /// Keeps the player and an additional target in view.
     Frame,
+
+    /// Disables camera following, leaving the camera in the location the effect was enabled.
     #[default]
     None,
 }

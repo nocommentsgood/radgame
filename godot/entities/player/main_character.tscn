@@ -3823,7 +3823,6 @@ collide_with_areas = true
 [node name="ShakyPlayerCamera" type="PlayerCamera" parent="."]
 offset = Vector2(0, -55)
 ignore_rotation = false
-zoom = Vector2(1.2, 1.2)
 process_callback = 0
 position_smoothing_enabled = true
 position_smoothing_speed = 1.5
