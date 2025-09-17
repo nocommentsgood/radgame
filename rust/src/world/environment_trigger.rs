@@ -1,12 +1,7 @@
-use crate::{
-    entities::player::shaky_player_camera::PlayerCamera, utils::collision_layers::CollisionLayers,
-};
+use crate::utils::collision_layers::CollisionLayers;
 use godot::{
-    classes::{
-        Area2D, CollisionShape2D, IArea2D, IStaticBody2D, Marker2D, StaticBody2D, Tween,
-        tween::TransitionType,
-    },
-    obj::{EngineEnum, WithBaseField},
+    classes::{Area2D, CollisionShape2D, IArea2D, IStaticBody2D, Marker2D, StaticBody2D},
+    obj::WithBaseField,
     prelude::*,
 };
 
@@ -75,7 +70,7 @@ impl IArea2D for EnvironmentTrigger {
 
 #[godot_api]
 impl EnvironmentTrigger {
-    fn on_player_enters_trigger(&mut self, area: Gd<Area2D>) {
+    fn on_player_enters_trigger(&mut self, _area: Gd<Area2D>) {
         // BUG: If the editor has an empty element, this will panic. Not sure how to guard
         // against this as the type is Variant.
         for mut i in self.triggerable_objects.iter_shared() {
@@ -211,158 +206,5 @@ impl TriggerableEnvObject for SceneTransition {
     fn on_activated(&mut self) {
         let marker = self.to_gd().upcast();
         self.signals().scene_transition().emit(&marker);
-    }
-}
-
-#[derive(GodotClass)]
-#[class(init, base = Area2D)]
-pub struct CameraData {
-    // Initialized by the `Main` node.
-    pub player_camera: Option<Gd<PlayerCamera>>,
-
-    #[export]
-    shape: OnEditor<Gd<CollisionShape2D>>,
-
-    #[export]
-    #[export_group(name = "CameraProps")]
-    pub zoom: Vector2,
-
-    #[export]
-    #[export_subgroup(name = "Limits")]
-    #[init(val = i32::MIN)]
-    left: i32,
-
-    #[export]
-    #[export_subgroup(name = "Limits")]
-    #[init(val = i32::MIN)]
-    top: i32,
-
-    #[export]
-    #[export_subgroup(name = "Limits")]
-    #[init(val = i32::MAX)]
-    right: i32,
-
-    #[export]
-    #[export_subgroup(name = "Limits")]
-    #[init(val = i32::MAX)]
-    bottom: i32,
-
-    #[export]
-    #[export_subgroup(name = "Drag")]
-    horiztonal_enabled: bool,
-
-    #[export]
-    #[export_subgroup(name = "Drag")]
-    vertical_enabled: bool,
-
-    #[export(range = (-1.0, 1.0))]
-    #[export_subgroup(name = "Drag")]
-    horizontal_offset: f32,
-
-    #[export(range = (-1.0, 1.0))]
-    #[export_subgroup(name = "Drag")]
-    vertical_offset: f32,
-
-    #[export(range = (0.0, 1.0))]
-    #[export_subgroup(name = "Drag")]
-    left_margin: f32,
-
-    #[export(range = (0.0, 1.0))]
-    #[export_subgroup(name = "Drag")]
-    top_margin: f32,
-
-    #[export(range = (0.0, 1.0))]
-    #[export_subgroup(name = "Drag")]
-    right_margin: f32,
-
-    #[export(range = (0.0, 1.0))]
-    #[export_subgroup(name = "Drag")]
-    bottom_margin: f32,
-
-    prev_horizontal_enabled: Option<bool>,
-    prev_vertical_enabled: Option<bool>,
-    prev_zoom: Option<Vector2>,
-    prev_offset: Option<Vector2>,
-    prev_drag_margin: Vec<Option<(Side, f32)>>,
-    prev_limits: Vec<Option<(Side, i32)>>,
-
-    base: Base<Area2D>,
-}
-
-#[godot_api]
-impl CameraData {
-    fn apply_camera_properties(&mut self) {
-        if let Some(camera) = self.player_camera.as_mut() {
-            // Obtain current camera properties.
-            self.prev_horizontal_enabled = Some(camera.is_drag_horizontal_enabled());
-            self.prev_vertical_enabled = Some(camera.is_drag_vertical_enabled());
-            self.prev_zoom = Some(camera.get_zoom());
-            self.prev_offset = Some(camera.get_offset());
-            for s in Side::values() {
-                self.prev_drag_margin
-                    .push(Some((*s, camera.get_drag_margin(*s))));
-                self.prev_limits.push(Some((*s, camera.get_limit(*s))));
-            }
-
-            camera.set_zoom(self.zoom);
-
-            // Apply new camera properties.
-            camera.set_limit(Side::LEFT, self.left);
-            camera.set_limit(Side::TOP, self.top);
-            camera.set_limit(Side::RIGHT, self.right);
-            camera.set_limit(Side::BOTTOM, self.bottom);
-
-            camera.set_drag_horizontal_enabled(self.horiztonal_enabled);
-            camera.set_drag_vertical_enabled(self.vertical_enabled);
-            // if camera.is_drag_horizontal_enabled() {
-            //     camera.bind_mut().manual_drag = false;
-            //     camera.bind_mut().reset_x_offset();
-            // } else {
-            //     camera.bind_mut().manual_drag = true;
-            // }
-
-            camera.set_drag_margin(Side::LEFT, self.left_margin);
-            camera.set_drag_margin(Side::TOP, self.top_margin);
-            camera.set_drag_margin(Side::RIGHT, self.right_margin);
-            camera.set_drag_margin(Side::BOTTOM, self.bottom_margin);
-        }
-    }
-
-    fn reset_camera_properties(&mut self) {
-        if let Some(camera) = self.player_camera.as_mut() {
-            camera.set_drag_horizontal_enabled(self.prev_horizontal_enabled.unwrap());
-            camera.set_drag_vertical_enabled(self.prev_vertical_enabled.unwrap());
-            camera.set_zoom(self.prev_zoom.unwrap());
-            // camera.set_offset(self.prev_offset.unwrap());
-
-            for (side, val) in self.prev_limits.iter().flatten() {
-                camera.set_limit(*side, *val);
-            }
-            for (side, val) in self.prev_drag_margin.iter().flatten() {
-                camera.set_drag_margin(*side, *val);
-            }
-        }
-    }
-
-    fn on_player_entered(&mut self, area: Gd<Area2D>) {
-        println!("Player entered");
-        self.apply_camera_properties();
-    }
-
-    fn on_player_exit(&mut self, area: Gd<Area2D>) {
-        self.reset_camera_properties();
-    }
-}
-
-#[godot_api]
-impl IArea2D for CameraData {
-    fn ready(&mut self) {
-        self.signals()
-            .area_entered()
-            .connect_self(Self::on_player_entered);
-
-        self.signals()
-            .area_exited()
-            .connect_self(Self::on_player_exit);
     }
 }

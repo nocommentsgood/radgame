@@ -1,4 +1,4 @@
-[gd_scene load_steps=14 format=4 uid="uid://c3iixjrk3ypgs"]
+[gd_scene load_steps=15 format=4 uid="uid://c3iixjrk3ypgs"]
 
 [ext_resource type="PackedScene" uid="uid://d0yxvbpejsju5" path="res://maps/base_map.tscn" id="1_b71ab"]
 [ext_resource type="PackedScene" uid="uid://bvamjbuhuto6u" path="res://maps/background.tscn" id="2_6b7mj"]
@@ -265,7 +265,10 @@ source_geometry_mode = 1
 source_geometry_group_name = &"floor/wall tiles navigation"
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_6b7mj"]
-size = Vector2(475.5, 437)
+size = Vector2(479.75, 437)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_svl6s"]
+size = Vector2(1100.94, 526.5)
 
 [node name="Map" instance=ExtResource("1_b71ab")]
 
@@ -325,14 +328,30 @@ position = Vector2(797, 77)
 [node name="MockEnemy" parent="Enemies" index="1" instance=ExtResource("7_pbr4s")]
 position = Vector2(1801, 41)
 
-[node name="CameraData" type="CameraData" parent="CameraData" index="0"]
+[node name="CameraData" type="CameraData" parent="CameraData" index="0" node_paths=PackedStringArray("shape")]
+shape = NodePath("CollisionShape2D")
 zoom = Vector2(1.5, 1.5)
+y_offset = -55.0
+manual_drag_effect = true
 position = Vector2(1193, -69)
 collision_layer = 0
 collision_mask = 4
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="CameraData/CameraData" index="0"]
 shape = SubResource("RectangleShape2D_6b7mj")
+
+[node name="CameraData2" type="CameraData" parent="CameraData" index="1" node_paths=PackedStringArray("shape")]
+shape = NodePath("CollisionShape2D")
+zoom = Vector2(0.5, 0.5)
+y_offset = -55.0
+manual_drag_effect = true
+horiztonal_enabled = true
+position = Vector2(2011, -95)
+collision_layer = 0
+collision_mask = 4
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="CameraData/CameraData2" index="0"]
+shape = SubResource("RectangleShape2D_svl6s")
 
 [node name="PlayerSpawnPos" parent="." index="7"]
 position = Vector2(33, -16)
