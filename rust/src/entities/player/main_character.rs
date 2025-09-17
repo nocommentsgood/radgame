@@ -122,8 +122,6 @@ impl ICharacterBody2D for MainCharacter {
     }
 
     fn physics_process(&mut self, delta: f32) {
-        self.camera.bind_mut().player_position = self.base().get_global_position();
-
         let input = DevInputHandler::handle_unhandled(&Input::singleton(), self);
         if self.inputs != input {
             self.inputs = input;

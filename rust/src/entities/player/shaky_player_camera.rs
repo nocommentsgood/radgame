@@ -1,13 +1,8 @@
 use fastnoise_lite::FastNoiseLite;
 use godot::{
-    classes::{
-        Area2D, Camera2D, IArea2D, ICamera2D, RectangleShape2D,
-        tween::{EaseType, TransitionType},
-    },
+    classes::{Camera2D, ICamera2D},
     prelude::*,
 };
-
-use crate::world::environment_trigger::CameraData;
 
 #[allow(dead_code)]
 pub enum TraumaLevel {
@@ -36,17 +31,13 @@ pub struct PlayerCamera {
     max_offset: Vector2,
     #[export]
     max_rot: f32,
-
     #[init(val = FastNoiseLite::new())]
     noise: FastNoiseLite,
     original_offset: Vector2,
     trauma: f32,
     noise_y: i32,
     set_right: Option<bool>,
-    #[init(val = true)]
-    pub is_following: bool,
-    pub player_position: Vector2,
-    pub manual_drag: bool,
+    disable_manual_drag: bool,
     base: Base<Camera2D>,
 }
 
@@ -55,13 +46,12 @@ impl ICamera2D for PlayerCamera {
     fn physics_process(&mut self, delta: f32) {
         if self.trauma > 0.0 {
             self.trauma = f32::max(self.trauma - self.decay * delta, 0.0);
-            self.shake();
+            self.rust_shake();
         }
 
         // Lerp towards the players last movement.
         if let Some(b) = self.set_right
-            && self.is_following
-            && self.manual_drag
+            && !self.disable_manual_drag
         {
             let cur_pos = self.base().get_offset();
             let target = if b {
@@ -90,12 +80,6 @@ impl ICamera2D for PlayerCamera {
 
 #[godot_api]
 impl PlayerCamera {
-    #[signal]
-    pub fn request_detach(pos: Vector2);
-
-    #[signal]
-    pub fn request_attach();
-
     pub fn add_trauma(&mut self, amount: TraumaLevel) {
         let level = match amount {
             TraumaLevel::Low => 0.25,
@@ -105,7 +89,7 @@ impl PlayerCamera {
         self.trauma = (self.trauma + level).clamp(0.0, 1.0);
     }
 
-    fn shake(&mut self) {
+    fn rust_shake(&mut self) {
         let amount = self.trauma.powf(2.0);
         self.noise_y = self.noise_y.wrapping_add(1);
         let offset_x = self.max_offset.x
@@ -136,74 +120,4 @@ impl PlayerCamera {
             }
         }
     }
-
-    pub fn reset_x_offset(&mut self) {
-        let y = self.base().get_offset().y;
-        self.base_mut().set_offset(Vector2::new(0.0, y));
-    }
-}
-
-#[derive(GodotConvert, Default, PartialEq, Var, Export)]
-#[godot(via = i32)]
-pub enum TweenTransition {
-    #[default]
-    Linear,
-    Sine,
-    Exponential,
-    Elastic,
-    Cubic,
-    Bounce,
-    Spring,
-}
-
-impl TweenTransition {
-    pub fn to_type(&self) -> TransitionType {
-        match self {
-            TweenTransition::Linear => TransitionType::LINEAR,
-            TweenTransition::Sine => TransitionType::SINE,
-            TweenTransition::Exponential => TransitionType::EXPO,
-            TweenTransition::Elastic => TransitionType::ELASTIC,
-            TweenTransition::Cubic => TransitionType::CUBIC,
-            TweenTransition::Bounce => TransitionType::BOUNCE,
-            TweenTransition::Spring => TransitionType::SPRING,
-        }
-    }
-}
-
-#[derive(GodotConvert, Default, PartialEq, Var, Export)]
-#[godot(via = i32)]
-pub enum TweenEase {
-    #[default]
-    In,
-    Out,
-    InOut,
-    OutIn,
-}
-
-impl TweenEase {
-    pub fn to_type(&self) -> EaseType {
-        match self {
-            TweenEase::In => EaseType::IN,
-            TweenEase::Out => EaseType::OUT,
-            TweenEase::InOut => EaseType::IN_OUT,
-            TweenEase::OutIn => EaseType::OUT_IN,
-        }
-    }
-}
-
-#[derive(GodotConvert, Default, PartialEq, Var, Export)]
-#[godot(via = i32)]
-pub enum CameraFollowType {
-    /// Disables all smoothing and offset effects.
-    Tight,
-
-    /// Enabels camera smoothing and offset effects.
-    Simple,
-
-    /// Keeps the player and an additional target in view.
-    Frame,
-
-    /// Disables camera following, leaving the camera in the location the effect was enabled.
-    #[default]
-    None,
 }

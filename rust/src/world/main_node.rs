@@ -1,5 +1,5 @@
 use godot::{
-    classes::{Area2D, Camera2D, CanvasLayer, ColorRect, Marker2D},
+    classes::{Area2D, CanvasLayer, ColorRect, Marker2D},
     prelude::*,
 };
 
@@ -11,10 +11,7 @@ use crate::{
         shaky_player_camera::PlayerCamera,
     },
     utils::global_data_singleton::GlobalData,
-    world::{
-        environment_trigger::CameraData,
-        item::{GameItem, GameItemSignalHandler},
-    },
+    world::item::{GameItem, GameItemSignalHandler},
 };
 
 #[derive(GodotClass)]
@@ -22,7 +19,6 @@ use crate::{
 struct Main {
     #[init(val = OnReady::manual())]
     map: OnReady<Gd<Map>>,
-    temp_holder: Option<Gd<PlayerCamera>>,
     base: Base<Node>,
 }
 
@@ -43,26 +39,16 @@ impl INode for Main {
             .map_ready()
             .connect_self(Self::fade_camera_in);
 
-        let this = self.to_gd();
         if let Some(path) = &GlobalData::singleton().bind().paths.player {
             let player = self.base().get_node_as::<MainCharacter>(path);
 
-            // Give the map's `CameraTransition` nodes a ref to the player's camera.
+            // Give the map's `CameraData` nodes a ref to the player's camera.
             let player_cam = player.get_node_as::<PlayerCamera>("ShakyPlayerCamera");
             self.map
                 .bind_mut()
                 .camera_data
                 .iter_mut()
                 .for_each(|c| c.bind_mut().player_camera = Some(player_cam.clone()));
-
-            self.map.bind().camera_data.iter().for_each(|c| {
-                c.signals()
-                    .attach_camera()
-                    .connect_other(&this, Self::on_player_camera_request_attach);
-                c.signals()
-                    .detach_camera()
-                    .connect_other(&this, Self::on_player_camera_request_detach);
-            });
 
             let mut item_comp = player.get_node_as::<ItemComponent>("ItemComponent");
             Self::connect_map_items(&mut self.map.bind_mut().items, &mut item_comp);
@@ -286,48 +272,5 @@ impl Main {
             tween.signals().finished().to_future().await;
             this.apply_deferred(move |this| this.base_mut().remove_child(&layer));
         });
-    }
-
-    fn on_player_camera_request_detach(&mut self) {
-        if let Some(path) = &GlobalData::singleton().bind().paths.player {
-            let mut player = self.base().get_node_as::<MainCharacter>(path);
-
-            if let Some(p_cam) = player.try_get_node_as::<PlayerCamera>("ShakyPlayerCamera") {
-                let mut cam = p_cam.clone();
-                let pos = cam.bind().player_position;
-
-                cam.bind_mut().is_following = false;
-                player.apply_deferred(move |this| {
-                    this.base_mut().remove_child(&cam);
-                    cam.bind_mut().reset_x_offset();
-                    cam.set_global_position(pos);
-                });
-
-                self.apply_deferred(move |this| {
-                    this.base_mut().add_child(&p_cam);
-                    this.temp_holder = Some(p_cam);
-                });
-            }
-        }
-    }
-
-    fn on_player_camera_request_attach(&mut self) {
-        if let Some(path) = &GlobalData::singleton().bind().paths.player {
-            let mut player = self.base().get_node_as::<MainCharacter>(path);
-            let mut cam = self.temp_holder.take().unwrap();
-            let c_clone = cam.clone();
-            let pos = cam.bind().player_position;
-
-            self.apply_deferred(move |this| {
-                this.base_mut().remove_child(&c_clone);
-            });
-
-            player.apply_deferred(move |this| {
-                this.base_mut().add_child(&cam);
-                cam.set_global_position(pos);
-                cam.set_position(Vector2::new(0.0, 0.0));
-                cam.bind_mut().is_following = true;
-            });
-        }
     }
 }

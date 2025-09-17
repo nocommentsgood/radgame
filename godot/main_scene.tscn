@@ -18,7 +18,7 @@ visible = false
 [node name="Map" parent="World" instance=ExtResource("3_hq1ik")]
 
 [node name="MainCharacter" parent="World" instance=ExtResource("3_u6kov")]
-position = Vector2(1058, 77)
+position = Vector2(1485, 80)
 
 [node name="TestEnemy" parent="World" instance=ExtResource("5_66tet")]
 position = Vector2(578, 76)
