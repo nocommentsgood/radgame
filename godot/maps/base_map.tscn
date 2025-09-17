@@ -14,4 +14,6 @@
 
 [node name="Enemies" type="Node" parent="."]
 
+[node name="CameraData" type="Node" parent="."]
+
 [node name="PlayerSpawnPos" type="Marker2D" parent="."]

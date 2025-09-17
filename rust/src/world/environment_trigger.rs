@@ -1,9 +1,7 @@
-use crate::{
-    entities::{entity_hitbox::EntityHitbox, player::main_character::MainCharacter},
-    utils::collision_layers::CollisionLayers,
-};
+use crate::utils::collision_layers::CollisionLayers;
 use godot::{
-    classes::{Area2D, Camera2D, CollisionShape2D, IArea2D, IStaticBody2D, Marker2D, StaticBody2D},
+    classes::{Area2D, CollisionShape2D, IArea2D, IStaticBody2D, Marker2D, StaticBody2D},
+    obj::WithBaseField,
     prelude::*,
 };
 
@@ -72,18 +70,11 @@ impl IArea2D for EnvironmentTrigger {
 
 #[godot_api]
 impl EnvironmentTrigger {
-    fn on_player_enters_trigger(&mut self, area: Gd<Area2D>) {
-        // TODO: This check of getting the player is used in a few other places too. Maybe it
-        // should be exposed from a singleton.
-        if let Ok(h_box) = area.try_cast::<EntityHitbox>()
-            && let Some(player) = h_box.get_owner()
-            && let Ok(_player) = player.try_cast::<MainCharacter>()
-        {
-            // BUG: If the editor has an empty element, this will panic. Not sure how to guard
-            // against this as the type is Variant.
-            for mut i in self.triggerable_objects.iter_shared() {
-                i.dyn_bind_mut().on_activated();
-            }
+    fn on_player_enters_trigger(&mut self, _area: Gd<Area2D>) {
+        // BUG: If the editor has an empty element, this will panic. Not sure how to guard
+        // against this as the type is Variant.
+        for mut i in self.triggerable_objects.iter_shared() {
+            i.dyn_bind_mut().on_activated();
         }
 
         if let Some(t) = self.trigger_ty {
@@ -213,8 +204,6 @@ impl SceneTransition {
 #[godot_dyn]
 impl TriggerableEnvObject for SceneTransition {
     fn on_activated(&mut self) {
-        println!("Emitting scene trans signal");
-        // let marker = self.base().upcast().clone::<Gd<Marker2D>>();
         let marker = self.to_gd().upcast();
         self.signals().scene_transition().emit(&marker);
     }

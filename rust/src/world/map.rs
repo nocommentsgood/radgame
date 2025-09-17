@@ -1,5 +1,5 @@
 use godot::{
-    classes::{Marker2D, NavigationRegion2D, TileMapLayer},
+    classes::{Camera2D, Marker2D, NavigationRegion2D, TileMapLayer},
     prelude::*,
 };
 
@@ -8,7 +8,8 @@ use super::{
     item::GameItem,
 };
 use crate::{
-    utils::global_data_singleton::GlobalData, world::environment_trigger::SceneTransition,
+    utils::global_data_singleton::GlobalData,
+    world::environment_trigger::{CameraData, SceneTransition},
 };
 
 #[derive(GodotClass)]
@@ -20,6 +21,7 @@ pub struct Map {
     pub nav_regions: Vec<Gd<NavigationRegion2D>>,
     pub items: Vec<Gd<GameItem>>,
     pub scene_trans: Vec<Gd<SceneTransition>>,
+    pub camera_data: Vec<Gd<CameraData>>,
 
     base: Base<Node>,
 }
@@ -80,6 +82,12 @@ impl INode for Map {
 
         let items = self.base().get_node_as::<Node>("Items").get_children();
         self.items = items.iter_shared().map(|n| n.cast::<GameItem>()).collect();
+
+        let camera_data = self.base().get_node_as::<Node>("CameraData").get_children();
+        self.camera_data = camera_data
+            .iter_shared()
+            .map(|n| n.cast::<CameraData>())
+            .collect();
     }
 }
 

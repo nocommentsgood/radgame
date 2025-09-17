@@ -6,12 +6,12 @@ use godot::{
 use super::map::Map;
 
 use crate::{
-    entities::player::{item_component::ItemComponent, main_character::MainCharacter},
-    utils::global_data_singleton::GlobalData,
-    world::{
-        environment_trigger::SceneTransition,
-        item::{GameItem, GameItemSignalHandler},
+    entities::player::{
+        item_component::ItemComponent, main_character::MainCharacter,
+        shaky_player_camera::PlayerCamera,
     },
+    utils::global_data_singleton::GlobalData,
+    world::item::{GameItem, GameItemSignalHandler},
 };
 
 #[derive(GodotClass)]
@@ -29,6 +29,7 @@ impl INode for Main {
             self.base()
                 .get_node_as::<Map>(GlobalData::singleton().bind().paths.map.as_ref().unwrap()),
         );
+
         self.map
             .signals()
             .propigate_map_trans()
@@ -40,6 +41,15 @@ impl INode for Main {
 
         if let Some(path) = &GlobalData::singleton().bind().paths.player {
             let player = self.base().get_node_as::<MainCharacter>(path);
+
+            // Give the map's `CameraData` nodes a ref to the player's camera.
+            let player_cam = player.get_node_as::<PlayerCamera>("ShakyPlayerCamera");
+            self.map
+                .bind_mut()
+                .camera_data
+                .iter_mut()
+                .for_each(|c| c.bind_mut().player_camera = Some(player_cam.clone()));
+
             let mut item_comp = player.get_node_as::<ItemComponent>("ItemComponent");
             Self::connect_map_items(&mut self.map.bind_mut().items, &mut item_comp);
         }
