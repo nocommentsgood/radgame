@@ -44,6 +44,7 @@ pub struct MainCharacter {
     pub velocity: Vector2,
     pub previous_state: State,
     pub timers: HashMap<PlayerTimer, Gd<Timer>>,
+    early_gravity_time: f32,
     pub state: StateMachine<csm::CharacterStateMachine>,
     pub stats: HashMap<Stats, StatVal>,
     #[init(val = AbilityComp::new_test())]
@@ -99,7 +100,7 @@ impl ICharacterBody2D for MainCharacter {
         self.stats.insert(Stats::HealAmount, StatVal::new(10));
         self.stats.insert(Stats::AttackDamage, StatVal::new(30));
         self.stats.insert(Stats::RunningSpeed, StatVal::new(180));
-        self.stats.insert(Stats::JumpingSpeed, StatVal::new(500));
+        self.stats.insert(Stats::JumpingSpeed, StatVal::new(300));
         self.stats.insert(Stats::DodgingSpeed, StatVal::new(250));
         self.stats.insert(Stats::AttackingSpeed, StatVal::new(10));
         self.stats.insert(Stats::Level, StatVal::new(1));
@@ -127,6 +128,11 @@ impl ICharacterBody2D for MainCharacter {
             self.inputs = input;
             // dbg!(&input);
             self.transition_sm(&Event::InputChanged(input));
+        }
+
+        // TODO: Refactor early gravity time handling.
+        if !self.base().is_on_floor() {
+            self.early_gravity_time += delta;
         }
 
         self.not_on_floor();
@@ -162,10 +168,10 @@ impl MainCharacter {
         let velocity = self.velocity;
         match self.state.state() {
             State::MoveFallingLeft {} | State::MoveLeftAirAttack {} => {
-                self.velocity.x = self.velocity.x.lerp(-120.0, 0.7);
+                self.velocity.x = stat(&self.stats, &Stats::RunningSpeed) * Vector2::LEFT.x;
             }
             State::MoveFallingRight {} | State::MoveRightAirAttack {} => {
-                self.velocity.x = self.velocity.x.lerp(120.0, 0.7);
+                self.velocity.x = stat(&self.stats, &Stats::RunningSpeed) * Vector2::RIGHT.x;
             }
             State::DodgingLeft {} => {
                 self.velocity.x = stat(&self.stats, &Stats::DodgingSpeed) * Vector2::LEFT.x;
@@ -174,44 +180,26 @@ impl MainCharacter {
                 self.velocity.x = stat(&self.stats, &Stats::DodgingSpeed) * Vector2::RIGHT.x;
             }
             State::MoveLeft {} => {
-                self.velocity.x = self.velocity.x.lerp(
-                    stat(&self.stats, &Stats::RunningSpeed) * Vector2::LEFT.x,
-                    0.7,
-                );
+                self.velocity.x = stat(&self.stats, &Stats::RunningSpeed) * Vector2::LEFT.x;
             }
             State::MoveRight {} => {
-                self.velocity.x = self.velocity.x.lerp(
-                    stat(&self.stats, &Stats::RunningSpeed) * Vector2::RIGHT.x,
-                    0.7,
-                );
+                self.velocity.x = stat(&self.stats, &Stats::RunningSpeed) * Vector2::RIGHT.x;
             }
             State::JumpingRight {} => {
-                self.velocity.y = self.velocity.y.lerp(
-                    stat(&self.stats, &Stats::JumpingSpeed) * Vector2::UP.y,
-                    0.35,
-                );
+                self.velocity.y = stat(&self.stats, &Stats::JumpingSpeed) * Vector2::UP.y;
                 self.velocity.x = 0.0;
             }
             State::JumpingLeft {} => {
-                self.velocity.y = self.velocity.y.lerp(
-                    stat(&self.stats, &Stats::JumpingSpeed) * Vector2::UP.y,
-                    0.35,
-                );
+                self.velocity.y = stat(&self.stats, &Stats::JumpingSpeed) * Vector2::UP.y;
                 self.velocity.x = 0.0;
             }
             State::MoveJumpingRight {} => {
-                self.velocity.y = self.velocity.y.lerp(
-                    stat(&self.stats, &Stats::JumpingSpeed) * Vector2::UP.y,
-                    0.35,
-                );
-                self.velocity.x = self.velocity.x.lerp(120.0, 0.7);
+                self.velocity.x = stat(&self.stats, &Stats::RunningSpeed) * Vector2::RIGHT.x;
+                self.velocity.y = stat(&self.stats, &Stats::JumpingSpeed) * Vector2::UP.y;
             }
             State::MoveJumpingLeft {} => {
-                self.velocity.y = self.velocity.y.lerp(
-                    stat(&self.stats, &Stats::JumpingSpeed) * Vector2::UP.y,
-                    0.35,
-                );
-                self.velocity.x = self.velocity.x.lerp(-120.0, 0.7);
+                self.velocity.x = stat(&self.stats, &Stats::RunningSpeed) * Vector2::LEFT.x;
+                self.velocity.y = stat(&self.stats, &Stats::JumpingSpeed) * Vector2::UP.y;
             }
             _ => self.velocity.x = 0.0,
         }
@@ -241,7 +229,13 @@ impl MainCharacter {
 
     fn apply_gravity(&mut self, delta: &f32) {
         if !self.base().is_on_floor() && self.velocity.y < TERMINAL_VELOCITY {
-            self.velocity.y += GRAVITY * delta;
+            if self.early_gravity_time >= 0.8 {
+                self.velocity.y += GRAVITY * delta;
+            } else if self.early_gravity_time < 0.8 && self.early_gravity_time >= 0.4 {
+                self.velocity.y += 1700.0 * delta;
+            } else {
+                self.velocity.y += 2000.0 * delta;
+            }
         }
     }
 
@@ -293,6 +287,7 @@ impl MainCharacter {
 
         if self.base().is_on_floor() && was_airborne {
             self.velocity.y = 0.0;
+            self.early_gravity_time = 0.0;
             self.transition_sm(&Event::Landed(Inputs(
                 InputHandler::get_movement(&Input::singleton()).0,
                 None,
