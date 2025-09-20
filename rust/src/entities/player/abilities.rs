@@ -26,13 +26,13 @@ impl Ability {
                 let pos = player.base().get_position();
                 let dir = player.get_direction();
                 match dir {
-                    crate::entities::movements::Direction::East => {
+                    crate::entities::movements::Direction::Right => {
                         plat.set_constant_linear_velocity(Vector2::new(100.0, 0.0));
                         plat.set_position(pos + Vector2::new(40.0, 0.0));
                         plat.bind_mut().target = pos + Vector2::new(100.0, 0.0);
                         plat.bind_mut().velocity = pos.direction_to(pos + Vector2::new(100.0, 0.0));
                     }
-                    crate::entities::movements::Direction::West => {
+                    crate::entities::movements::Direction::Left => {
                         plat.set_constant_linear_velocity(Vector2::new(-100.0, 0.0));
                         plat.set_position(pos + Vector2::new(-40.0, 0.0));
                         plat.bind_mut().target = pos + Vector2::new(-100.0, 0.0);

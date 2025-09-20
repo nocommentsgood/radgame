@@ -1,6 +1,6 @@
 use godot::{
     builtin::Vector2,
-    classes::{CharacterBody2D, INode2D, Node2D, Timer},
+    classes::{CharacterBody2D, INode2D, Node2D, PhysicsBody2D, Timer},
     meta::FromGodot,
     obj::{Base, DynGd, Gd, Inherits, OnEditor, WithBaseField},
     prelude::{Export, GodotClass, GodotConvert, Var, godot_api, godot_dyn},
@@ -27,31 +27,32 @@ impl SpeedComponent {
 #[godot(via = i64)]
 pub enum Direction {
     #[default]
-    East,
-    West,
+    Right,
+    Left,
 }
 
 impl std::fmt::Display for Direction {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Direction::East => write!(f, "east"),
-            Direction::West => write!(f, "west"),
+            Direction::Right => write!(f, "east"),
+            Direction::Left => write!(f, "west"),
         }
     }
 }
+
 impl Direction {
     pub fn from_vel(velocity: &Vector2) -> Direction {
         if velocity.x < 0.0 {
-            Direction::West
+            Direction::Left
         } else {
-            Direction::East
+            Direction::Right
         }
     }
 
     pub fn to_vel(self) -> Vector2 {
         match self {
-            Direction::East => Vector2::RIGHT,
-            Direction::West => Vector2::LEFT,
+            Direction::Right => Vector2::RIGHT,
+            Direction::Left => Vector2::LEFT,
         }
     }
 }
@@ -238,8 +239,8 @@ impl AlternatingMovement {
         self.idle_timer.start();
         self.direction_timer.stop();
         match self.initial_direction {
-            Direction::East => self.initial_direction = Direction::West,
-            Direction::West => self.initial_direction = Direction::East,
+            Direction::Right => self.initial_direction = Direction::Left,
+            Direction::Left => self.initial_direction = Direction::Right,
         }
     }
 }
@@ -248,13 +249,77 @@ impl AlternatingMovement {
 impl MovementBehavior for AlternatingMovement {
     fn compute_velocity(&self, cur_pos: Vector2, delta: f32) -> Vector2 {
         match self.initial_direction {
-            Direction::East => cur_pos + Vector2::RIGHT * self.speed * delta,
-            Direction::West => cur_pos + Vector2::LEFT * self.speed * delta,
+            Direction::Right => cur_pos + Vector2::RIGHT * self.speed * delta,
+            Direction::Left => cur_pos + Vector2::LEFT * self.speed * delta,
         }
     }
     fn set_speed(&mut self, speed: f32) {
         self.speed = speed;
     }
+}
+
+/// Moves and collides a PhysicsBody2D, bouncing the body off of the collision normal.
+pub fn move_bounce<T>(phys: &mut T, velocity: Vector2, speed: f32, delta: f32)
+where
+    T: WithBaseField<Base: Inherits<PhysicsBody2D>> + Moveable,
+{
+    let collision = phys
+        .base_mut()
+        .upcast_mut()
+        .move_and_collide(velocity * delta * speed);
+
+    if let Some(c) = collision {
+        let reflect = c.get_remainder().bounce(c.get_normal());
+        phys.set_velocity(velocity.bounce(c.get_normal()));
+        phys.base_mut().upcast_mut().move_and_collide(reflect);
+    }
+}
+
+/// Moves a Node2D inheriting node to the left.
+pub fn move_left<T>(node: &mut T, speed: f32, delta: f32)
+where
+    T: WithBaseField<Base: Inherits<Node2D>>,
+{
+    let mut cur_pos = node.base().upcast_ref().get_global_position();
+    cur_pos += Vector2::LEFT * speed * delta;
+    node.base_mut().upcast_mut().set_global_position(cur_pos);
+}
+
+pub fn move_right<T>(node: &mut T, speed: f32, delta: f32)
+where
+    T: WithBaseField<Base: Inherits<Node2D>>,
+{
+    let mut cur_pos = node.base().upcast_ref().get_global_position();
+    cur_pos += Vector2::RIGHT * speed * delta;
+    node.base_mut().upcast_mut().set_global_position(cur_pos);
+}
+
+pub fn move_up<T>(node: &mut T, speed: f32, delta: f32)
+where
+    T: WithBaseField<Base: Inherits<Node2D>>,
+{
+    let mut cur_pos = node.base().upcast_ref().get_global_position();
+    cur_pos += Vector2::UP * speed * delta;
+    node.base_mut().upcast_mut().set_global_position(cur_pos);
+}
+
+pub fn move_down<T>(node: &mut T, speed: f32, delta: f32)
+where
+    T: WithBaseField<Base: Inherits<Node2D>>,
+{
+    let mut cur_pos = node.base().upcast_ref().get_global_position();
+    cur_pos += Vector2::DOWN * speed * delta;
+    node.base_mut().upcast_mut().set_global_position(cur_pos);
+}
+
+pub fn move_to<T>(node: &mut T, target: Vector2, speed: f32, delta: f32)
+where
+    T: WithBaseField<Base: Inherits<Node2D>>,
+{
+    let cur_pos = node.base().upcast_ref().get_global_position();
+    node.base_mut()
+        .upcast_mut()
+        .set_global_position(cur_pos.move_toward(target, delta * speed));
 }
 
 /// Swaps the movement trait object of an entity to the given movement node.

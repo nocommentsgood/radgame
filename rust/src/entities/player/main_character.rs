@@ -604,9 +604,9 @@ impl MainCharacter {
     pub fn get_direction(&self) -> Direction {
         let state = self.state.state().to_string();
         if state.contains("right") {
-            Direction::East
+            Direction::Right
         } else {
-            Direction::West
+            Direction::Left
         }
     }
 
