@@ -8,8 +8,8 @@ use super::{
     item::GameItem,
 };
 use crate::{
-    utils::global_data_singleton::GlobalData,
-    world::environment_trigger::{CameraData, SceneTransition},
+    entities::player::shaky_player_camera::CameraData, utils::global_data_singleton::GlobalData,
+    world::environment_trigger::SceneTransition,
 };
 
 #[derive(GodotClass)]

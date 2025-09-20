@@ -1,4 +1,5 @@
 pub mod animatable;
+mod bouncing_enemy;
 mod enemy_state_ext;
 mod enemy_state_machine;
 mod has_enemy_sensors;
