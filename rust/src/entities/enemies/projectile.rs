@@ -3,7 +3,7 @@ use godot::{
     prelude::*,
 };
 
-use crate::{entities::hurtbox::Hurtbox, utils::collision_layers};
+use crate::{entities::entity_hitbox::Hurtbox, utils::collision_layers};
 
 #[derive(GodotClass)]
 #[class(init, base=Node2D)]

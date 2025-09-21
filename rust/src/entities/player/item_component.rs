@@ -1,7 +1,7 @@
 use godot::{classes::InputEvent, prelude::*};
 
 use crate::{
-    entities::entity_stats::{ModifierKind, StatModifier, Stats},
+    entities::entity_stats::{ModifierKind, Stat, StatModifier},
     utils::global_data_singleton::GlobalData,
     world::item::*,
 };
@@ -66,7 +66,7 @@ impl INode for ItemComponent {
 
         let test_bead_1 = Item::new(
             ItemKind::RosaryBead {
-                effect: StatModifier::new(Stats::RunningSpeed, ModifierKind::Flat(2)),
+                effect: StatModifier::new(Stat::RunningSpeed, ModifierKind::Flat(2)),
             },
             "TestBead1 WOW".to_string(),
             Some("A test bead that increases movement speed".to_string()),
@@ -76,7 +76,7 @@ impl INode for ItemComponent {
 
         let test_bead_2 = Item::new(
             ItemKind::RosaryBead {
-                effect: StatModifier::new(Stats::RunningSpeed, ModifierKind::Flat(2)),
+                effect: StatModifier::new(Stat::RunningSpeed, ModifierKind::Flat(2)),
             },
             "TestBead1 WOW".to_string(),
             Some("A test bead that also increases movement speed".to_string()),
@@ -86,7 +86,7 @@ impl INode for ItemComponent {
         self.unlocked_beads.insert(1, Some(test_bead_2));
         let relic = Item::new(
             ItemKind::Relic {
-                effect: StatModifier::new(Stats::MaxHealth, ModifierKind::Flat(2)),
+                effect: StatModifier::new(Stat::MaxHealth, ModifierKind::Flat(2)),
             },
             "Relic Increase Max Health".to_string(),
             Some("A relic which, when equipped, increases max health".to_string()),

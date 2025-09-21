@@ -11,8 +11,8 @@ use super::{
 };
 use crate::entities::{
     damage::Damageable,
-    entity_stats::{EntityResources, StatVal, Stats},
-    hurtbox::Hurtbox,
+    entity_hitbox::Hurtbox,
+    entity_stats::{Stat, StatVal},
     movements::{Direction, Move, Moveable, MoveableEntity, SpeedComponent},
     time::EnemyTimer,
 };
@@ -31,7 +31,7 @@ pub struct ProjectileEnemy {
     speeds: SpeedComponent,
     chain_attack_count: u32,
     direction: Direction,
-    stats: HashMap<Stats, StatVal>,
+    stats: HashMap<Stat, StatVal>,
     state: statig::blocking::StateMachine<EnemyStateMachine>,
     #[init(val = HashMap::with_capacity(4))]
     timers: HashMap<EnemyTimer, Gd<Timer>>,
@@ -102,17 +102,17 @@ impl INode2D for ProjectileEnemy {
 
         self.connect_signals();
 
-        self.stats.insert(Stats::Health, StatVal::new(20));
-        self.stats.insert(Stats::MaxHealth, StatVal::new(20));
-        self.stats.insert(Stats::AttackDamage, StatVal::new(10));
-        self.stats.insert(Stats::RunningSpeed, StatVal::new(150));
-        self.stats.insert(Stats::JumpingSpeed, StatVal::new(300));
-        self.stats.insert(Stats::DodgingSpeed, StatVal::new(250));
-        self.stats.insert(Stats::AttackingSpeed, StatVal::new(10));
+        self.stats.insert(Stat::Health, StatVal::new(20));
+        self.stats.insert(Stat::MaxHealth, StatVal::new(20));
+        self.stats.insert(Stat::AttackDamage, StatVal::new(10));
+        self.stats.insert(Stat::RunningSpeed, StatVal::new(150));
+        self.stats.insert(Stat::JumpingSpeed, StatVal::new(300));
+        self.stats.insert(Stat::DodgingSpeed, StatVal::new(250));
+        self.stats.insert(Stat::AttackingSpeed, StatVal::new(10));
 
         self.speeds = SpeedComponent::new(
-            self.stats[&Stats::AttackingSpeed].0,
-            self.stats[&Stats::RunningSpeed].0,
+            self.stats[&Stat::AttackingSpeed].0,
+            self.stats[&Stat::RunningSpeed].0,
             80,
         );
 
@@ -163,35 +163,8 @@ impl ProjectileEnemy {
             crate::utils::collision_layers::CollisionLayers::PlayerHurtbox as i32,
             true,
         );
-        hurtbox.bind_mut().attack_damage = 20;
+        // hurtbox.bind_mut().attack_damage = 20;
         self.base_mut().add_sibling(&inst);
-    }
-}
-
-#[godot_dyn]
-impl EntityResources for ProjectileEnemy {
-    fn get_health(&self) -> u32 {
-        self.stats.get(&Stats::Health).unwrap().0
-    }
-
-    fn set_health(&mut self, amount: u32) {
-        self.stats.get_mut(&Stats::Health).unwrap().0 = amount;
-    }
-
-    fn get_energy(&self) -> u32 {
-        self.stats.get(&Stats::Energy).unwrap().0
-    }
-
-    fn set_energy(&mut self, amount: u32) {
-        self.stats.get_mut(&Stats::Energy).unwrap().0 = amount;
-    }
-
-    fn get_mana(&self) -> u32 {
-        self.stats.get(&Stats::Mana).unwrap().0
-    }
-
-    fn set_mana(&mut self, amount: u32) {
-        self.stats.get_mut(&Stats::Energy).unwrap().0 = amount;
     }
 }
 

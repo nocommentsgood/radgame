@@ -16,7 +16,6 @@ use super::{
 };
 use crate::entities::{
     damage::Damageable,
-    entity_stats::EntityResources,
     movements::{Direction, Move, Moveable, MoveableBody, SpeedComponent},
     time::EnemyTimer,
 };
@@ -93,7 +92,7 @@ impl ICharacterBody2D for TestEnemy {
         });
 
         self.connect_signals();
-        self.hurtbox_mut().bind_mut().attack_damage = 10;
+        // self.hurtbox_mut().bind_mut().attack_damage = 10;
         self.idle();
         self.animation_player.play_ex().name("idle_east").done();
     }
@@ -129,33 +128,6 @@ impl TestEnemy {
         if !self.base().is_on_floor() {
             self.transition_sm(&EnemyEvent::FailedFloorCheck);
         }
-    }
-}
-
-#[godot_dyn]
-impl EntityResources for TestEnemy {
-    fn get_health(&self) -> u32 {
-        self.health
-    }
-
-    fn set_health(&mut self, amount: u32) {
-        self.health = amount;
-    }
-
-    fn get_energy(&self) -> u32 {
-        self.energy
-    }
-
-    fn set_energy(&mut self, amount: u32) {
-        self.energy = amount;
-    }
-
-    fn get_mana(&self) -> u32 {
-        self.mana
-    }
-
-    fn set_mana(&mut self, amount: u32) {
-        self.mana = amount;
     }
 }
 

@@ -93,7 +93,7 @@ where
         let target = self.to_gd().upcast::<Node2D>();
         let _guard = self.base_mut();
         let damageable = DynGd::<Node2D, dyn Damageable>::from_godot(target);
-        damaging.dyn_bind().do_damage(damageable);
+        // damaging.dyn_bind().do_damage(damageable);
     }
 
     fn on_aggro_area_entered(&mut self, area: Gd<Area2D>) {

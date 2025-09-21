@@ -1,24 +1,29 @@
-use super::entity_stats::EntityResources;
 use godot::{
-    classes::{AnimationPlayer, Node2D},
-    obj::{DynGd, Gd},
+    classes::{AnimationPlayer, Area2D, KinematicCollision2D, Node2D, PhysicsBody2D},
+    obj::{DynGd, Gd, WithBaseField},
     prelude::*,
 };
 
+use crate::entities::{
+    entity_hitbox::{EntityHitbox, Hurtbox},
+    entity_stats::ModifierKind,
+};
+
 /// Implement on entities that are capable of being damaged. See also: trait Damaging.
-pub trait Damageable: EntityResources {
+pub trait Damageable {
     fn take_damage(&mut self, amount: u32) {
-        let mut current_health = self.get_health();
-        current_health = current_health.saturating_sub(amount);
-        self.set_health(current_health);
-
-        if self.is_dead() {
-            self.destroy();
-        }
+        //     let mut current_health = self.get_health();
+        //     current_health = current_health.saturating_sub(amount);
+        //     self.set_health(current_health);
+        //
+        //     if self.is_dead() {
+        //         self.destroy();
+        //     }
     }
-
+    //
     fn is_dead(&self) -> bool {
-        self.get_health() == 0
+        //     self.get_health() == 0
+        false
     }
 
     fn destroy(&mut self);
@@ -26,66 +31,124 @@ pub trait Damageable: EntityResources {
 
 /// Implement this trait on anything that is capable of dealing damage
 pub trait Damaging {
-    fn damage_amount(&self) -> u32;
-    fn do_damage(&self, mut target: DynGd<Node2D, dyn Damageable>) {
-        let amount = self.damage_amount();
-        let mut dyn_target = target.dyn_bind_mut();
-        dyn_target.take_damage(amount);
+    // fn damage_amount(&self) -> u32;
+    // fn do_damage(&self, mut target: DynGd<Node2D, dyn Damageable>) {
+    //     let amount = self.damage_amount();
+    //     let mut dyn_target = target.dyn_bind_mut();
+    //     dyn_target.take_damage(amount);
+    // }
+    fn get_hurtbox(&self) -> &Gd<Hurtbox>;
+
+    fn connect_hurtbox_sig(&mut self)
+    where
+        Self: WithBaseField,
+    {
+        self.get_hurtbox()
+            .signals()
+            .area_entered()
+            .connect_other(&self.to_gd(), Self::on_hurtbox_entered_hitbox);
+    }
+
+    fn on_hurtbox_entered_hitbox(&mut self, area: Gd<Area2D>)
+    where
+        Self: Sized,
+    {
+        if let Ok(mut hitbox) = area.try_cast::<EntityHitbox>() {
+            println!("Hurtbox hit hitbox");
+            let h = &mut hitbox.bind_mut().parent;
+            let data = AttackData::new(
+                Damage {
+                    raw: 10,
+                    d_type: DamageType::Physical,
+                },
+                &mut **h.as_mut().unwrap(),
+                self,
+            );
+            CombatSystem::resolve(data);
+            println!("Resolved combat");
+        }
     }
 }
 
-pub trait HasHealth: std::fmt::Debug {
+struct Health {
+    pub value: u32,
+}
+
+pub trait HasHealth {
     fn get_health(&self) -> u32;
     fn set_health(&mut self, amount: u32);
-}
 
-pub trait TestDamaging: std::fmt::Debug {
-    fn deal_damage(&self, amount: u32, target: &mut dyn HasHealth) {
-        let cur = target.get_health();
-        println!("Previous health: {cur}");
-        println!("Damage amount: {amount}");
-        target.set_health(cur.saturating_sub(amount));
-        println!("new health: {}", target.get_health());
+    fn take_damage(&mut self, amount: u32) {
+        self.set_health(self.get_health().saturating_sub(amount));
+
+        if self.get_health() == 0 {
+            self.on_death();
+        }
     }
+
+    fn on_death(&mut self);
 }
 
 #[derive(GodotClass)]
 #[class(base = Node2D, init)]
 struct MockEnemy {
-    #[init(val = 200)]
-    health: u32,
+    #[init(val = Health { value: 10})]
+    health: Health,
     #[init(node = "AnimationPlayer")]
     anim_player: OnReady<Gd<AnimationPlayer>>,
+
+    #[init(node = "EntityHitbox")]
+    hitbox: OnReady<Gd<EntityHitbox>>,
+
     base: Base<Node2D>,
+}
+
+#[godot_api]
+impl INode2D for MockEnemy {
+    fn ready(&mut self) {
+        self.hitbox.bind_mut().parent = Some(Box::new(self.to_gd()));
+    }
 }
 
 impl HasHealth for Gd<MockEnemy> {
     fn get_health(&self) -> u32 {
-        self.bind().health
+        self.bind().health.value
     }
 
     fn set_health(&mut self, amount: u32) {
-        self.bind_mut().health = amount;
+        self.bind_mut().health.value = amount;
+    }
+
+    fn on_death(&mut self) {
+        self.queue_free();
     }
 }
 
-pub fn test_damage(data: &mut AttackData) {
-    data.attacking_unit
-        .deal_damage(data.damage, data.defending_unit);
+impl HasHealth for MockEnemy {
+    fn get_health(&self) -> u32 {
+        self.health.value
+    }
+
+    fn set_health(&mut self, amount: u32) {
+        self.health.value = amount;
+    }
+
+    fn on_death(&mut self) {
+        self.base_mut().queue_free();
+    }
 }
 
-#[derive(Debug)]
 pub struct AttackData<'a> {
-    damage: u32,
+    damage: Damage,
     defending_unit: &'a mut dyn HasHealth,
-    attacking_unit: &'a dyn TestDamaging,
+    attacking_unit: &'a dyn Damaging,
 }
 
 impl<'a> AttackData<'a> {
     pub fn new(
-        damage: u32,
+        damage: Damage,
         defending_unit: &'a mut dyn HasHealth,
-        attacking_unit: &'a mut dyn TestDamaging,
+        attacking_unit: &'a mut dyn Damaging,
     ) -> Self {
         Self {
             damage,
@@ -95,42 +158,33 @@ impl<'a> AttackData<'a> {
     }
 }
 
-// pub struct AttackSequence<'a> {
-//     count: usize,
-//     data: &'a mut [&'a mut AttackData<'a>],
-// }
-//
-// impl<'a> AttackSequence<'a> {
-//     pub fn new(sequence: &'a mut [&'a mut AttackData<'a>]) -> Self {
-//         if sequence.is_empty() {
-//             panic!("Data sequence is empty.")
-//         } else {
-//             Self {
-//                 count: 0,
-//                 data: sequence,
-//             }
-//         }
-//     }
-//
-//     pub fn execute(&mut self) {
-//         let count = self.count;
-//         self.data[count].timer.start();
-//         test_damage(self.data[count]);
-//         if self.data[count].timer.get_time_left() == 0.0 {
-//             println!("Timer timeout");
-//             self.on_timer_timeout();
-//         }
-//     }
-//
-//     fn on_timer_timeout(&mut self) {
-//         println!("On timer timeout");
-//         self.count += 1;
-//         if self.count <= self.data.len() {
-//             self.execute();
-//         }
-//     }
-// }
+pub struct Damage {
+    pub raw: u32,
+    pub d_type: DamageType,
+}
 
-pub fn calc_simple_damage(base_damage: &u32, player_level: &u32) -> u32 {
-    (10 * (base_damage / player_level)) + 20
+pub enum DamageType {
+    Elemental(ElementType),
+    Physical,
+}
+
+pub enum ElementType {
+    Magic,
+    Poison,
+    Lightning,
+    Fire,
+}
+
+pub enum Resistance {
+    Physical(ModifierKind),
+    Elemental(ElementType, ModifierKind),
+}
+
+pub struct CombatSystem;
+
+impl CombatSystem {
+    pub fn resolve(data: AttackData) {
+        let health = data.defending_unit.get_health();
+        data.defending_unit.set_health(health - data.damage.raw);
+    }
 }

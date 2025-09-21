@@ -9,7 +9,7 @@ pub mod shaky_player_camera;
 mod tests {
     use crate::{
         entities::{
-            entity_stats::{StatModifier, Stats},
+            entity_stats::{Stat, StatModifier},
             player::item_component::ItemComponent,
         },
         world::item::{Item, ItemKind},
@@ -21,7 +21,7 @@ mod tests {
         let bead_1 = Item::new(
             ItemKind::RosaryBead {
                 effect: StatModifier::new(
-                    Stats::Health,
+                    Stat::Health,
                     crate::entities::entity_stats::ModifierKind::Flat(10),
                 ),
             },

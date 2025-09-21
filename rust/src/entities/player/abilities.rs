@@ -9,7 +9,7 @@ use godot::{
 };
 
 use crate::entities::{
-    damage, entity_stats::Stats, hurtbox::Hurtbox, player::main_character::MainCharacter,
+    damage, entity_hitbox::Hurtbox, entity_stats::Stat, player::main_character::MainCharacter,
 };
 
 #[derive(Clone, Copy, Debug)]
@@ -51,11 +51,11 @@ impl Ability {
                 // Set ability's damage amount.
                 let mut right_pillar = ability.get_node_as::<Hurtbox>("RightPillar");
                 let mut left_pillar = ability.get_node_as::<Hurtbox>("LeftPillar");
-                let base_damage = right_pillar.bind().attack_damage;
-                let level = player.stats.get(&Stats::Level).unwrap();
-                let total_damage = damage::calc_simple_damage(&base_damage, &level.0);
-                right_pillar.bind_mut().attack_damage = total_damage;
-                left_pillar.bind_mut().attack_damage = total_damage;
+                // let base_damage = right_pillar.bind().attack_damage;
+                // let level = player.stats.get(&Stat::Level).unwrap();
+                // let total_damage = damage::calc_simple_damage(&base_damage, &level.0);
+                // right_pillar.bind_mut().attack_damage = total_damage;
+                // left_pillar.bind_mut().attack_damage = total_damage;
 
                 timer.set_wait_time(1.5);
                 ability.set_position(player.base().get_global_position());

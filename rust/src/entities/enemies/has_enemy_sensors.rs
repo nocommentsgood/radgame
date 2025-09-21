@@ -4,8 +4,7 @@ use godot::{
 };
 
 use super::has_state::HasState;
-use crate::entities::entity_hitbox::EntityHitbox;
-use crate::entities::hurtbox::Hurtbox;
+use crate::entities::entity_hitbox::{EntityHitbox, Hurtbox};
 
 #[allow(unused)]
 pub trait HasEnemySensors: HasState
