@@ -1,57 +1,46 @@
-use godot::{obj::Gd, prelude::GodotClass};
+use godot::{
+    classes::{Area2D, IArea2D},
+    meta::ToGodot,
+    obj::{Base, Gd, OnReady, WithBaseField},
+    prelude::{GodotClass, godot_api, godot_dyn},
+};
 
-use crate::entities::damage::HasHealth;
+use crate::entities::damage::{Damaging, HasHealth};
 
 #[derive(GodotClass)]
 #[class(init, base = Area2D)]
 pub struct EntityHitbox {
-    #[init(val = 20)]
-    health: u32,
+    pub parent: Option<Box<dyn HasHealth>>,
+    base: Base<Area2D>,
 }
 
-// impl super::damage::Damageable for EntityHitbox {
-//     fn destroy(&mut self) {
-//         todo!()
-//     }
-// }
+#[godot_api]
+impl EntityHitbox {
+    #[signal]
+    fn dummy();
+}
 
 impl super::damage::Damageable for Gd<EntityHitbox> {
     fn destroy(&mut self) {
         todo!()
     }
 }
-impl super::entity_stats::EntityResources for Gd<EntityHitbox> {
-    fn get_health(&self) -> u32 {
-        self.bind().health
-    }
 
-    fn set_health(&mut self, amount: u32) {
-        self.bind_mut().health = amount;
-    }
+#[derive(GodotClass)]
+#[class(init, base=Area2D)]
+pub struct Hurtbox {
+    base: Base<Area2D>,
+}
 
-    fn get_energy(&self) -> u32 {
-        todo!()
-    }
-
-    fn set_energy(&mut self, amount: u32) {
-        todo!()
-    }
-
-    fn get_mana(&self) -> u32 {
-        todo!()
-    }
-
-    fn set_mana(&mut self, amount: u32) {
-        todo!()
+#[godot_api]
+impl IArea2D for Hurtbox {
+    fn ready(&mut self) {
+        self.base_mut().set_deferred("disabled", &true.to_variant());
     }
 }
 
-impl HasHealth for Gd<EntityHitbox> {
-    fn get_health(&self) -> u32 {
-        self.bind().health
-    }
-
-    fn set_health(&mut self, amount: u32) {
-        self.bind_mut().health = amount;
-    }
+#[godot_api]
+impl Hurtbox {
+    #[signal]
+    fn dummy_sig();
 }
