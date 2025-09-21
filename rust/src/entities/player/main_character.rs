@@ -11,11 +11,10 @@ use statig::prelude::StateMachine;
 
 use crate::{
     entities::{
-        damage::{AttackData, Damageable, Damaging, TestDamaging},
+        damage::{AttackData, Damageable, Damaging},
         enemies::projectile::Projectile,
-        entity_hitbox::EntityHitbox,
-        entity_stats::{EntityResources, StatModifier, StatVal, Stats},
-        hurtbox::Hurtbox,
+        entity_hitbox::{EntityHitbox, Hurtbox},
+        entity_stats::{Stat, StatModifier, StatVal},
         movements::Direction,
         player::{
             abilities::AbilityComp,
@@ -46,7 +45,7 @@ pub struct MainCharacter {
     pub timers: HashMap<PlayerTimer, Gd<Timer>>,
     early_gravity_time: f32,
     pub state: StateMachine<csm::CharacterStateMachine>,
-    pub stats: HashMap<Stats, StatVal>,
+    pub stats: HashMap<Stat, StatVal>,
     #[init(val = AbilityComp::new_test())]
     pub ability_comp: AbilityComp,
     base: Base<CharacterBody2D>,
@@ -76,6 +75,9 @@ pub struct MainCharacter {
 
     #[init(node = "ShakyPlayerCamera")]
     pub camera: OnReady<Gd<PlayerCamera>>,
+
+    #[init(node = "Hurtbox")]
+    hurtbox: OnReady<Gd<Hurtbox>>,
 }
 
 #[godot_api]
@@ -95,15 +97,15 @@ impl ICharacterBody2D for MainCharacter {
             .modifier_removed()
             .connect_other(&this, Self::on_modifier_removed);
 
-        self.stats.insert(Stats::Health, StatVal::new(50));
-        self.stats.insert(Stats::MaxHealth, StatVal::new(50));
-        self.stats.insert(Stats::HealAmount, StatVal::new(10));
-        self.stats.insert(Stats::AttackDamage, StatVal::new(30));
-        self.stats.insert(Stats::RunningSpeed, StatVal::new(180));
-        self.stats.insert(Stats::JumpingSpeed, StatVal::new(300));
-        self.stats.insert(Stats::DodgingSpeed, StatVal::new(250));
-        self.stats.insert(Stats::AttackingSpeed, StatVal::new(10));
-        self.stats.insert(Stats::Level, StatVal::new(1));
+        self.stats.insert(Stat::Health, StatVal::new(50));
+        self.stats.insert(Stat::MaxHealth, StatVal::new(50));
+        self.stats.insert(Stat::HealAmount, StatVal::new(10));
+        self.stats.insert(Stat::AttackDamage, StatVal::new(30));
+        self.stats.insert(Stat::RunningSpeed, StatVal::new(180));
+        self.stats.insert(Stat::JumpingSpeed, StatVal::new(300));
+        self.stats.insert(Stat::DodgingSpeed, StatVal::new(250));
+        self.stats.insert(Stat::AttackingSpeed, StatVal::new(10));
+        self.stats.insert(Stat::Level, StatVal::new(1));
 
         self.init_timers();
 
@@ -112,13 +114,14 @@ impl ICharacterBody2D for MainCharacter {
             .signals()
             .area_entered()
             .connect_other(&this, Self::on_area_entered_hitbox);
-        let mut hurtbox = self.base().get_node_as::<Hurtbox>("Hurtbox");
-        hurtbox.bind_mut().attack_damage = self.stats.get(&Stats::AttackDamage).unwrap().0;
-        hurtbox
-            .signals()
-            .area_entered()
-            .connect_other(&this, Self::on_area_entered_hurtbox);
+        // let mut hurtbox = self.base().get_node_as::<Hurtbox>("Hurtbox");
+        // hurtbox.bind_mut().attack_damage = self.stats.get(&Stat::AttackDamage).unwrap().0;
+        // hurtbox
+        //     .signals()
+        //     .area_entered()
+        //     .connect_other(&this, Self::on_area_entered_hurtbox);
 
+        self.connect_hurtbox_sig();
         self.previous_state = State::IdleRight {};
     }
 
@@ -144,8 +147,6 @@ impl ICharacterBody2D for MainCharacter {
     }
 }
 
-impl TestDamaging for Gd<MainCharacter> {}
-
 #[godot_api]
 impl MainCharacter {
     #[signal]
@@ -163,43 +164,43 @@ impl MainCharacter {
     /// Applies accelerated movement depending on current state.
     /// Moves the camera if the player's velocity has changed.
     fn accelerate(&mut self) {
-        let stat = |map: &HashMap<Stats, StatVal>, stat: &Stats| map.get(stat).unwrap().0 as f32;
+        let stat = |map: &HashMap<Stat, StatVal>, stat: &Stat| map.get(stat).unwrap().0 as f32;
 
         let velocity = self.velocity;
         match self.state.state() {
             State::MoveFallingLeft {} | State::MoveLeftAirAttack {} => {
-                self.velocity.x = stat(&self.stats, &Stats::RunningSpeed) * Vector2::LEFT.x;
+                self.velocity.x = stat(&self.stats, &Stat::RunningSpeed) * Vector2::LEFT.x;
             }
             State::MoveFallingRight {} | State::MoveRightAirAttack {} => {
-                self.velocity.x = stat(&self.stats, &Stats::RunningSpeed) * Vector2::RIGHT.x;
+                self.velocity.x = stat(&self.stats, &Stat::RunningSpeed) * Vector2::RIGHT.x;
             }
             State::DodgingLeft {} => {
-                self.velocity.x = stat(&self.stats, &Stats::DodgingSpeed) * Vector2::LEFT.x;
+                self.velocity.x = stat(&self.stats, &Stat::DodgingSpeed) * Vector2::LEFT.x;
             }
             State::DodgingRight {} => {
-                self.velocity.x = stat(&self.stats, &Stats::DodgingSpeed) * Vector2::RIGHT.x;
+                self.velocity.x = stat(&self.stats, &Stat::DodgingSpeed) * Vector2::RIGHT.x;
             }
             State::MoveLeft {} => {
-                self.velocity.x = stat(&self.stats, &Stats::RunningSpeed) * Vector2::LEFT.x;
+                self.velocity.x = stat(&self.stats, &Stat::RunningSpeed) * Vector2::LEFT.x;
             }
             State::MoveRight {} => {
-                self.velocity.x = stat(&self.stats, &Stats::RunningSpeed) * Vector2::RIGHT.x;
+                self.velocity.x = stat(&self.stats, &Stat::RunningSpeed) * Vector2::RIGHT.x;
             }
             State::JumpingRight {} => {
-                self.velocity.y = stat(&self.stats, &Stats::JumpingSpeed) * Vector2::UP.y;
+                self.velocity.y = stat(&self.stats, &Stat::JumpingSpeed) * Vector2::UP.y;
                 self.velocity.x = 0.0;
             }
             State::JumpingLeft {} => {
-                self.velocity.y = stat(&self.stats, &Stats::JumpingSpeed) * Vector2::UP.y;
+                self.velocity.y = stat(&self.stats, &Stat::JumpingSpeed) * Vector2::UP.y;
                 self.velocity.x = 0.0;
             }
             State::MoveJumpingRight {} => {
-                self.velocity.x = stat(&self.stats, &Stats::RunningSpeed) * Vector2::RIGHT.x;
-                self.velocity.y = stat(&self.stats, &Stats::JumpingSpeed) * Vector2::UP.y;
+                self.velocity.x = stat(&self.stats, &Stat::RunningSpeed) * Vector2::RIGHT.x;
+                self.velocity.y = stat(&self.stats, &Stat::JumpingSpeed) * Vector2::UP.y;
             }
             State::MoveJumpingLeft {} => {
-                self.velocity.x = stat(&self.stats, &Stats::RunningSpeed) * Vector2::LEFT.x;
-                self.velocity.y = stat(&self.stats, &Stats::JumpingSpeed) * Vector2::UP.y;
+                self.velocity.x = stat(&self.stats, &Stat::RunningSpeed) * Vector2::LEFT.x;
+                self.velocity.y = stat(&self.stats, &Stat::JumpingSpeed) * Vector2::UP.y;
             }
             _ => self.velocity.x = 0.0,
         }
@@ -296,44 +297,40 @@ impl MainCharacter {
         }
     }
 
-    // TODO: The comment below isn't currently true. Started making an attacking system then became
-    // sidetracked refactoring so much... so... much...
-    // Had to resort to enabling and disabling the collision shape manually, otherwise the
-    // `area_entered()` signal of the `Hurtbox` would emit twice.
-    fn on_area_entered_hurtbox(&mut self, area: Gd<Area2D>) {
-        dbg!();
-        if let Ok(mut hitbox) = area.try_cast::<EntityHitbox>() {
-            dbg!();
-            dbg!(crate::entities::damage::test_damage(&mut AttackData::new(
-                self.stats.get(&Stats::AttackDamage).unwrap().0,
-                &mut hitbox,
-                &mut self.to_gd(),
-            )));
-        }
-        //     self.hit_enemy = true;
-        //     self.base()
-        //         .get_node_as::<godot::classes::CollisionShape2D>("Hurtbox/HurtboxShape")
-        //         .set_deferred("disabled", &true.to_variant());
-        // }
-    }
+    // fn on_area_entered_hurtbox(&mut self, area: Gd<Area2D>) {
+    //     dbg!();
+    //     if let Ok(mut hitbox) = area.try_cast::<EntityHitbox>() {
+    //         dbg!();
+    //         dbg!(crate::entities::damage::test_damage(&mut AttackData::new(
+    //             self.stats.get(&Stat::AttackDamage).unwrap().0,
+    //             &mut hitbox,
+    //             &mut self.to_gd(),
+    //         )));
+    //     }
+    //     self.hit_enemy = true;
+    //     self.base()
+    //         .get_node_as::<godot::classes::CollisionShape2D>("Hurtbox/HurtboxShape")
+    //         .set_deferred("disabled", &true.to_variant());
+    // }
+    // }
 
     fn on_area_entered_hitbox(&mut self, area: Gd<Area2D>) {
         if let Ok(h_box) = &area.try_cast::<Hurtbox>()
             && !self.parried_attack(h_box)
         {
-            self.timers.get_mut(&PT::HurtAnimation).unwrap().start();
-            let damaging =
-                DynGd::<Area2D, dyn Damaging>::from_godot(h_box.clone().upcast::<Area2D>());
-            let target = self.to_gd().upcast::<Node2D>();
-            let guard = self.base_mut();
-            let damageable = DynGd::<Node2D, dyn Damageable>::from_godot(target);
-            damaging.dyn_bind().do_damage(damageable);
-            drop(guard);
-            let mut camera = self.base().get_node_as::<PlayerCamera>("ShakyPlayerCamera");
-            camera
-                .bind_mut()
-                .add_trauma(TraumaLevel::from(damaging.dyn_bind().damage_amount()));
-            self.transition_sm(&Event::Hurt);
+            // self.timers.get_mut(&PT::HurtAnimation).unwrap().start();
+            // let damaging =
+            //     DynGd::<Area2D, dyn Damaging>::from_godot(h_box.clone().upcast::<Area2D>());
+            // let target = self.to_gd().upcast::<Node2D>();
+            // let guard = self.base_mut();
+            // let damageable = DynGd::<Node2D, dyn Damageable>::from_godot(target);
+            // damaging.dyn_bind().do_damage(damageable);
+            // drop(guard);
+            // let mut camera = self.base().get_node_as::<PlayerCamera>("ShakyPlayerCamera");
+            // camera
+            //     .bind_mut()
+            //     .add_trauma(TraumaLevel::from(damaging.dyn_bind().damage_amount()));
+            // self.transition_sm(&Event::Hurt);
         }
     }
 
@@ -623,40 +620,13 @@ impl MainCharacter {
 }
 
 #[godot_dyn]
-impl EntityResources for MainCharacter {
-    fn get_health(&self) -> u32 {
-        self.stats.get(&Stats::Health).unwrap().0
-    }
-
-    fn set_health(&mut self, amount: u32) {
-        self.stats.get_mut(&Stats::Health).unwrap().0 = amount;
-    }
-
-    fn get_energy(&self) -> u32 {
-        self.stats.get(&Stats::Energy).unwrap().0
-    }
-
-    fn set_energy(&mut self, amount: u32) {
-        self.stats.get_mut(&Stats::Energy).unwrap().0 = amount;
-    }
-
-    fn get_mana(&self) -> u32 {
-        self.stats.get(&Stats::Mana).unwrap().0
-    }
-
-    fn set_mana(&mut self, amount: u32) {
-        self.stats.get_mut(&Stats::Mana).unwrap().0 = amount;
-    }
-}
-
-#[godot_dyn]
 impl Damageable for MainCharacter {
     fn take_damage(&mut self, amount: u32) {
-        let previous_health = self.get_health();
+        let previous_health = self.stats.get(&Stat::Health).unwrap().0;
         let current_health = previous_health.saturating_sub(amount);
         println!("previous health {previous_health} ... current health {current_health}");
 
-        self.set_health(current_health);
+        self.stats.get_mut(&Stat::Health).unwrap().0 = current_health;
         self.signals()
             .player_health_changed()
             .emit(previous_health, current_health, amount);
@@ -673,13 +643,13 @@ impl Damageable for MainCharacter {
     }
 }
 
-#[godot_dyn]
 impl Damaging for MainCharacter {
-    fn damage_amount(&self) -> u32 {
-        self.stats.get(&Stats::AttackDamage).unwrap().0
+    fn get_hurtbox(&self) -> &Gd<Hurtbox> {
+        &self.hurtbox
     }
 }
 
+// TODO: Move this.
 trait Reset {
     fn reset(&mut self);
 }

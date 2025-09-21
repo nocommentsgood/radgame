@@ -1,7 +1,7 @@
 use godot::prelude::GodotClass;
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, Copy)]
-pub enum Stats {
+pub enum Stat {
     Health,
     MaxHealth,
     HealAmount,
@@ -15,20 +15,6 @@ pub enum Stats {
     Level,
 }
 
-pub trait EntityResources {
-    fn get_health(&self) -> u32;
-
-    fn set_health(&mut self, amount: u32);
-
-    fn get_energy(&self) -> u32;
-
-    fn set_energy(&mut self, amount: u32);
-
-    fn get_mana(&self) -> u32;
-
-    fn set_mana(&mut self, amount: u32);
-}
-
 #[derive(Clone, Copy)]
 pub struct StatVal(pub u32, Option<u32>);
 
@@ -36,6 +22,7 @@ impl StatVal {
     pub fn new(val: u32) -> Self {
         StatVal(val, None)
     }
+
     pub fn apply_modifier(&mut self, modifier: StatModifier) {
         if let ModifierKind::Flat(val) = modifier.modifier {
             println!("prev stat val: {}", self.0);
@@ -68,12 +55,12 @@ impl StatVal {
 #[derive(GodotClass, Clone, Debug, PartialEq)]
 #[class(no_init)]
 pub struct StatModifier {
-    pub stat: Stats,
+    pub stat: Stat,
     pub modifier: ModifierKind,
 }
 
 impl StatModifier {
-    pub fn new(stat: Stats, modifier: ModifierKind) -> Self {
+    pub fn new(stat: Stat, modifier: ModifierKind) -> Self {
         Self { stat, modifier }
     }
 }

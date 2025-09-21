@@ -4,7 +4,7 @@ use godot::{
 };
 
 use crate::entities::{
-    entity_stats::{StatVal, Stats},
+    entity_stats::{Stat, StatVal},
     player::{
         character_state_machine::{Event, State},
         main_character::MainCharacter,
@@ -75,13 +75,13 @@ impl InputHandler {
                 || *entity.state.state() == (State::HealingRight {})
             {
                 let get_stat = |stat: Option<&StatVal>| stat.unwrap().0;
-                let cur = get_stat(entity.stats.get(&Stats::Health));
-                let max = get_stat(entity.stats.get(&Stats::MaxHealth));
-                let amount = get_stat(entity.stats.get(&Stats::HealAmount));
+                let cur = get_stat(entity.stats.get(&Stat::Health));
+                let max = get_stat(entity.stats.get(&Stat::MaxHealth));
+                let amount = get_stat(entity.stats.get(&Stat::HealAmount));
 
                 if cur < max {
-                    entity.stats.get_mut(&Stats::Health).unwrap().0 += amount;
-                    let new = get_stat(entity.stats.get(&Stats::Health));
+                    entity.stats.get_mut(&Stat::Health).unwrap().0 += amount;
+                    let new = get_stat(entity.stats.get(&Stat::Health));
                     entity
                         .signals()
                         .player_health_changed()
@@ -118,23 +118,23 @@ impl DevInputHandler {
         }
 
         if event.is_action_just_pressed("dev_increase_level")
-            && let Some(x) = entity.stats.get_mut(&Stats::Level)
+            && let Some(x) = entity.stats.get_mut(&Stat::Level)
         {
             x.0 += 1;
             println!(
                 "DevTools: Increased player level... Current level: {}",
-                entity.stats.get(&Stats::Level).unwrap().0
+                entity.stats.get(&Stat::Level).unwrap().0
             );
         }
 
         if event.is_action_just_pressed("dev_decrease_level")
-            && let Some(x) = entity.stats.get_mut(&Stats::Level)
+            && let Some(x) = entity.stats.get_mut(&Stat::Level)
             && x.0 > 1
         {
             x.0 -= 1;
             println!(
                 "DevTools: Decreased player level... Current level: {}",
-                entity.stats.get(&Stats::Level).unwrap().0
+                entity.stats.get(&Stat::Level).unwrap().0
             );
         }
         inputs
