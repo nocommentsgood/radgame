@@ -5,7 +5,7 @@ use godot::{
 };
 
 use crate::{
-    entities::{entity_hitbox::EntityHitbox, entity_stats::StatModifier},
+    entities::{entity_hitbox::Hitbox, entity_stats::StatModifier},
     utils::collision_layers::CollisionLayers,
 };
 
@@ -71,7 +71,7 @@ impl GameItem {
     }
 
     pub fn on_area_entered(&mut self, area: Gd<Area2D>) {
-        if let Ok(_area) = area.try_cast::<EntityHitbox>() {
+        if let Ok(_area) = area.try_cast::<Hitbox>() {
             println!("PLayer entered item area");
             let b = self.sig_handler.as_ref().unwrap();
             let this = Gd::from_object(self.clone());
@@ -80,7 +80,7 @@ impl GameItem {
     }
 
     pub fn on_area_exited(&mut self, area: Gd<Area2D>) {
-        if let Ok(_area) = area.try_cast::<EntityHitbox>() {
+        if let Ok(_area) = area.try_cast::<Hitbox>() {
             println!("PLayer exited item area");
             let b = self.sig_handler.as_ref().unwrap();
             b.signals().player_exited_item_area().emit();

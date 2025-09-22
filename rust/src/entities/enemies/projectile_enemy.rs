@@ -10,7 +10,7 @@ use super::{
     projectile::Projectile,
 };
 use crate::entities::{
-    damage::Damageable,
+    damage::{AttackData, Damageable, HasHealth},
     entity_hitbox::Hurtbox,
     entity_stats::{Stat, StatVal},
     movements::{Direction, Move, Moveable, MoveableEntity, SpeedComponent},
@@ -116,6 +116,8 @@ impl INode2D for ProjectileEnemy {
             80,
         );
 
+        self.hitbox_mut().bind_mut().damageable_parent = Some(Box::new(self.to_gd()));
+
         self.idle();
         self.animation_player.play_ex().name("idle_east").done();
     }
@@ -168,13 +170,6 @@ impl ProjectileEnemy {
     }
 }
 
-#[godot_dyn]
-impl Damageable for ProjectileEnemy {
-    fn destroy(&mut self) {
-        self.base_mut().queue_free();
-    }
-}
-
 impl HasState for ProjectileEnemy {
     fn sm_mut(&mut self) -> &mut statig::prelude::StateMachine<EnemyStateMachine> {
         &mut self.state
@@ -222,6 +217,26 @@ impl Animatable for ProjectileEnemy {
         if !self.velocity.x.is_zero_approx() {
             self.direction = Direction::from_vel(&self.velocity);
         }
+    }
+}
+
+impl HasHealth for Gd<ProjectileEnemy> {
+    fn get_health(&self) -> u32 {
+        self.bind().stats.get(&Stat::Health).unwrap().0
+    }
+
+    fn set_health(&mut self, amount: u32) {
+        self.bind_mut().stats.get_mut(&Stat::Health).unwrap().0 = amount;
+    }
+
+    fn on_death(&mut self) {
+        self.queue_free();
+    }
+}
+
+impl Damageable for Gd<ProjectileEnemy> {
+    fn handle_attack(&mut self, attack: AttackData) {
+        self.take_damage(attack.damage.raw);
     }
 }
 

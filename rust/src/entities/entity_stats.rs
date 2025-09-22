@@ -65,7 +65,7 @@ impl StatModifier {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum ModifierKind {
     Flat(u32),
     Percent(f32),

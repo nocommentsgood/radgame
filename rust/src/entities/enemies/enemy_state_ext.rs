@@ -3,13 +3,11 @@ use std::collections::HashMap;
 use godot::{
     builtin::Vector2,
     classes::{Area2D, Node2D, Timer},
-    meta::FromGodot,
-    obj::{DynGd, Gd, Inherits, WithBaseField, WithUserSignals},
+    obj::{Gd, Inherits, WithBaseField, WithUserSignals},
 };
 
 use super::{enemy_state_machine::*, patrol_component::PatrolComp};
 use crate::entities::{
-    damage::{Damageable, Damaging},
     enemies::{animatable::Animatable, has_enemy_sensors::HasEnemySensors},
     movements::SpeedComponent,
     player::main_character::MainCharacter,
@@ -75,25 +73,12 @@ where
             .signals()
             .area_exited()
             .connect_other(&this, Self::on_aggro_area_exited);
-        self.hitbox_mut()
-            .signals()
-            .area_entered()
-            .connect_other(&this, Self::on_area_entered_hitbox);
     }
 
     fn fall(&mut self) {
         let velocity = Vector2::DOWN * self.speeds().aggro;
         self.set_velocity(velocity);
         self.slide();
-    }
-
-    // TODO: Change this when typed attacks are finished.
-    fn on_area_entered_hitbox(&mut self, area: Gd<Area2D>) {
-        let damaging = DynGd::<Area2D, dyn Damaging>::from_godot(area);
-        let target = self.to_gd().upcast::<Node2D>();
-        let _guard = self.base_mut();
-        let damageable = DynGd::<Node2D, dyn Damageable>::from_godot(target);
-        // damaging.dyn_bind().do_damage(damageable);
     }
 
     fn on_aggro_area_entered(&mut self, area: Gd<Area2D>) {

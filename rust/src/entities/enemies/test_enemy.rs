@@ -15,7 +15,7 @@ use super::{
     patrol_component::PatrolComp,
 };
 use crate::entities::{
-    damage::Damageable,
+    damage::{AttackData, Damage, DamageType, Damageable, HasHealth},
     movements::{Direction, Move, Moveable, MoveableBody, SpeedComponent},
     time::EnemyTimer,
 };
@@ -25,6 +25,7 @@ type ET = EnemyTimer;
 #[derive(GodotClass)]
 #[class(init, base=CharacterBody2D)]
 pub struct TestEnemy {
+    health: u32,
     previous_velocity: Vector2,
     chain_attack_count: u32,
     direction: Direction,
@@ -33,11 +34,7 @@ pub struct TestEnemy {
     speeds: SpeedComponent,
     state: statig::blocking::StateMachine<EnemyStateMachine>,
     base: Base<CharacterBody2D>,
-    energy: u32,
-    mana: u32,
     player_pos: Option<Vector2>,
-    #[init(val = 100)]
-    health: u32,
     #[init(node = "AnimationPlayer")]
     animation_player: OnReady<Gd<AnimationPlayer>>,
 
@@ -56,6 +53,17 @@ pub struct TestEnemy {
 #[godot_api]
 impl ICharacterBody2D for TestEnemy {
     fn ready(&mut self) {
+        self.hurtbox_mut().bind_mut().data = Some(AttackData {
+            hurtbox: self.hurtbox().clone(),
+            parryable: true,
+            damage: Damage {
+                raw: 10,
+                d_type: DamageType::Physical,
+            },
+        });
+
+        self.hitbox_mut().bind_mut().damageable_parent = Some(Box::new(self.to_gd()));
+
         self.patrol_comp.left_target = self.left_target;
         self.patrol_comp.right_target = self.right_target;
         self.speeds = SpeedComponent::new(40, 40, 80);
@@ -92,7 +100,6 @@ impl ICharacterBody2D for TestEnemy {
         });
 
         self.connect_signals();
-        // self.hurtbox_mut().bind_mut().attack_damage = 10;
         self.idle();
         self.animation_player.play_ex().name("idle_east").done();
     }
@@ -147,14 +154,6 @@ impl HasEnemySensors for TestEnemy {
     }
 }
 
-#[godot_dyn]
-impl Damageable for TestEnemy {
-    fn destroy(&mut self) {
-        self.signals().test_enemy_died().emit();
-        self.base_mut().queue_free();
-    }
-}
-
 impl Animatable for TestEnemy {
     fn anim_player_mut(&mut self) -> &mut Gd<AnimationPlayer> {
         &mut self.animation_player
@@ -193,6 +192,27 @@ impl Move for TestEnemy {
     }
 }
 
+impl HasHealth for Gd<TestEnemy> {
+    fn get_health(&self) -> u32 {
+        self.bind().health
+    }
+
+    fn set_health(&mut self, amount: u32) {
+        self.bind_mut().health = amount;
+    }
+
+    fn on_death(&mut self) {
+        self.signals().test_enemy_died().emit();
+        self.queue_free();
+    }
+}
+
+impl Damageable for Gd<TestEnemy> {
+    fn handle_attack(&mut self, attack: AttackData) {
+        self.take_damage(attack.damage.raw);
+    }
+}
+
 impl EnemyEntityStateMachineExt for TestEnemy {
     fn timers(&mut self) -> &mut HashMap<EnemyTimer, Gd<Timer>> {
         &mut self.timers
@@ -218,7 +238,9 @@ impl EnemyEntityStateMachineExt for TestEnemy {
         self.chain_attack_count = amount;
     }
 
+    // TODO: Implement
     fn attack_implementation(&mut self) {
+        unimplemented!("Attack types")
         // if let Some(p) = self.get_player_pos() {
         //     let pos = self.base().get_position();
         //     let dir = Direction::from_vel(&pos.direction_to(p));

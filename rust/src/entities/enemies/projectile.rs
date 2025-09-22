@@ -3,7 +3,13 @@ use godot::{
     prelude::*,
 };
 
-use crate::{entities::entity_hitbox::Hurtbox, utils::collision_layers};
+use crate::{
+    entities::{
+        damage::{AttackData, Damage, DamageType, ElementType},
+        entity_hitbox::Hurtbox,
+    },
+    utils::collision_layers,
+};
 
 #[derive(GodotClass)]
 #[class(init, base=Node2D)]
@@ -23,9 +29,18 @@ impl INode2D for Projectile {
     fn ready(&mut self) {
         self.speed = 500.0;
         self.start_pos = self.base().get_position();
+        self.hurtbox.bind_mut().data = Some(AttackData {
+            hurtbox: self.hurtbox.clone(),
+            parryable: true,
+            damage: Damage {
+                raw: 10,
+                d_type: DamageType::Elemental(ElementType::Fire),
+            },
+        });
         let mut timer = Timer::new_alloc();
         timer.set_wait_time(2.0);
         self.base_mut().add_child(&timer);
+
         self.timer.init(timer);
 
         self.timer

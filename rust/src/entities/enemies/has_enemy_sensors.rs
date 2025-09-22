@@ -4,7 +4,7 @@ use godot::{
 };
 
 use super::has_state::HasState;
-use crate::entities::entity_hitbox::{EntityHitbox, Hurtbox};
+use crate::entities::entity_hitbox::{Hitbox, Hurtbox};
 
 #[allow(unused)]
 pub trait HasEnemySensors: HasState
@@ -55,12 +55,12 @@ where
         self.sensors_mut().get_node_as::<Area2D>("AttackArea")
     }
 
-    fn hitbox(&self) -> Gd<EntityHitbox> {
-        self.sensors().get_node_as::<EntityHitbox>("Hitbox")
+    fn hitbox(&self) -> Gd<Hitbox> {
+        self.sensors().get_node_as::<Hitbox>("Hitbox")
     }
 
-    fn hitbox_mut(&mut self) -> Gd<Area2D> {
-        self.sensors_mut().get_node_as::<Area2D>("Hitbox")
+    fn hitbox_mut(&mut self) -> Gd<Hitbox> {
+        self.sensors_mut().get_node_as::<Hitbox>("Hitbox")
     }
 
     fn hurtbox(&self) -> Gd<Hurtbox> {

@@ -9,7 +9,9 @@ use godot::{
 };
 
 use crate::entities::{
-    damage, entity_hitbox::Hurtbox, entity_stats::Stat, player::main_character::MainCharacter,
+    damage::{self, AttackData, Damage, DamageType, ElementType},
+    entity_hitbox::Hurtbox,
+    player::main_character::MainCharacter,
 };
 
 #[derive(Clone, Copy, Debug)]
@@ -50,12 +52,23 @@ impl Ability {
 
                 // Set ability's damage amount.
                 let mut right_pillar = ability.get_node_as::<Hurtbox>("RightPillar");
+                right_pillar.bind_mut().data = Some(AttackData {
+                    hurtbox: right_pillar.clone(),
+                    parryable: false,
+                    damage: Damage {
+                        raw: 10,
+                        d_type: DamageType::Elemental(ElementType::Magic),
+                    },
+                });
                 let mut left_pillar = ability.get_node_as::<Hurtbox>("LeftPillar");
-                // let base_damage = right_pillar.bind().attack_damage;
-                // let level = player.stats.get(&Stat::Level).unwrap();
-                // let total_damage = damage::calc_simple_damage(&base_damage, &level.0);
-                // right_pillar.bind_mut().attack_damage = total_damage;
-                // left_pillar.bind_mut().attack_damage = total_damage;
+                left_pillar.bind_mut().data = Some(AttackData {
+                    hurtbox: right_pillar.clone(),
+                    parryable: false,
+                    damage: Damage {
+                        raw: 10,
+                        d_type: DamageType::Elemental(ElementType::Magic),
+                    },
+                });
 
                 timer.set_wait_time(1.5);
                 ability.set_position(player.base().get_global_position());
@@ -70,6 +83,16 @@ impl Ability {
             }
         }
     }
+}
+
+#[derive(GodotClass, Debug)]
+#[class(init, base=Node2D)]
+struct TwinPillarAbility {
+    #[init(node = "RightPillar")]
+    right: OnReady<Gd<Hurtbox>>,
+    #[init(node = "LeftPillar")]
+    left: OnReady<Gd<Hurtbox>>,
+    base: Base<Node2D>,
 }
 
 #[derive(GodotClass, Debug)]
