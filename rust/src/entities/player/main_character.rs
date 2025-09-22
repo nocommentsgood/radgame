@@ -11,8 +11,8 @@ use crate::{
     entities::{
         damage::{AttackData, Damage, DamageType, Damageable, HasHealth},
         enemies::projectile::Projectile,
-        entity_hitbox::{Hitbox, Hurtbox},
         entity_stats::{Stat, StatModifier, StatVal},
+        hit_reg::{Hitbox, Hurtbox},
         movements::Direction,
         player::{
             abilities::AbilityComp,

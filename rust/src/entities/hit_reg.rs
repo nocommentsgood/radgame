@@ -1,7 +1,7 @@
 use godot::{
     classes::{Area2D, IArea2D},
     meta::ToGodot,
-    obj::{Base, Gd, WithBaseField, WithUserSignals},
+    obj::{Base, Gd, WithBaseField},
     prelude::{GodotClass, godot_api},
 };
 
@@ -38,16 +38,6 @@ impl IArea2D for Hurtbox {
 
 #[godot_api]
 impl Hurtbox {
-    #[signal]
-    fn dummy();
-
-    // TODO: Connect to some combat handler?
-    // Or... Have the Hurtbox build an AttackDamage type.
-    // The hitbox can have a `HandleDamage` function.
-    // Call hitbox.handle_damage(damage)
-    #[signal]
-    pub fn attack_event(data: Gd<AttackData>);
-
     fn on_hit(&mut self, area: Gd<Area2D>) {
         let hurtbox = self.to_gd();
         self.data.as_mut().unwrap().hurtbox = hurtbox;
@@ -59,7 +49,5 @@ impl Hurtbox {
             .as_mut()
             .unwrap()
             .handle_attack(self.data.clone().unwrap());
-        let data = Gd::from_object(self.data.clone().unwrap());
-        self.signals().attack_event().emit(&data);
     }
 }

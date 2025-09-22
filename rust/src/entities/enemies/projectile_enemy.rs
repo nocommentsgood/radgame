@@ -11,8 +11,8 @@ use super::{
 };
 use crate::entities::{
     damage::{AttackData, Damageable, HasHealth},
-    entity_hitbox::Hurtbox,
     entity_stats::{Stat, StatVal},
+    hit_reg::Hurtbox,
     movements::{Direction, Move, Moveable, MoveableEntity, SpeedComponent},
     time::EnemyTimer,
 };

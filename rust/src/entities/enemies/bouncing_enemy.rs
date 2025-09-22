@@ -5,7 +5,7 @@ use godot::{
     prelude::{GodotClass, godot_api},
 };
 
-use crate::entities::{entity_hitbox::Hitbox, movements};
+use crate::entities::{hit_reg::Hitbox, movements};
 
 #[derive(GodotClass)]
 #[class(init, base = StaticBody2D)]

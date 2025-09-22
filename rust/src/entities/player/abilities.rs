@@ -10,7 +10,7 @@ use godot::{
 
 use crate::entities::{
     damage::{self, AttackData, Damage, DamageType, ElementType},
-    entity_hitbox::Hurtbox,
+    hit_reg::Hurtbox,
     player::main_character::MainCharacter,
 };
 

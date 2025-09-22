@@ -6,7 +6,7 @@ use godot::{
 use crate::{
     entities::{
         damage::{AttackData, Damage, DamageType, ElementType},
-        entity_hitbox::Hurtbox,
+        hit_reg::Hurtbox,
     },
     utils::collision_layers,
 };

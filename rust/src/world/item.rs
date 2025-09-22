@@ -5,7 +5,7 @@ use godot::{
 };
 
 use crate::{
-    entities::{entity_hitbox::Hitbox, entity_stats::StatModifier},
+    entities::{entity_stats::StatModifier, hit_reg::Hitbox},
     utils::collision_layers::CollisionLayers,
 };
 

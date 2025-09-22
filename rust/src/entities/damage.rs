@@ -5,8 +5,8 @@ use godot::{
 };
 
 use crate::entities::{
-    entity_hitbox::{Hitbox, Hurtbox},
     entity_stats::ModifierKind,
+    hit_reg::{Hitbox, Hurtbox},
 };
 
 pub trait HasHealth {
