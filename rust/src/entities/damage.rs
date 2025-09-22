@@ -49,6 +49,8 @@ pub struct AttackData {
     pub damage: Damage,
 }
 
+// TODO: Add resistance calculations to Damageable entities.
+//
 /// Implement on entities that can take damage. Requires the entity to have a Hitbox.
 pub trait Damageable: HasHealth {
     /// Decreases a Damageable's health and checks if the Damageable's health is zero.

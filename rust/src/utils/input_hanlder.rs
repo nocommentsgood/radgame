@@ -88,8 +88,8 @@ impl InputHandler {
                         .emit(cur, new, amount);
                 }
             }
-
-            if input.is_action_pressed("parry") && timer_ok(entity.timers.get(&PT::ParryAnimation))
+        }
+        if input.is_action_pressed("parry") && timer_ok(entity.timers.get(&PT::ParryAnimation)) {
             {
                 entity.timers.get_mut(&PT::ParryAnimation).unwrap().start();
                 entity.timers.get_mut(&PT::PerfectParry).unwrap().start();
