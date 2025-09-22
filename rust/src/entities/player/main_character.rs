@@ -626,7 +626,12 @@ impl Damageable for Gd<MainCharacter> {
                     .bind_mut()
                     .add_trauma(TraumaLevel::from(attack.damage.raw));
                 drop(guard);
+                let cur = self.get_health();
                 self.take_damage(attack.damage.raw);
+                let new = self.get_health();
+                self.signals()
+                    .player_health_changed()
+                    .emit(cur, new, attack.damage.raw);
                 self.bind_mut().transition_sm(&Event::Hurt);
             }
         }
