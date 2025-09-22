@@ -1,4 +1,4 @@
-[gd_scene load_steps=15 format=4 uid="uid://c3iixjrk3ypgs"]
+[gd_scene load_steps=16 format=4 uid="uid://c3iixjrk3ypgs"]
 
 [ext_resource type="PackedScene" uid="uid://d0yxvbpejsju5" path="res://maps/base_map.tscn" id="1_b71ab"]
 [ext_resource type="PackedScene" uid="uid://bvamjbuhuto6u" path="res://maps/background.tscn" id="2_6b7mj"]
@@ -8,6 +8,7 @@
 [ext_resource type="PackedScene" uid="uid://cb2l6ctn5uru8" path="res://world/sliding_door.tscn" id="4_42yok"]
 [ext_resource type="PackedScene" uid="uid://dmnvgp7j5vtfe" path="res://entities/enemies/test_enemy.tscn" id="7_6b7mj"]
 [ext_resource type="PackedScene" uid="uid://cfbrt6vkya0f3" path="res://mock_enemy.tscn" id="7_pbr4s"]
+[ext_resource type="PackedScene" uid="uid://bi8lam8unfccl" path="res://bounce_enemy.tscn" id="9_svl6s"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_pbr4s"]
 texture = ExtResource("2_pwco0")
@@ -327,6 +328,9 @@ position = Vector2(797, 77)
 
 [node name="MockEnemy" parent="Enemies" index="1" instance=ExtResource("7_pbr4s")]
 position = Vector2(1801, 41)
+
+[node name="BounceEnemy" parent="Enemies" index="2" instance=ExtResource("9_svl6s")]
+position = Vector2(595, 18)
 
 [node name="CameraData" type="CameraData" parent="CameraData" index="0" node_paths=PackedStringArray("shape")]
 shape = NodePath("CollisionShape2D")

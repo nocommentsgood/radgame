@@ -55,7 +55,7 @@ libraries = {
 wait_time = 2.0
 autostart = true
 
-[node name="EntityHitbox" type="EntityHitbox" parent="."]
+[node name="EntityHitbox" type="Hitbox" parent="."]
 collision_layer = 8
 collision_mask = 16
 
