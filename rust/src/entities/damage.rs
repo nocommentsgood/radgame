@@ -9,24 +9,17 @@ use crate::entities::{
     entity_stats::ModifierKind,
 };
 
-/// Implement on entities that are capable of being damaged. See also: trait Damaging.
-pub trait Damageable {
-    fn take_damage(&mut self, amount: u32) {
-        //     let mut current_health = self.get_health();
-        //     current_health = current_health.saturating_sub(amount);
-        //     self.set_health(current_health);
-        //
-        //     if self.is_dead() {
-        //         self.destroy();
-        //     }
-    }
-    //
-    fn is_dead(&self) -> bool {
-        //     self.get_health() == 0
-        false
-    }
+pub trait HasHealth {
+    fn get_health(&self) -> u32;
+    fn set_health(&mut self, amount: u32);
+    fn on_death(&mut self);
+}
 
     fn destroy(&mut self);
+#[derive(Clone, Copy)]
+pub struct Damage {
+    pub raw: u32,
+    pub d_type: DamageType,
 }
 
 /// Implement this trait on anything that is capable of dealing damage
@@ -48,6 +41,11 @@ pub trait Damaging {
             .area_entered()
             .connect_other(&self.to_gd(), Self::on_hurtbox_entered_hitbox);
     }
+#[derive(Clone, Copy)]
+pub enum DamageType {
+    Elemental(ElementType),
+    Physical,
+}
 
     fn on_hurtbox_entered_hitbox(&mut self, area: Gd<Area2D>)
     where
@@ -68,25 +66,46 @@ pub trait Damaging {
             println!("Resolved combat");
         }
     }
+#[derive(Clone, Copy)]
+pub enum ElementType {
+    Magic,
+    Poison,
+    Lightning,
+    Fire,
 }
 
 struct Health {
     pub value: u32,
+#[derive(Clone, Copy)]
+pub enum Resistance {
+    Physical(ModifierKind),
+    Elemental(ElementType, ModifierKind),
 }
 
 pub trait HasHealth {
     fn get_health(&self) -> u32;
     fn set_health(&mut self, amount: u32);
+#[derive(GodotClass, Clone)]
+#[class(no_init)]
+pub struct AttackData {
+    pub hurtbox: Gd<Hurtbox>,
+    pub parryable: bool,
+    pub damage: Damage,
+}
 
+/// Implement on entities that can take damage. Requires the entity to have a Hitbox.
+pub trait Damageable: HasHealth {
+    /// Decreases a Damageable's health and checks if the Damageable's health is zero.
     fn take_damage(&mut self, amount: u32) {
         self.set_health(self.get_health().saturating_sub(amount));
-
         if self.get_health() == 0 {
             self.on_death();
         }
     }
 
-    fn on_death(&mut self);
+    /// Handles the `AttackData` given by a `Hurtbox`. This should handle attack damage,
+    /// resistances of the defender, attack types, etc.
+    fn handle_attack(&mut self, attack: AttackData);
 }
 
 #[derive(GodotClass)]
@@ -124,67 +143,5 @@ impl HasHealth for Gd<MockEnemy> {
     }
 }
 
-impl HasHealth for MockEnemy {
-    fn get_health(&self) -> u32 {
-        self.health.value
-    }
-
-    fn set_health(&mut self, amount: u32) {
-        self.health.value = amount;
-    }
-
-    fn on_death(&mut self) {
-        self.base_mut().queue_free();
-    }
-}
-
-pub struct AttackData<'a> {
-    damage: Damage,
-    defending_unit: &'a mut dyn HasHealth,
-    attacking_unit: &'a dyn Damaging,
-}
-
-impl<'a> AttackData<'a> {
-    pub fn new(
-        damage: Damage,
-        defending_unit: &'a mut dyn HasHealth,
-        attacking_unit: &'a mut dyn Damaging,
-    ) -> Self {
-        Self {
-            damage,
-            defending_unit,
-            attacking_unit,
-        }
-    }
-}
-
-pub struct Damage {
-    pub raw: u32,
-    pub d_type: DamageType,
-}
-
-pub enum DamageType {
-    Elemental(ElementType),
-    Physical,
-}
-
-pub enum ElementType {
-    Magic,
-    Poison,
-    Lightning,
-    Fire,
-}
-
-pub enum Resistance {
-    Physical(ModifierKind),
-    Elemental(ElementType, ModifierKind),
-}
-
-pub struct CombatSystem;
-
-impl CombatSystem {
-    pub fn resolve(data: AttackData) {
-        let health = data.defending_unit.get_health();
-        data.defending_unit.set_health(health - data.damage.raw);
     }
 }
