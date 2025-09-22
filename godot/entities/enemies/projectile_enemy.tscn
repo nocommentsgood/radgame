@@ -668,7 +668,7 @@ collision_mask = 4
 shape = SubResource("CircleShape2D_isb6e")
 debug_color = Color(0.998547, 0, 0.139145, 0.42)
 
-[node name="Hitbox" type="EntityHitbox" parent="EnemySensors"]
+[node name="Hitbox" type="Hitbox" parent="EnemySensors"]
 collision_layer = 8
 collision_mask = 16
 

@@ -1,4 +1,4 @@
-[gd_scene load_steps=4 format=3 uid="uid://bi8lam8unfccl"]
+[gd_scene load_steps=5 format=3 uid="uid://bi8lam8unfccl"]
 
 [ext_resource type="Texture2D" uid="uid://c350iit4lopo8" path="res://assets/icon.svg" id="1_a80vk"]
 
@@ -7,6 +7,9 @@ radius = 59.03389
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_0tmgg"]
 radius = 60.0
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_a80vk"]
+size = Vector2(700, 300)
 
 [node name="BounceEnemy" type="BounceEnemy"]
 collision_layer = 2
@@ -24,3 +27,12 @@ collision_mask = 4
 
 [node name="CollisionShape2D2" type="CollisionShape2D" parent="EntityHitbox"]
 shape = SubResource("CircleShape2D_0tmgg")
+
+[node name="ShootCooldown" type="Timer" parent="."]
+autostart = true
+
+[node name="AggroArea" type="Area2D" parent="."]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="AggroArea"]
+position = Vector2(-3.5, -10)
+shape = SubResource("RectangleShape2D_a80vk")
