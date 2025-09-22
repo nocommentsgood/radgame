@@ -162,10 +162,9 @@ impl ProjectileEnemy {
             true,
         );
         hurtbox.set_collision_mask_value(
-            crate::utils::collision_layers::CollisionLayers::PlayerHurtbox as i32,
+            crate::utils::collision_layers::CollisionLayers::PlayerHitbox as i32,
             true,
         );
-        // hurtbox.bind_mut().attack_damage = 20;
         self.base_mut().add_sibling(&inst);
     }
 }
