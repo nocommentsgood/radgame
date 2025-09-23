@@ -15,7 +15,7 @@ pub enum Stat {
     Level,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct StatVal(pub u32, Option<u32>);
 
 impl StatVal {

@@ -7,8 +7,9 @@ use super::map::Map;
 
 use crate::{
     entities::player::{
-        item_component::ItemComponent, main_character::MainCharacter,
-        shaky_player_camera::PlayerCamera,
+        item_component::ItemComponent,
+        main_character::MainCharacter,
+        shaky_player_camera::{CameraData, PlayerCamera},
     },
     utils::global_data_singleton::GlobalData,
     world::item::{GameItem, GameItemSignalHandler},
@@ -113,6 +114,7 @@ impl Main {
                 map.set_name("Map");
                 let map_clone = map.clone();
 
+                // Add the new map to the scene tree and remove the old map.
                 world.apply_deferred(move |world| {
                     world.add_child(&map_clone);
                     world.remove_child(&cur_map);
@@ -129,6 +131,8 @@ impl Main {
                         .unwrap(),
                 );
                 let new_map = map.clone();
+
+                // Timer used for hiding the camera's movement during transitions.
                 let timer = this.get_tree().unwrap().create_timer(0.1).unwrap();
 
                 new_map.signals().ready().to_future().await;
@@ -159,6 +163,10 @@ impl Main {
                 let mut new_map = map.clone();
                 let mut item_comp = player.get_node_as::<ItemComponent>("ItemComponent");
                 Self::connect_map_items(&mut new_map.bind_mut().items, &mut item_comp);
+                Self::give_camera_data_player_ref(
+                    &mut new_map.bind_mut().camera_data,
+                    player.bind().camera.clone(),
+                );
                 map.signals()
                     .propigate_map_trans()
                     .connect_other(&this, Self::on_transition_map_request);
@@ -219,6 +227,15 @@ impl Main {
             area.signals()
                 .area_exited()
                 .connect(move |area| gi.bind_mut().on_area_exited(area));
+        }
+    }
+
+    fn give_camera_data_player_ref(
+        camera_data: &mut [Gd<CameraData>],
+        player_camera: Gd<PlayerCamera>,
+    ) {
+        for cam in camera_data {
+            cam.bind_mut().player_camera = Some(player_camera.clone());
         }
     }
 
