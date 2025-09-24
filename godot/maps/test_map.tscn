@@ -7,8 +7,8 @@
 [ext_resource type="PackedScene" uid="uid://dt2v4rmlmrw0" path="res://world/game_item.tscn" id="3_pwco0"]
 [ext_resource type="PackedScene" uid="uid://cb2l6ctn5uru8" path="res://world/sliding_door.tscn" id="4_42yok"]
 [ext_resource type="PackedScene" uid="uid://dmnvgp7j5vtfe" path="res://entities/enemies/test_enemy.tscn" id="7_6b7mj"]
-[ext_resource type="PackedScene" uid="uid://cfbrt6vkya0f3" path="res://mock_enemy.tscn" id="7_pbr4s"]
-[ext_resource type="PackedScene" uid="uid://bi8lam8unfccl" path="res://bounce_enemy.tscn" id="9_svl6s"]
+[ext_resource type="PackedScene" uid="uid://cfbrt6vkya0f3" path="res://entities/enemies/mock_enemy.tscn" id="7_pbr4s"]
+[ext_resource type="PackedScene" uid="uid://bi8lam8unfccl" path="res://entities/enemies/bounce_enemy.tscn" id="9_svl6s"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_pbr4s"]
 texture = ExtResource("2_pwco0")
