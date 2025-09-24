@@ -43,7 +43,6 @@ pub struct MainCharacter {
     pub timers: HashMap<PlayerTimer, Gd<Timer>>,
     early_gravity_time: f32,
     pub state: StateMachine<csm::CharacterStateMachine>,
-    // pub stats: HashMap<Stat, StatVal>,
     pub stats: EntityStats,
     #[init(val = AbilityComp::new_test())]
     pub ability_comp: AbilityComp,

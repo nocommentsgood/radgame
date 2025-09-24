@@ -1,10 +1,10 @@
 use godot::{
-    classes::{Input, InputEvent, Timer},
+    classes::{Input, Timer},
     obj::{Gd, WithBaseField, WithUserSignals},
 };
 
 use crate::entities::{
-    entity_stats::{Stat, StatVal},
+    entity_stats::Stat,
     player::{
         character_state_machine::{Event, State},
         main_character::MainCharacter,
@@ -74,14 +74,13 @@ impl InputHandler {
             if *entity.state.state() == (State::HealingLeft {})
                 || *entity.state.state() == (State::HealingRight {})
             {
-                let get_stat = |stat: Option<&StatVal>| stat.unwrap().0;
-                let cur = get_stat(entity.stats.get(&Stat::Health));
-                let max = get_stat(entity.stats.get(&Stat::MaxHealth));
-                let amount = get_stat(entity.stats.get(&Stat::HealAmount));
+                let cur = entity.stats.get_raw(Stat::Health);
+                let max = entity.stats.get_raw(Stat::MaxHealth);
+                let amount = entity.stats.get_raw(Stat::HealAmount);
 
                 if cur < max {
-                    entity.stats.get_mut(&Stat::Health).unwrap().0 += amount;
-                    let new = get_stat(entity.stats.get(&Stat::Health));
+                    entity.stats.get_mut(Stat::Health).0 += amount;
+                    let new = entity.stats.get(Stat::Health).0;
                     entity
                         .signals()
                         .player_health_changed()
@@ -117,24 +116,21 @@ impl DevInputHandler {
             entity.base_mut().set_global_position(pos);
         }
 
-        if event.is_action_just_pressed("dev_increase_level")
-            && let Some(x) = entity.stats.get_mut(&Stat::Level)
-        {
-            x.0 += 1;
+        if event.is_action_just_pressed("dev_increase_level") {
+            entity.stats.get_mut(Stat::Level).0 += 1;
             println!(
                 "DevTools: Increased player level... Current level: {}",
-                entity.stats.get(&Stat::Level).unwrap().0
+                entity.stats.get(Stat::Level).0
             );
         }
 
-        if event.is_action_just_pressed("dev_decrease_level")
-            && let Some(x) = entity.stats.get_mut(&Stat::Level)
-            && x.0 > 1
-        {
-            x.0 -= 1;
+        if event.is_action_just_pressed("dev_decrease_level") {
+            if entity.stats.get(Stat::Level).0 > 1 {
+                entity.stats.get_mut(Stat::Level).0 -= 1;
+            }
             println!(
                 "DevTools: Decreased player level... Current level: {}",
-                entity.stats.get(&Stat::Level).unwrap().0
+                entity.stats.get(Stat::Level).0
             );
         }
         inputs

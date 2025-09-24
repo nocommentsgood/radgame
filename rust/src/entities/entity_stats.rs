@@ -1,4 +1,4 @@
-use std::{collections::HashMap, error::Error};
+use std::collections::HashMap;
 
 use godot::prelude::GodotClass;
 
@@ -6,23 +6,11 @@ use godot::prelude::GodotClass;
 pub struct EntityStats(HashMap<Stat, StatVal>);
 
 impl EntityStats {
-    /// Inserts the given key-value.
-    /// Performs no operations if the given key already exists.
-    pub fn add(&mut self, stat: (Stat, StatVal)) {
-        self.0.try_insert(stat.0, stat.1);
-    }
-
     /// Inserts the given keys and values.
     /// If a given key already exists, it will not be added, nor will it's corresponding value.
     pub fn add_slice(&mut self, stats: &[(Stat, StatVal)]) {
         for s in stats {
-            self.0.try_insert(s.0, s.1);
-        }
-    }
-
-    pub fn update(&mut self, stat: (Stat, StatVal)) {
-        if let Some(val) = self.0.get_mut(&stat.0) {
-            *val = stat.1;
+            let _ = self.0.try_insert(s.0, s.1);
         }
     }
 
@@ -72,28 +60,22 @@ impl StatVal {
 
     pub fn apply_modifier(&mut self, modifier: StatModifier) {
         if let ModifierKind::Flat(val) = modifier.modifier {
-            println!("prev stat val: {}", self.0);
             let amount = self.0 * val;
             self.1 = Some(self.0);
             self.0 = amount;
-            println!("new stat val: {}", self.0);
         }
 
         if let ModifierKind::Percent(val) = modifier.modifier {
-            println!("prev stat val: {}", self.0);
             let sum = (self.0 as f32 * val).round_ties_even() as u32;
             self.1 = Some(self.0);
             self.0 = sum;
-            println!("new stat val: {}", self.0);
         }
     }
 
     pub fn remove_modifier(&mut self, _modifier: StatModifier) {
         if let Some(v) = self.1 {
-            println!("Removing modifier... Previous val: {}", self.0);
             self.0 = v;
             self.1 = None;
-            println!("Removed modifier... Current val: {}", self.0);
         }
     }
 }
