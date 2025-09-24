@@ -11,7 +11,7 @@ use crate::{
     entities::{
         damage::{AttackData, Damage, DamageType, Damageable, HasHealth},
         enemies::projectile::Projectile,
-        entity_stats::{Stat, StatModifier, StatVal},
+        entity_stats::{EntityStats, Stat, StatModifier, StatVal},
         hit_reg::{Hitbox, Hurtbox},
         movements::Direction,
         player::{
@@ -43,7 +43,8 @@ pub struct MainCharacter {
     pub timers: HashMap<PlayerTimer, Gd<Timer>>,
     early_gravity_time: f32,
     pub state: StateMachine<csm::CharacterStateMachine>,
-    pub stats: HashMap<Stat, StatVal>,
+    // pub stats: HashMap<Stat, StatVal>,
+    pub stats: EntityStats,
     #[init(val = AbilityComp::new_test())]
     pub ability_comp: AbilityComp,
     base: Base<CharacterBody2D>,
@@ -97,15 +98,27 @@ impl ICharacterBody2D for MainCharacter {
             .modifier_removed()
             .connect_other(&this, Self::on_modifier_removed);
 
-        self.stats.insert(Stat::Health, StatVal::new(50));
-        self.stats.insert(Stat::MaxHealth, StatVal::new(50));
-        self.stats.insert(Stat::HealAmount, StatVal::new(10));
-        self.stats.insert(Stat::AttackDamage, StatVal::new(30));
-        self.stats.insert(Stat::RunningSpeed, StatVal::new(180));
-        self.stats.insert(Stat::JumpingSpeed, StatVal::new(300));
-        self.stats.insert(Stat::DodgingSpeed, StatVal::new(250));
-        self.stats.insert(Stat::AttackingSpeed, StatVal::new(10));
-        self.stats.insert(Stat::Level, StatVal::new(1));
+        self.stats.add_slice(&[
+            (Stat::Health, StatVal::new(50)),
+            (Stat::MaxHealth, StatVal::new(50)),
+            (Stat::HealAmount, StatVal::new(10)),
+            (Stat::AttackDamage, StatVal::new(30)),
+            (Stat::RunningSpeed, StatVal::new(180)),
+            (Stat::JumpingSpeed, StatVal::new(300)),
+            (Stat::DodgingSpeed, StatVal::new(250)),
+            (Stat::AttackingSpeed, StatVal::new(10)),
+            (Stat::Level, StatVal::new(1)),
+        ]);
+
+        // self.stats.insert(Stat::Health, StatVal::new(50));
+        // self.stats.insert(Stat::MaxHealth, StatVal::new(50));
+        // self.stats.insert(Stat::HealAmount, StatVal::new(10));
+        // self.stats.insert(Stat::AttackDamage, StatVal::new(30));
+        // self.stats.insert(Stat::RunningSpeed, StatVal::new(180));
+        // self.stats.insert(Stat::JumpingSpeed, StatVal::new(300));
+        // self.stats.insert(Stat::DodgingSpeed, StatVal::new(250));
+        // self.stats.insert(Stat::AttackingSpeed, StatVal::new(10));
+        // self.stats.insert(Stat::Level, StatVal::new(1));
 
         self.init_timers();
 
@@ -116,7 +129,7 @@ impl ICharacterBody2D for MainCharacter {
             hurtbox: self.hurtbox.clone(),
             parryable: false,
             damage: Damage {
-                raw: self.stats.get(&Stat::AttackDamage).unwrap().0,
+                raw: self.stats.get_raw(Stat::AttackDamage),
                 d_type: DamageType::Physical,
             },
         });
@@ -161,43 +174,43 @@ impl MainCharacter {
     /// Applies accelerated movement depending on current state.
     /// Moves the camera if the player's velocity has changed.
     fn accelerate(&mut self) {
-        let stat = |map: &HashMap<Stat, StatVal>, stat: &Stat| map.get(stat).unwrap().0 as f32;
+        // let stat = |map: &HashMap<Stat, StatVal>, stat: &Stat| map.get(stat).unwrap().0 as f32;
 
         let velocity = self.velocity;
         match self.state.state() {
             State::MoveFallingLeft {} | State::MoveLeftAirAttack {} => {
-                self.velocity.x = stat(&self.stats, &Stat::RunningSpeed) * Vector2::LEFT.x;
+                self.velocity.x = self.stats.get_raw(Stat::RunningSpeed) as f32;
             }
             State::MoveFallingRight {} | State::MoveRightAirAttack {} => {
-                self.velocity.x = stat(&self.stats, &Stat::RunningSpeed) * Vector2::RIGHT.x;
+                self.velocity.x = self.stats.get_raw(Stat::RunningSpeed) as f32 * Vector2::RIGHT.x;
             }
             State::DodgingLeft {} => {
-                self.velocity.x = stat(&self.stats, &Stat::DodgingSpeed) * Vector2::LEFT.x;
+                self.velocity.x = self.stats.get_raw(Stat::DodgingSpeed) as f32 * Vector2::LEFT.x;
             }
             State::DodgingRight {} => {
-                self.velocity.x = stat(&self.stats, &Stat::DodgingSpeed) * Vector2::RIGHT.x;
+                self.velocity.x = self.stats.get_raw(Stat::DodgingSpeed) as f32 * Vector2::RIGHT.x;
             }
             State::MoveLeft {} => {
-                self.velocity.x = stat(&self.stats, &Stat::RunningSpeed) * Vector2::LEFT.x;
+                self.velocity.x = self.stats.get_raw(Stat::RunningSpeed) as f32 * Vector2::LEFT.x;
             }
             State::MoveRight {} => {
-                self.velocity.x = stat(&self.stats, &Stat::RunningSpeed) * Vector2::RIGHT.x;
+                self.velocity.x = self.stats.get_raw(Stat::RunningSpeed) as f32 * Vector2::RIGHT.x;
             }
             State::JumpingRight {} => {
-                self.velocity.y = stat(&self.stats, &Stat::JumpingSpeed) * Vector2::UP.y;
+                self.velocity.y = self.stats.get_raw(Stat::JumpingSpeed) as f32 * Vector2::UP.y;
                 self.velocity.x = 0.0;
             }
             State::JumpingLeft {} => {
-                self.velocity.y = stat(&self.stats, &Stat::JumpingSpeed) * Vector2::UP.y;
+                self.velocity.y = self.stats.get_raw(Stat::JumpingSpeed) as f32 * Vector2::UP.y;
                 self.velocity.x = 0.0;
             }
             State::MoveJumpingRight {} => {
-                self.velocity.x = stat(&self.stats, &Stat::RunningSpeed) * Vector2::RIGHT.x;
-                self.velocity.y = stat(&self.stats, &Stat::JumpingSpeed) * Vector2::UP.y;
+                self.velocity.x = self.stats.get_raw(Stat::RunningSpeed) as f32 * Vector2::RIGHT.x;
+                self.velocity.y = self.stats.get_raw(Stat::JumpingSpeed) as f32 * Vector2::UP.y;
             }
             State::MoveJumpingLeft {} => {
-                self.velocity.x = stat(&self.stats, &Stat::RunningSpeed) * Vector2::LEFT.x;
-                self.velocity.y = stat(&self.stats, &Stat::JumpingSpeed) * Vector2::UP.y;
+                self.velocity.x = self.stats.get_raw(Stat::RunningSpeed) as f32 * Vector2::LEFT.x;
+                self.velocity.y = self.stats.get_raw(Stat::JumpingSpeed) as f32 * Vector2::UP.y;
             }
             _ => self.velocity.x = 0.0,
         }
@@ -567,15 +580,15 @@ impl MainCharacter {
     }
 
     fn on_new_modifier(&mut self, modifier: Gd<StatModifier>) {
-        if let Some(val) = self.stats.get_mut(&modifier.bind().stat) {
-            val.apply_modifier(modifier.bind().clone());
-        }
+        let modif = modifier.bind();
+        self.stats.get_mut(modif.stat).apply_modifier(modif.clone());
     }
 
     fn on_modifier_removed(&mut self, modifier: Gd<StatModifier>) {
-        if let Some(val) = self.stats.get_mut(&modifier.bind().stat) {
-            val.remove_modifier(modifier.bind().clone());
-        }
+        let modif = modifier.bind();
+        self.stats
+            .get_mut(modif.stat)
+            .remove_modifier(modif.clone());
     }
 
     pub fn get_direction(&self) -> Direction {
@@ -601,11 +614,11 @@ impl MainCharacter {
 
 impl HasHealth for Gd<MainCharacter> {
     fn get_health(&self) -> u32 {
-        self.bind().stats.get(&Stat::Health).unwrap().0
+        self.bind().stats.get_raw(Stat::Health)
     }
 
     fn set_health(&mut self, amount: u32) {
-        self.bind_mut().stats.get_mut(&Stat::Health).unwrap().0 = amount;
+        self.bind_mut().stats.get_mut(Stat::Health).0 = amount;
     }
 
     fn on_death(&mut self) {
