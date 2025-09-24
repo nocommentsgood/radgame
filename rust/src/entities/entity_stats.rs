@@ -1,4 +1,49 @@
+use std::{collections::HashMap, error::Error};
+
 use godot::prelude::GodotClass;
+
+#[derive(Default)]
+pub struct EntityStats(HashMap<Stat, StatVal>);
+
+impl EntityStats {
+    /// Inserts the given key-value.
+    /// Performs no operations if the given key already exists.
+    pub fn add(&mut self, stat: (Stat, StatVal)) {
+        self.0.try_insert(stat.0, stat.1);
+    }
+
+    /// Inserts the given keys and values.
+    /// If a given key already exists, it will not be added, nor will it's corresponding value.
+    pub fn add_slice(&mut self, stats: &[(Stat, StatVal)]) {
+        for s in stats {
+            self.0.try_insert(s.0, s.1);
+        }
+    }
+
+    pub fn update(&mut self, stat: (Stat, StatVal)) {
+        if let Some(val) = self.0.get_mut(&stat.0) {
+            *val = stat.1;
+        }
+    }
+
+    /// Panics
+    /// Panics if the given `Stat` is not present.
+    pub fn get(&self, stat: Stat) -> &StatVal {
+        self.0.get(&stat).unwrap()
+    }
+
+    /// Panics
+    /// Panics if the given `Stat` is not present.
+    pub fn get_raw(&self, stat: Stat) -> u32 {
+        self.0.get(&stat).unwrap().0
+    }
+
+    /// Panics
+    /// Panics if the given `Stat` is not present.
+    pub fn get_mut(&mut self, stat: Stat) -> &mut StatVal {
+        self.0.get_mut(&stat).unwrap()
+    }
+}
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, Copy)]
 pub enum Stat {
@@ -15,7 +60,9 @@ pub enum Stat {
     Level,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+// The optional second tuple value is used for "caching" the value when a modification is applied.
+// When the modification is removed, the values are swapped and the second value is 'Option::None`.
 pub struct StatVal(pub u32, Option<u32>);
 
 impl StatVal {
