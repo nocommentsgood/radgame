@@ -61,6 +61,7 @@ pub enum Event {
     TimerElapsed(Inputs),
     FailedFloorCheck(Inputs),
     Landed(Inputs),
+    HitCeiling(Inputs),
     Hurt,
     ForceDisabled,
     ForceEnabled,
@@ -500,6 +501,11 @@ impl CharacterStateMachine {
                 (Some(MoveButton::Left), _) => Response::Transition(State::move_left()),
                 (None, _) => Response::Transition(State::idle_right()),
             },
+            Event::HitCeiling(inputs) => match (&inputs.0, &inputs.1) {
+                (Some(MoveButton::Right), _) => Response::Transition(State::move_falling_right()),
+                (Some(MoveButton::Left), _) => Response::Transition(State::move_falling_left()),
+                (None, _) => Response::Transition(State::falling_right()),
+            },
             Event::ForceDisabled => Response::Transition(State::forced_disabled_right()),
             _ => Handled,
         }
@@ -543,6 +549,11 @@ impl CharacterStateMachine {
                 (Some(MoveButton::Right), _) => Response::Transition(State::move_right()),
                 (Some(MoveButton::Left), _) => Response::Transition(State::move_left()),
                 (None, _) => Response::Transition(State::idle_left()),
+            },
+            Event::HitCeiling(inputs) => match (&inputs.0, &inputs.1) {
+                (Some(MoveButton::Right), _) => Response::Transition(State::move_falling_right()),
+                (Some(MoveButton::Left), _) => Response::Transition(State::move_falling_left()),
+                (None, _) => Response::Transition(State::falling_left()),
             },
             Event::ForceDisabled => Response::Transition(State::forced_disabled_right()),
             _ => Handled,
@@ -590,6 +601,11 @@ impl CharacterStateMachine {
                 (Some(MoveButton::Left), _) => Response::Transition(State::move_left()),
                 (None, _) => Response::Transition(State::idle_right()),
             },
+            Event::HitCeiling(inputs) => match (&inputs.0, &inputs.1) {
+                (Some(MoveButton::Right), _) => Response::Transition(State::move_falling_right()),
+                (Some(MoveButton::Left), _) => Response::Transition(State::move_falling_left()),
+                (None, _) => Response::Transition(State::falling_right()),
+            },
             Event::ForceDisabled => Response::Transition(State::forced_disabled_right()),
             _ => Handled,
         }
@@ -635,6 +651,11 @@ impl CharacterStateMachine {
                 (Some(MoveButton::Right), _) => Response::Transition(State::move_right()),
                 (Some(MoveButton::Left), _) => Response::Transition(State::move_left()),
                 (None, _) => Response::Transition(State::idle_left()),
+            },
+            Event::HitCeiling(inputs) => match (&inputs.0, &inputs.1) {
+                (Some(MoveButton::Right), _) => Response::Transition(State::move_falling_right()),
+                (Some(MoveButton::Left), _) => Response::Transition(State::move_falling_left()),
+                (None, _) => Response::Transition(State::falling_left()),
             },
             Event::ForceDisabled => Response::Transition(State::forced_disabled_left()),
             _ => Handled,
