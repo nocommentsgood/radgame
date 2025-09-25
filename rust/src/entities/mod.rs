@@ -1,6 +1,6 @@
 mod damage;
 mod enemies;
-mod entity;
+mod ent_physics;
 pub mod entity_stats;
 pub mod hit_reg;
 mod movements;

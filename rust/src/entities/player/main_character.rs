@@ -11,8 +11,9 @@ use crate::{
     entities::{
         damage::{AttackData, Damage, DamageType, Damageable, HasHealth},
         enemies::projectile::Projectile,
+        ent_physics::{self, Movement, Speeds},
         entity_stats::{EntityStats, Stat, StatModifier, StatVal},
-        hit_reg::{Hitbox, Hurtbox},
+        hit_reg::{self, Hitbox, Hurtbox},
         movements::Direction,
         player::{
             abilities::AbilityComp,
@@ -31,34 +32,25 @@ use crate::{
 type State = csm::State;
 type PT = PlayerTimer;
 type Event = csm::Event;
-const GRAVITY: f32 = 1500.0;
-const TERMINAL_VELOCITY: f32 = 500.0;
 
 #[derive(GodotClass)]
 #[class(init, base=CharacterBody2D)]
 pub struct MainCharacter {
     inputs: Inputs,
-    pub velocity: Vector2,
     pub previous_state: State,
     pub timers: HashMap<PlayerTimer, Gd<Timer>>,
-    early_gravity_time: f32,
     pub state: StateMachine<csm::CharacterStateMachine>,
     pub stats: EntityStats,
-    #[init(val = AbilityComp::new_test())]
-    pub ability_comp: AbilityComp,
+    movements: Movement,
     base: Base<CharacterBody2D>,
 
-    #[export]
-    #[init(val = 500.0)]
-    terminal_y_speed: f32,
+    #[init(val = OnReady::from_base_fn(|this| {
+        hit_reg::HitReg::new(this.get_node_as::<Hitbox>("Hitbox"), this.get_node_as::<Hurtbox>("Hurtbox"))
+    }))]
+    hit_reg: OnReady<hit_reg::HitReg>,
 
-    #[export]
-    #[init(val = 280.0)]
-    temp_jump_speed: f32,
-
-    #[export]
-    #[init(val = 980.0)]
-    temp_gravity: f32,
+    #[init(val = AbilityComp::new_test())]
+    pub ability_comp: AbilityComp,
 
     #[init(node = "ItemComponent")]
     pub item_comp: OnReady<Gd<ItemComponent>>,
@@ -73,17 +65,17 @@ pub struct MainCharacter {
 
     #[init(node = "ShakyPlayerCamera")]
     pub camera: OnReady<Gd<PlayerCamera>>,
-
-    #[init(node = "Hurtbox")]
-    hurtbox: OnReady<Gd<Hurtbox>>,
-
-    #[init(node = "Hitbox")]
-    hitbox: OnReady<Gd<Hitbox>>,
 }
 
 #[godot_api]
 impl ICharacterBody2D for MainCharacter {
     fn ready(&mut self) {
+        self.movements.speeds = Speeds {
+            running: 180.0,
+            jumping: 300.0,
+            dodging: 250.0,
+        };
+
         let this = self.to_gd();
         GlobalData::singleton()
             .bind_mut()
@@ -102,30 +94,16 @@ impl ICharacterBody2D for MainCharacter {
             (Stat::MaxHealth, StatVal::new(50)),
             (Stat::HealAmount, StatVal::new(10)),
             (Stat::AttackDamage, StatVal::new(30)),
-            (Stat::RunningSpeed, StatVal::new(180)),
-            (Stat::JumpingSpeed, StatVal::new(300)),
-            (Stat::DodgingSpeed, StatVal::new(250)),
-            (Stat::AttackingSpeed, StatVal::new(10)),
             (Stat::Level, StatVal::new(1)),
         ]);
-
-        // self.stats.insert(Stat::Health, StatVal::new(50));
-        // self.stats.insert(Stat::MaxHealth, StatVal::new(50));
-        // self.stats.insert(Stat::HealAmount, StatVal::new(10));
-        // self.stats.insert(Stat::AttackDamage, StatVal::new(30));
-        // self.stats.insert(Stat::RunningSpeed, StatVal::new(180));
-        // self.stats.insert(Stat::JumpingSpeed, StatVal::new(300));
-        // self.stats.insert(Stat::DodgingSpeed, StatVal::new(250));
-        // self.stats.insert(Stat::AttackingSpeed, StatVal::new(10));
-        // self.stats.insert(Stat::Level, StatVal::new(1));
 
         self.init_timers();
 
         self.previous_state = State::IdleRight {};
 
-        self.hitbox.bind_mut().damageable_parent = Some(Box::new(self.to_gd()));
-        self.hurtbox.bind_mut().data = Some(AttackData {
-            hurtbox: self.hurtbox.clone(),
+        self.hit_reg.hitbox.bind_mut().damageable_parent = Some(Box::new(self.to_gd()));
+        self.hit_reg.hurtbox.bind_mut().data = Some(AttackData {
+            hurtbox: self.hit_reg.hurtbox.clone(),
             parryable: false,
             damage: Damage {
                 raw: self.stats.get_raw(Stat::AttackDamage),
@@ -138,21 +116,41 @@ impl ICharacterBody2D for MainCharacter {
         let input = DevInputHandler::handle_unhandled(&Input::singleton(), self);
         if self.inputs != input {
             self.inputs = input;
-            // dbg!(&input);
             self.transition_sm(&Event::InputChanged(input));
         }
+        let prev_vel = self.movements.velocity;
 
-        // TODO: Refactor early gravity time handling.
-        if !self.base().is_on_floor() {
-            self.early_gravity_time += delta;
+        if self.movements.velocity.y.is_sign_positive()
+            && ent_physics::not_on_floor(&self.to_gd(), self.state.state())
+        {
+            let input = InputHandler::handle(&Input::singleton(), self);
+            self.transition_sm(&Event::FailedFloorCheck(input));
         }
 
-        self.not_on_floor();
-        self.player_landed_check();
+        if self
+            .movements
+            .landed(self.to_gd(), self.state.state(), &self.previous_state)
+        {
+            self.transition_sm(&Event::Landed(Inputs(
+                InputHandler::get_movement(&Input::singleton()).0,
+                None,
+            )));
+        }
+
         self.update_state();
-        self.apply_gravity(&delta);
-        // dbg!(&self.state.state());
-        self.accelerate();
+        self.movements
+            .apply_gravity(self.base().is_on_floor(), &delta);
+        self.movements.handle_acceleration(self.state.state());
+        self.update_camera(prev_vel);
+
+        let v = self.movements.velocity;
+        self.base_mut().set_velocity(v);
+        self.base_mut().move_and_slide();
+
+        if ent_physics::hit_ceiling(&mut self.to_gd(), &mut self.movements) {
+            let input = InputHandler::handle(&Input::singleton(), self);
+            self.transition_sm(&Event::HitCeiling(input));
+        }
     }
 }
 
@@ -170,85 +168,6 @@ impl MainCharacter {
     #[signal]
     pub fn animation_state_changed();
 
-    /// Applies accelerated movement depending on current state.
-    /// Moves the camera if the player's velocity has changed.
-    fn accelerate(&mut self) {
-        // let stat = |map: &HashMap<Stat, StatVal>, stat: &Stat| map.get(stat).unwrap().0 as f32;
-
-        let velocity = self.velocity;
-        match self.state.state() {
-            State::MoveFallingLeft {} | State::MoveLeftAirAttack {} => {
-                self.velocity.x = self.stats.get_raw(Stat::RunningSpeed) as f32;
-            }
-            State::MoveFallingRight {} | State::MoveRightAirAttack {} => {
-                self.velocity.x = self.stats.get_raw(Stat::RunningSpeed) as f32 * Vector2::RIGHT.x;
-            }
-            State::DodgingLeft {} => {
-                self.velocity.x = self.stats.get_raw(Stat::DodgingSpeed) as f32 * Vector2::LEFT.x;
-            }
-            State::DodgingRight {} => {
-                self.velocity.x = self.stats.get_raw(Stat::DodgingSpeed) as f32 * Vector2::RIGHT.x;
-            }
-            State::MoveLeft {} => {
-                self.velocity.x = self.stats.get_raw(Stat::RunningSpeed) as f32 * Vector2::LEFT.x;
-            }
-            State::MoveRight {} => {
-                self.velocity.x = self.stats.get_raw(Stat::RunningSpeed) as f32 * Vector2::RIGHT.x;
-            }
-            State::JumpingRight {} => {
-                self.velocity.y = self.stats.get_raw(Stat::JumpingSpeed) as f32 * Vector2::UP.y;
-                self.velocity.x = 0.0;
-            }
-            State::JumpingLeft {} => {
-                self.velocity.y = self.stats.get_raw(Stat::JumpingSpeed) as f32 * Vector2::UP.y;
-                self.velocity.x = 0.0;
-            }
-            State::MoveJumpingRight {} => {
-                self.velocity.x = self.stats.get_raw(Stat::RunningSpeed) as f32 * Vector2::RIGHT.x;
-                self.velocity.y = self.stats.get_raw(Stat::JumpingSpeed) as f32 * Vector2::UP.y;
-            }
-            State::MoveJumpingLeft {} => {
-                self.velocity.x = self.stats.get_raw(Stat::RunningSpeed) as f32 * Vector2::LEFT.x;
-                self.velocity.y = self.stats.get_raw(Stat::JumpingSpeed) as f32 * Vector2::UP.y;
-            }
-            _ => self.velocity.x = 0.0,
-        }
-
-        // Player velocity changed.
-        if self.velocity != velocity && !self.velocity.is_zero_approx() {
-            self.update_camera();
-        }
-
-        // Apply movement.
-        let velocity = self.velocity;
-        // dbg!(&self.velocity);
-        self.base_mut().set_velocity(velocity);
-        self.base_mut().move_and_slide();
-
-        // Ceiling collision handling.
-        let ceiling = self.base().is_on_ceiling_only();
-        let collisions = self.base_mut().get_last_slide_collision();
-        if let Some(c) = collisions
-            && ceiling
-        {
-            self.velocity = self.velocity.bounce(c.get_normal().normalized_or_zero());
-            let velocity = self.velocity;
-            self.base_mut().set_velocity(velocity);
-        }
-    }
-
-    fn apply_gravity(&mut self, delta: &f32) {
-        if !self.base().is_on_floor() && self.velocity.y < TERMINAL_VELOCITY {
-            if self.early_gravity_time >= 0.8 {
-                self.velocity.y += GRAVITY * delta;
-            } else if self.early_gravity_time < 0.8 && self.early_gravity_time >= 0.4 {
-                self.velocity.y += 1700.0 * delta;
-            } else {
-                self.velocity.y += 2000.0 * delta;
-            }
-        }
-    }
-
     /// Transition state to `falling` when Y axis velocity is positive.
     fn not_on_floor(&mut self) {
         if !self.base().is_on_floor() {
@@ -260,7 +179,7 @@ impl MainCharacter {
                     | State::FallingRight {}
             );
 
-            if self.velocity.y.is_sign_positive() && !is_falling {
+            if self.movements.velocity.y.is_sign_positive() && !is_falling {
                 let input = InputHandler::handle(&Input::singleton(), self);
                 self.transition_sm(&Event::FailedFloorCheck(input));
             }
@@ -272,39 +191,6 @@ impl MainCharacter {
     //         let input = InputHandler::
     //     }
     // }
-
-    /// Checks if the player is on the floor.
-    /// If so, sends the `Landed` event to the state machine, sets Y axis velocity to 0, and resets
-    /// jumping timer.
-    fn player_landed_check(&mut self) {
-        let was_airborne = (matches!(
-            self.state.state(),
-            State::FallingRight {}
-                | State::MoveFallingLeft {}
-                | State::MoveFallingRight {}
-                | State::FallingLeft {}
-        ) || matches!(
-            self.previous_state,
-            State::JumpingLeft {}
-                | State::JumpingRight {}
-                | State::MoveJumpingRight {}
-                | State::MoveJumpingLeft {}
-                | State::AirAttackRight {}
-                | State::AirAttackLeft {}
-                | State::MoveLeftAirAttack {}
-                | State::MoveRightAirAttack {}
-        ));
-
-        if self.base().is_on_floor() && was_airborne {
-            self.velocity.y = 0.0;
-            self.early_gravity_time = 0.0;
-            self.transition_sm(&Event::Landed(Inputs(
-                InputHandler::get_movement(&Input::singleton()).0,
-                None,
-            )));
-            self.timers.get_mut(&PT::JumpTimeLimit).unwrap().reset();
-        }
-    }
 
     // fn on_area_entered_hitbox(&mut self, area: Gd<Area2D>) {
     //     if let Ok(h_box) = &area.try_cast::<Hurtbox>()
@@ -404,11 +290,6 @@ impl MainCharacter {
         if prev != new {
             self.update_animation();
         }
-    }
-
-    /// Checks if the previous state is equal to the current state.
-    fn state_matches(&self) -> bool {
-        *self.state.state() == self.previous_state
     }
 
     /// Updates the state, setting `previous_state` to the current state.
@@ -570,11 +451,13 @@ impl MainCharacter {
         });
     }
 
-    fn update_camera(&mut self) {
-        if self.velocity.x > 5.0 {
-            self.camera.bind_mut().set_right(Some(true));
-        } else if self.velocity.x < -5.0 {
-            self.camera.bind_mut().set_right(Some(false));
+    fn update_camera(&mut self, previous_velocity: Vector2) {
+        if previous_velocity != self.movements.velocity {
+            if self.movements.velocity.x > 5.0 {
+                self.camera.bind_mut().set_right(Some(true));
+            } else if self.movements.velocity.x < -5.0 {
+                self.camera.bind_mut().set_right(Some(false));
+            }
         }
     }
 

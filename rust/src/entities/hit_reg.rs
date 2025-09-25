@@ -51,3 +51,14 @@ impl Hurtbox {
             .handle_attack(self.data.clone().unwrap());
     }
 }
+
+pub struct HitReg {
+    pub hitbox: Gd<Hitbox>,
+    pub hurtbox: Gd<Hurtbox>,
+}
+
+impl HitReg {
+    pub fn new(hitbox: Gd<Hitbox>, hurtbox: Gd<Hurtbox>) -> Self {
+        Self { hitbox, hurtbox }
+    }
+}
