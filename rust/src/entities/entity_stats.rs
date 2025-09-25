@@ -41,10 +41,6 @@ pub enum Stat {
     Energy,
     Mana,
     AttackDamage,
-    RunningSpeed,
-    JumpingSpeed,
-    DodgingSpeed,
-    AttackingSpeed,
     Level,
 }
 
@@ -80,7 +76,6 @@ impl StatVal {
     }
 }
 
-// TODO: Emit in signals without using Gd as parameter.
 #[derive(GodotClass, Clone, Debug, PartialEq)]
 #[class(no_init)]
 pub struct StatModifier {

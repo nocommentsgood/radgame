@@ -55,11 +55,9 @@ pub struct MainCharacter {
     #[init(node = "ItemComponent")]
     pub item_comp: OnReady<Gd<ItemComponent>>,
 
-    #[var]
     #[init(node = "AnimationPlayer")]
     animation_player: OnReady<Gd<AnimationPlayer>>,
 
-    #[var]
     #[init(node = "LedgeSensor")]
     ledge_sensor: OnReady<Gd<RayCast2D>>,
 
@@ -311,41 +309,42 @@ impl MainCharacter {
         // Therefore, it is acceptable to use the length of any dodging animation.
         // East was arbitrarily chosen.
         let dodge_animation_length = (self
-            .get_animation_player()
+            .animation_player
             .get_animation("dodge_right")
             .unwrap()
             .get_length()
             / 1.5) as f64;
 
         let attack_animation_length = self
-            .get_animation_player()
+            .animation_player
             .get_animation("attack_right")
             .unwrap()
             .get_length() as f64;
 
         let attack_2_animation_length = self
-            .get_animation_player()
+            .animation_player
             .get_animation("chainattack_right")
             .unwrap()
             .get_length() as f64;
 
         let healing_animation_length = self
-            .get_animation_player()
+            .animation_player
             .get_animation("heal_right")
             .unwrap()
             .get_length() as f64;
 
         let parry_animation_length = self
-            .get_animation_player()
+            .animation_player
             .get_animation("parry_right")
             .unwrap()
             .get_length() as f64;
 
         let hurt_animation_length = self
-            .get_animation_player()
+            .animation_player
             .get_animation("hurt_right")
             .unwrap()
             .get_length() as f64;
+
         let this = &self.to_gd();
 
         // Dodge animation

@@ -64,26 +64,6 @@ impl INode for ItemComponent {
             "res://assets/icon.svg".to_string(),
         )));
 
-        let test_bead_1 = Item::new(
-            ItemKind::RosaryBead {
-                effect: StatModifier::new(Stat::RunningSpeed, ModifierKind::Flat(2)),
-            },
-            "TestBead1 WOW".to_string(),
-            Some("A test bead that increases movement speed".to_string()),
-            "res://assets/icon.svg".to_string(),
-        );
-        self.unlocked_beads.insert(0, Some(test_bead_1));
-
-        let test_bead_2 = Item::new(
-            ItemKind::RosaryBead {
-                effect: StatModifier::new(Stat::RunningSpeed, ModifierKind::Flat(2)),
-            },
-            "TestBead1 WOW".to_string(),
-            Some("A test bead that also increases movement speed".to_string()),
-            "res://assets/bullet.webp".to_string(),
-        );
-
-        self.unlocked_beads.insert(1, Some(test_bead_2));
         let relic = Item::new(
             ItemKind::Relic {
                 effect: StatModifier::new(Stat::MaxHealth, ModifierKind::Flat(2)),
