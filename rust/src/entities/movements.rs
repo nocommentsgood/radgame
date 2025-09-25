@@ -6,23 +6,6 @@ use godot::{
     prelude::{Export, GodotClass, GodotConvert, Var, godot_api, godot_dyn},
 };
 
-#[derive(Default, Debug, Clone)]
-pub struct SpeedComponent {
-    pub attack: f32,
-    pub patrol: f32,
-    pub aggro: f32,
-}
-
-impl SpeedComponent {
-    pub fn new(attack: u32, patrol: u32, aggro: u32) -> Self {
-        Self {
-            attack: attack as f32,
-            patrol: patrol as f32,
-            aggro: aggro as f32,
-        }
-    }
-}
-
 #[derive(Default, Debug, Clone, Copy, PartialEq, GodotConvert, Var, Export)]
 #[godot(via = i64)]
 pub enum Direction {

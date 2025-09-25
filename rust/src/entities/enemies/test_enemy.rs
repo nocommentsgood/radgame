@@ -16,7 +16,8 @@ use super::{
 };
 use crate::entities::{
     damage::{AttackData, Damage, DamageType, Damageable, HasHealth},
-    movements::{Direction, Move, Moveable, MoveableBody, SpeedComponent},
+    enemies::patrol_component::EnemySpeeds,
+    movements::{Direction, Move, Moveable, MoveableBody},
     time::EnemyTimer,
 };
 
@@ -31,7 +32,7 @@ pub struct TestEnemy {
     direction: Direction,
     velocity: Vector2,
     timers: HashMap<EnemyTimer, Gd<Timer>>,
-    speeds: SpeedComponent,
+    speeds: EnemySpeeds,
     state: statig::blocking::StateMachine<EnemyStateMachine>,
     base: Base<CharacterBody2D>,
     player_pos: Option<Vector2>,
@@ -66,7 +67,10 @@ impl ICharacterBody2D for TestEnemy {
 
         self.patrol_comp.left_target = self.left_target;
         self.patrol_comp.right_target = self.right_target;
-        self.speeds = SpeedComponent::new(40, 40, 80);
+        self.speeds = EnemySpeeds {
+            patrol: 40.0,
+            aggro: 80.0,
+        };
 
         self.timers
             .insert(ET::AttackAnimation, godot::classes::Timer::new_alloc());
@@ -218,7 +222,7 @@ impl EnemyEntityStateMachineExt for TestEnemy {
         &mut self.timers
     }
 
-    fn speeds(&self) -> &SpeedComponent {
+    fn speeds(&self) -> &EnemySpeeds {
         &self.speeds
     }
 

@@ -8,8 +8,9 @@ use godot::{
 
 use super::{enemy_state_machine::*, patrol_component::PatrolComp};
 use crate::entities::{
-    enemies::{animatable::Animatable, has_enemy_sensors::HasEnemySensors},
-    movements::SpeedComponent,
+    enemies::{
+        animatable::Animatable, has_enemy_sensors::HasEnemySensors, patrol_component::EnemySpeeds,
+    },
     player::main_character::MainCharacter,
     time::EnemyTimer,
 };
@@ -29,7 +30,7 @@ where
     Self: Inherits<Node2D> + WithBaseField<Base: Inherits<Node2D>> + WithUserSignals,
 {
     fn timers(&mut self) -> &mut HashMap<EnemyTimer, Gd<Timer>>;
-    fn speeds(&self) -> &SpeedComponent;
+    fn speeds(&self) -> &EnemySpeeds;
     fn patrol_comp(&self) -> &PatrolComp;
     fn get_player_pos(&self) -> Option<Vector2>;
     fn get_chain_attack_count(&self) -> u32;
@@ -170,7 +171,7 @@ where
         let v = self
             .patrol_comp()
             .get_furthest_distance(self.base().upcast_ref::<Node2D>().get_position());
-        self.set_velocity(v * self.speeds().aggro);
+        self.set_velocity(v * self.speeds().patrol);
         self.transition_sm(&EnemyEvent::TimerElapsed);
     }
 

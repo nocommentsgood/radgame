@@ -11,9 +11,10 @@ use super::{
 };
 use crate::entities::{
     damage::{AttackData, Damageable, HasHealth},
+    enemies::patrol_component::EnemySpeeds,
     entity_stats::{Stat, StatVal},
     hit_reg::Hurtbox,
-    movements::{Direction, Move, Moveable, MoveableEntity, SpeedComponent},
+    movements::{Direction, Move, Moveable, MoveableEntity},
     time::EnemyTimer,
 };
 use godot::{
@@ -28,8 +29,8 @@ const BULLET_SPEED: real = 500.0;
 #[class(init, base=Node2D)]
 pub struct ProjectileEnemy {
     velocity: Vector2,
-    speeds: SpeedComponent,
     chain_attack_count: u32,
+    speeds: EnemySpeeds,
     direction: Direction,
     stats: HashMap<Stat, StatVal>,
     state: statig::blocking::StateMachine<EnemyStateMachine>,
@@ -102,19 +103,14 @@ impl INode2D for ProjectileEnemy {
 
         self.connect_signals();
 
+        self.speeds = EnemySpeeds {
+            patrol: 150.0,
+            aggro: 250.0,
+        };
+
         self.stats.insert(Stat::Health, StatVal::new(20));
         self.stats.insert(Stat::MaxHealth, StatVal::new(20));
         self.stats.insert(Stat::AttackDamage, StatVal::new(10));
-        self.stats.insert(Stat::RunningSpeed, StatVal::new(150));
-        self.stats.insert(Stat::JumpingSpeed, StatVal::new(300));
-        self.stats.insert(Stat::DodgingSpeed, StatVal::new(250));
-        self.stats.insert(Stat::AttackingSpeed, StatVal::new(10));
-
-        self.speeds = SpeedComponent::new(
-            self.stats[&Stat::AttackingSpeed].0,
-            self.stats[&Stat::RunningSpeed].0,
-            80,
-        );
 
         self.hitbox_mut().bind_mut().damageable_parent = Some(Box::new(self.to_gd()));
 
@@ -250,7 +246,7 @@ impl EnemyEntityStateMachineExt for ProjectileEnemy {
         &mut self.timers
     }
 
-    fn speeds(&self) -> &SpeedComponent {
+    fn speeds(&self) -> &EnemySpeeds {
         &self.speeds
     }
 

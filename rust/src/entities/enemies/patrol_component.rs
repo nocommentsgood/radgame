@@ -24,3 +24,9 @@ impl PatrolComp {
         }
     }
 }
+
+#[derive(Default)]
+pub struct EnemySpeeds {
+    pub patrol: f32,
+    pub aggro: f32,
+}
