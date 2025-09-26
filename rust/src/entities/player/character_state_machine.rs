@@ -27,10 +27,10 @@ impl std::fmt::Display for State {
             State::MoveRight {} => write!(f, "run_right"),
             State::FallingRight {} | State::MoveFallingRight {} => write!(f, "falling_right"),
             State::JumpingRight {} | State::MoveJumpingRight {} => write!(f, "jumping_right"),
-            // State::GrapplingRight {} => write!(f, "grapple_right"),
             State::HealingRight {} => write!(f, "heal_right"),
             State::ParryRight {} => write!(f, "parry_right"),
             State::AirAttackRight {} | State::MoveRightAirAttack {} => write!(f, "airattack_right"),
+            State::WallGrabRight {} => write!(f, "idle_right"),
 
             // Left variants
             State::HurtLeft {} => write!(f, "hurt_left"),
@@ -40,8 +40,10 @@ impl std::fmt::Display for State {
             State::IdleLeft {} | State::ForcedDisabledLeft {} => write!(f, "idle_left"),
             State::MoveLeft {} => write!(f, "run_left"),
             State::FallingLeft {} | State::MoveFallingLeft {} => write!(f, "falling_left"),
-            State::JumpingLeft {} | State::MoveJumpingLeft {} => write!(f, "jumping_left"),
-            // State::GrapplingLeft {} => write!(f, "grapple_left"),
+            State::JumpingLeft {} | State::MoveJumpingLeft {} => {
+                write!(f, "jumping_left")
+            }
+            State::WallGrabLeft {} => write!(f, "idle_left"),
             State::HealingLeft {} => write!(f, "heal_left"),
             State::ParryLeft {} => write!(f, "parry_left"),
             State::AirAttackLeft {} | State::MoveLeftAirAttack {} => write!(f, "airattack_left"),
@@ -62,6 +64,7 @@ pub enum Event {
     FailedFloorCheck(Inputs),
     Landed(Inputs),
     HitCeiling(Inputs),
+    GrabbedWall(Inputs),
     Hurt,
     ForceDisabled,
     ForceEnabled,
@@ -465,6 +468,12 @@ impl CharacterStateMachine {
     #[state]
     fn move_jumping_right(&mut self, event: &Event) -> Response<State> {
         match event {
+            // Wall grab
+            Event::GrabbedWall(inputs) => match (&inputs.0, inputs.1) {
+                (Some(MoveButton::Right), _) => Response::Transition(State::wall_grab_right()),
+                (_, _) => Handled,
+            },
+
             Event::InputChanged(inputs) => match (&inputs.0, &inputs.1) {
                 // Attacking
                 (Some(MoveButton::Left), Some(ModifierButton::JumpAttack)) => {
@@ -563,6 +572,12 @@ impl CharacterStateMachine {
     #[state]
     fn jumping_right(&mut self, event: &Event) -> Response<State> {
         match event {
+            // Wall grab
+            Event::GrabbedWall(inputs) => match (&inputs.0, inputs.1) {
+                (Some(MoveButton::Right), _) => Response::Transition(State::wall_grab_right()),
+                (_, _) => Handled,
+            },
+
             Event::InputChanged(inputs) => match (&inputs.0, &inputs.1) {
                 // Attacking
                 (Some(MoveButton::Left), Some(ModifierButton::JumpAttack)) => {
@@ -614,6 +629,13 @@ impl CharacterStateMachine {
     #[state]
     fn jumping_left(&mut self, event: &Event) -> Response<State> {
         match event {
+            // Wall grab
+            Event::GrabbedWall(inputs) => match (&inputs.0, inputs.1) {
+                (Some(MoveButton::Left), _) => Response::Transition(State::wall_grab_left()),
+                // (Some(MoveButton::Right), _) => Response::Transition(State::wall_jump_right()),
+                (_, _) => Handled,
+            },
+
             Event::InputChanged(inputs) => match (&inputs.0, &inputs.1) {
                 // Attacking
                 (Some(MoveButton::Left), Some(ModifierButton::JumpAttack)) => {
@@ -666,6 +688,12 @@ impl CharacterStateMachine {
     #[state]
     fn falling_right(&mut self, event: &Event) -> Response<State> {
         match event {
+            // Wall grab
+            Event::GrabbedWall(inputs) => match (&inputs.0, inputs.1) {
+                (Some(MoveButton::Right), _) => Response::Transition(State::wall_grab_right()),
+                (_, _) => Handled,
+            },
+
             Event::InputChanged(inputs) => match (&inputs.0, &inputs.1) {
                 // Air attack
                 (
@@ -700,6 +728,12 @@ impl CharacterStateMachine {
     #[state]
     fn falling_left(&mut self, event: &Event) -> Response<State> {
         match event {
+            // Wall grab
+            Event::GrabbedWall(inputs) => match (&inputs.0, inputs.1) {
+                (Some(MoveButton::Left), _) => Response::Transition(State::wall_grab_left()),
+                (_, _) => Handled,
+            },
+
             Event::InputChanged(inputs) => match (&inputs.0, &inputs.1) {
                 // Air attack
                 (
@@ -733,6 +767,11 @@ impl CharacterStateMachine {
     #[state]
     fn move_falling_right(&mut self, event: &Event) -> Response<State> {
         match event {
+            // Wall grab
+            Event::GrabbedWall(inputs) => match (&inputs.0, inputs.1) {
+                (Some(MoveButton::Right), _) => Response::Transition(State::wall_grab_right()),
+                (_, _) => Handled,
+            },
             Event::InputChanged(inputs) => match (&inputs.0, &inputs.1) {
                 // Air attack
                 (
@@ -770,6 +809,12 @@ impl CharacterStateMachine {
     #[state]
     fn move_falling_left(&mut self, event: &Event) -> Response<State> {
         match event {
+            // Wall grab
+            Event::GrabbedWall(inputs) => match (&inputs.0, inputs.1) {
+                (Some(MoveButton::Left), _) => Response::Transition(State::wall_grab_left()),
+                (_, _) => Handled,
+            },
+
             Event::InputChanged(inputs) => match (&inputs.0, &inputs.1) {
                 // Air attack
                 (
@@ -1118,7 +1163,74 @@ impl CharacterStateMachine {
             _ => Handled,
         }
     }
+
+    #[state]
+    fn wall_grab_left(
+        event: &Event,
+        context: &mut HashMap<PlayerTimer, Gd<Timer>>,
+    ) -> Response<State> {
+        match event {
+            Event::InputChanged(inputs) => match (&inputs.0, inputs.1) {
+                (Some(MoveButton::Left), Some(ModifierButton::Jump)) => {
+                    if let Some(timer) = context.get_mut(&PlayerTimer::WallJumpLimit)
+                        && timer.get_time_left() == 0.0
+                    {
+                        timer.start();
+                        Response::Transition(State::move_jumping_right())
+                    } else {
+                        Handled
+                    }
+                }
+                (Some(MoveButton::Right), _) => Response::Transition(State::move_falling_right()),
+                _ => Response::Transition(State::falling_left()),
+            },
+
+            Event::Landed(inputs) => match (&inputs.0, inputs.1) {
+                (Some(MoveButton::Left), _) => Response::Transition(State::move_left()),
+                (Some(MoveButton::Right), _) => Response::Transition(State::move_right()),
+                (None, _) => Response::Transition(State::idle_left()),
+            },
+
+            Event::Hurt => Response::Transition(State::falling_left()),
+
+            _ => Handled,
+        }
+    }
+
+    #[state]
+    fn wall_grab_right(
+        event: &Event,
+        context: &mut HashMap<PlayerTimer, Gd<Timer>>,
+    ) -> Response<State> {
+        match event {
+            Event::InputChanged(inputs) => match (&inputs.0, inputs.1) {
+                (Some(MoveButton::Right), Some(ModifierButton::Jump)) => {
+                    if let Some(timer) = context.get_mut(&PlayerTimer::WallJumpLimit)
+                        && timer.get_time_left() == 0.0
+                    {
+                        timer.start();
+                        Response::Transition(State::move_jumping_left())
+                    } else {
+                        Handled
+                    }
+                }
+                (Some(MoveButton::Left), _) => Response::Transition(State::move_falling_left()),
+                _ => Response::Transition(State::falling_right()),
+            },
+
+            Event::Landed(inputs) => match (&inputs.0, inputs.1) {
+                (Some(MoveButton::Left), _) => Response::Transition(State::move_left()),
+                (Some(MoveButton::Right), _) => Response::Transition(State::move_right()),
+                (None, _) => Response::Transition(State::idle_left()),
+            },
+
+            Event::Hurt => Response::Transition(State::falling_left()),
+
+            _ => Handled,
+        }
+    }
 }
+
 fn try_jump<F>(context: &mut HashMap<PlayerTimer, Gd<Timer>>, completed: F) -> Response<State>
 where
     F: FnOnce() -> Response<State>,
@@ -1126,6 +1238,7 @@ where
     if let Some(timer) = context.get_mut(&PlayerTimer::JumpTimeLimit)
         && timer.get_time_left() == 0.0
     {
+        println!("Starting timer");
         timer.start();
         completed()
     } else {
