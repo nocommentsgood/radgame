@@ -48,8 +48,11 @@ pub struct MainCharacter {
     base: Base<CharacterBody2D>,
 
     #[init(val = OnReady::from_base_fn(|this| {
-        hit_reg::HitReg::new(this.get_node_as::<Hitbox>("Hitbox"), this.get_node_as::<Hurtbox>("Hurtbox"))
-    }))]
+        hit_reg::HitReg { hitbox: this.get_node_as::<Hitbox>("Hitbox"), 
+            hurtbox: this.get_node_as::<Hurtbox>("Hurtbox"), 
+            left_wall_cast: Some(this.get_node_as::<RayCast2D>("LeftWallSensor")), 
+            right_wall_cast: Some(this.get_node_as::<RayCast2D>("RightWallSensor")) 
+        }}))]
     hit_reg: OnReady<hit_reg::HitReg>,
 
     #[init(val = AbilityComp::new_test())]
@@ -60,9 +63,6 @@ pub struct MainCharacter {
 
     #[init(node = "AnimationPlayer")]
     animation_player: OnReady<Gd<AnimationPlayer>>,
-
-    #[init(node = "LedgeSensor")]
-    ledge_sensor: OnReady<Gd<RayCast2D>>,
 
     #[init(node = "ShakyPlayerCamera")]
     pub camera: OnReady<Gd<PlayerCamera>>,
@@ -122,7 +122,7 @@ impl ICharacterBody2D for MainCharacter {
         let frame = self.new_frame();
         let prev_vel = self.movements.velocity;
 
-        if !self.base().is_on_floor_only() && self.movements.velocity.y.is_sign_positive() {
+        if !self.base().is_on_floor() && self.movements.velocity.y.is_sign_positive() {
             let input = InputHandler::handle(&Input::singleton(), self);
             self.transition_sm(&Event::FailedFloorCheck(input));
         }
@@ -137,6 +137,9 @@ impl ICharacterBody2D for MainCharacter {
             )));
         }
 
+        self.wall_grab();
+        dbg!(self.state.state());
+
         self.movements
             .apply_gravity(self.base().is_on_floor_only(), &delta);
         self.movements
@@ -146,6 +149,9 @@ impl ICharacterBody2D for MainCharacter {
         let v = self.movements.velocity;
         self.base_mut().set_velocity(v);
         self.base_mut().move_and_slide();
+
+        // dbg!(self.state.state());
+        // dbg!(&self.movements.velocity);
 
         if ent_physics::hit_ceiling(&mut self.to_gd(), &mut self.movements) {
             let input = InputHandler::handle(&Input::singleton(), self);
@@ -162,6 +168,51 @@ impl MainCharacter {
     #[signal]
     fn parried_attack();
 
+    fn new_frame(&self) -> PhysicsFrameData {
+        let guard = self.base();
+        PhysicsFrameData::new(
+            *self.state.state(),
+            self.movements.velocity,
+            guard.is_on_floor(),
+            guard.is_on_floor_only(),
+            guard.is_on_wall(),
+            guard.is_on_wall_only(),
+            guard.is_on_ceiling(),
+            guard.is_on_ceiling_only(),
+            guard.get_physics_process_delta_time() as f32,
+        )
+    }
+
+    fn wall_grab(&mut self) {
+        if self.base().is_on_wall_only()
+            && !matches!(
+                self.state.state(),
+                State::WallGrabLeft {} | State::WallGrabRight {}
+            )
+        {
+            let left = self.hit_reg.left_wall_cast.as_ref().unwrap().is_colliding();
+            let right = self
+                .hit_reg
+                .right_wall_cast
+                .as_ref()
+                .unwrap()
+                .is_colliding();
+            let input = InputHandler::handle(&Input::singleton(), self);
+            match input.0 {
+                Some(crate::utils::input_hanlder::MoveButton::Left) => {
+                    if left {
+                        self.transition_sm(&Event::GrabbedWall(input));
+                    }
+                }
+                Some(crate::utils::input_hanlder::MoveButton::Right) => {
+                    if right {
+                        self.transition_sm(&Event::GrabbedWall(input));
+                    }
+                }
+                _ => (),
+            }
+        }
+    }
 
     // TODO: Finish this and remove parried signal.
     fn on_area_entered_hitbox(&mut self, area: Gd<Area2D>) {

@@ -1,5 +1,5 @@
 use godot::{
-    classes::{Area2D, IArea2D},
+    classes::{Area2D, IArea2D, RayCast2D},
     meta::ToGodot,
     obj::{Base, Gd, WithBaseField},
     prelude::{GodotClass, godot_api},
@@ -39,8 +39,7 @@ impl IArea2D for Hurtbox {
 #[godot_api]
 impl Hurtbox {
     fn on_hit(&mut self, area: Gd<Area2D>) {
-        let hurtbox = self.to_gd();
-        self.data.as_mut().unwrap().hurtbox = hurtbox;
+        self.data.as_mut().unwrap().hurtbox = self.to_gd();
 
         let mut hitbox = area.cast::<Hitbox>();
         hitbox
@@ -55,10 +54,22 @@ impl Hurtbox {
 pub struct HitReg {
     pub hitbox: Gd<Hitbox>,
     pub hurtbox: Gd<Hurtbox>,
+    pub left_wall_cast: Option<Gd<RayCast2D>>,
+    pub right_wall_cast: Option<Gd<RayCast2D>>,
 }
 
 impl HitReg {
-    pub fn new(hitbox: Gd<Hitbox>, hurtbox: Gd<Hurtbox>) -> Self {
-        Self { hitbox, hurtbox }
+    pub fn new(
+        hitbox: Gd<Hitbox>,
+        hurtbox: Gd<Hurtbox>,
+        left_wall_cast: Option<Gd<RayCast2D>>,
+        right_wall_cast: Option<Gd<RayCast2D>>,
+    ) -> Self {
+        Self {
+            hitbox,
+            hurtbox,
+            left_wall_cast,
+            right_wall_cast,
+        }
     }
 }
