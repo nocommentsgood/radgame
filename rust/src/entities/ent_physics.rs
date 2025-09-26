@@ -57,8 +57,12 @@ pub struct Movement {
 
 impl Movement {
     /// Applies accelerated movement depending on current state.
-    pub fn handle_acceleration(&mut self, state: &State) {
+    pub fn handle_acceleration(&mut self, state: &State, prev_frame: PhysicsFrameData) {
         match state {
+            State::WallGrabLeft {} | State::WallGrabRight {} => {
+                self.velocity.y = 50.0;
+            }
+
             State::MoveFallingLeft {} | State::MoveLeftAirAttack {} => {
                 self.velocity.x = self.speeds.running * Vector2::LEFT.x;
             }
@@ -78,12 +82,22 @@ impl Movement {
                 self.velocity.x = self.speeds.running * Vector2::RIGHT.x;
             }
             State::JumpingRight {} => {
-                self.velocity.y = self.speeds.jumping * Vector2::UP.y;
-                self.velocity.x = 0.0;
+                if prev_frame.on_wall_only {
+                    self.apply_gravity(false, &prev_frame.delta);
+                    self.velocity.x = self.speeds.running * Vector2::RIGHT.x;
+                } else {
+                    self.velocity.y = self.speeds.jumping * Vector2::UP.y;
+                    self.velocity.x = 0.0;
+                }
             }
             State::JumpingLeft {} => {
-                self.velocity.y = self.speeds.jumping * Vector2::UP.y;
-                self.velocity.x = 0.0;
+                if prev_frame.on_wall_only {
+                    self.apply_gravity(false, &prev_frame.delta);
+                    self.velocity.x = self.speeds.running * Vector2::LEFT.x;
+                } else {
+                    self.velocity.y = self.speeds.jumping * Vector2::UP.y;
+                    self.velocity.x = 0.0;
+                }
             }
             State::MoveJumpingRight {} => {
                 self.velocity.x = self.speeds.running * Vector2::RIGHT.x;
@@ -130,12 +144,87 @@ impl Movement {
         state: &State,
         previous_state: &State,
     ) -> bool {
-        if ent.upcast_ref().is_on_floor() && is_airborne(state, previous_state) {
+        if ent.upcast_ref().is_on_floor_only() && is_airborne(state, previous_state) {
             self.velocity.y = 0.0;
             self.early_gravity = 0.0;
             true
         } else {
             false
         }
+    }
+}
+
+pub struct PhysicsFrameData {
+    state: State,
+    velocity: Vector2,
+    on_floor: bool,
+    on_floor_only: bool,
+    on_wall: bool,
+    on_wall_only: bool,
+    on_ceiling: bool,
+    on_ceiling_only: bool,
+    delta: f32,
+}
+
+#[allow(clippy::too_many_arguments)]
+impl PhysicsFrameData {
+    pub fn new(
+        state: State,
+        velocity: Vector2,
+        on_floor: bool,
+        on_floor_only: bool,
+        on_wall: bool,
+        on_wall_only: bool,
+        on_ceiling: bool,
+        on_ceiling_only: bool,
+        delta: f32,
+    ) -> Self {
+        Self {
+            state,
+            velocity,
+            on_floor,
+            on_floor_only,
+            on_wall,
+            on_wall_only,
+            on_ceiling,
+            on_ceiling_only,
+            delta,
+        }
+    }
+
+    pub fn state(&self) -> &State {
+        &self.state
+    }
+
+    pub fn velocity(&self) -> &Vector2 {
+        &self.velocity
+    }
+
+    pub fn on_floor(&self) -> bool {
+        self.on_floor
+    }
+
+    pub fn on_floor_only(&self) -> bool {
+        self.on_floor_only
+    }
+
+    pub fn on_wall(&self) -> bool {
+        self.on_wall
+    }
+
+    pub fn on_wall_only(&self) -> bool {
+        self.on_wall_only
+    }
+
+    pub fn on_ceiling(&self) -> bool {
+        self.on_ceiling
+    }
+
+    pub fn on_ceiling_only(&self) -> bool {
+        self.on_ceiling_only
+    }
+
+    pub fn delta(&self) -> f32 {
+        self.delta
     }
 }
