@@ -54,8 +54,8 @@ impl Hurtbox {
 pub struct HitReg {
     pub hitbox: Gd<Hitbox>,
     pub hurtbox: Gd<Hurtbox>,
-    pub left_wall_cast: Option<Gd<RayCast2D>>,
-    pub right_wall_cast: Option<Gd<RayCast2D>>,
+    left_wall_cast: Option<Gd<RayCast2D>>,
+    right_wall_cast: Option<Gd<RayCast2D>>,
 }
 
 impl HitReg {
@@ -70,6 +70,22 @@ impl HitReg {
             hurtbox,
             left_wall_cast,
             right_wall_cast,
+        }
+    }
+
+    pub fn left_colliding(&self) -> Option<bool> {
+        if self.left_wall_cast.is_some() {
+            Some(self.left_wall_cast.as_ref().unwrap().is_colliding())
+        } else {
+            None
+        }
+    }
+
+    pub fn right_colliding(&self) -> Option<bool> {
+        if self.right_wall_cast.is_some() {
+            Some(self.right_wall_cast.as_ref().unwrap().is_colliding())
+        } else {
+            None
         }
     }
 }

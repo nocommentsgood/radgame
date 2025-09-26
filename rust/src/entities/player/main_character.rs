@@ -48,11 +48,12 @@ pub struct MainCharacter {
     base: Base<CharacterBody2D>,
 
     #[init(val = OnReady::from_base_fn(|this| {
-        hit_reg::HitReg { hitbox: this.get_node_as::<Hitbox>("Hitbox"), 
-            hurtbox: this.get_node_as::<Hurtbox>("Hurtbox"), 
-            left_wall_cast: Some(this.get_node_as::<RayCast2D>("LeftWallSensor")), 
-            right_wall_cast: Some(this.get_node_as::<RayCast2D>("RightWallSensor")) 
-        }}))]
+        hit_reg::HitReg::new(
+            this.get_node_as::<Hitbox>("Hitbox"),
+            this.get_node_as::<Hurtbox>("Hurtbox"),
+            this.try_get_node_as::<RayCast2D>("LeftWallSensor"),
+            this.try_get_node_as::<RayCast2D>("RightWallSensor"))
+        }))]
     hit_reg: OnReady<hit_reg::HitReg>,
 
     #[init(val = AbilityComp::new_test())]
@@ -138,7 +139,6 @@ impl ICharacterBody2D for MainCharacter {
         }
 
         self.wall_grab();
-        dbg!(self.state.state());
 
         self.movements
             .apply_gravity(self.base().is_on_floor_only(), &delta);
@@ -149,9 +149,6 @@ impl ICharacterBody2D for MainCharacter {
         let v = self.movements.velocity;
         self.base_mut().set_velocity(v);
         self.base_mut().move_and_slide();
-
-        // dbg!(self.state.state());
-        // dbg!(&self.movements.velocity);
 
         if ent_physics::hit_ceiling(&mut self.to_gd(), &mut self.movements) {
             let input = InputHandler::handle(&Input::singleton(), self);
@@ -190,22 +187,15 @@ impl MainCharacter {
                 State::WallGrabLeft {} | State::WallGrabRight {}
             )
         {
-            let left = self.hit_reg.left_wall_cast.as_ref().unwrap().is_colliding();
-            let right = self
-                .hit_reg
-                .right_wall_cast
-                .as_ref()
-                .unwrap()
-                .is_colliding();
             let input = InputHandler::handle(&Input::singleton(), self);
             match input.0 {
                 Some(crate::utils::input_hanlder::MoveButton::Left) => {
-                    if left {
+                    if self.hit_reg.left_colliding().is_some_and(|left| left) {
                         self.transition_sm(&Event::GrabbedWall(input));
                     }
                 }
                 Some(crate::utils::input_hanlder::MoveButton::Right) => {
-                    if right {
+                    if self.hit_reg.right_colliding().is_some_and(|right| right) {
                         self.transition_sm(&Event::GrabbedWall(input));
                     }
                 }
