@@ -11,6 +11,7 @@ pub enum EnemyTimer {
 
 #[derive(Clone, Copy, Eq, PartialEq, Hash)]
 pub enum PlayerTimer {
+    WallJumpLimit,
     AttackChain,
     DodgeAnimation,
     JumpingCooldown,

@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use godot::{
     classes::{
         AnimationPlayer, Area2D, CharacterBody2D, ICharacterBody2D, Input, RayCast2D, Timer,
+        timer::TimerProcessCallback,
     },
     obj::WithBaseField,
     prelude::*,
@@ -13,7 +14,7 @@ use crate::{
     entities::{
         damage::{AttackData, Damage, DamageType, Damageable, HasHealth},
         enemies::projectile::Projectile,
-        ent_physics::{self, Movement, Speeds},
+        ent_physics::{self, Movement, PhysicsFrameData, Speeds},
         entity_stats::{EntityStats, Stat, StatModifier, StatVal},
         hit_reg::{self, Hitbox, Hurtbox},
         movements::Direction,
@@ -118,9 +119,10 @@ impl ICharacterBody2D for MainCharacter {
             self.inputs = input;
             self.transition_sm(&Event::InputChanged(input));
         }
+        let frame = self.new_frame();
         let prev_vel = self.movements.velocity;
 
-        if !self.base().is_on_floor() && self.movements.velocity.y.is_sign_positive() {
+        if !self.base().is_on_floor_only() && self.movements.velocity.y.is_sign_positive() {
             let input = InputHandler::handle(&Input::singleton(), self);
             self.transition_sm(&Event::FailedFloorCheck(input));
         }
@@ -135,10 +137,10 @@ impl ICharacterBody2D for MainCharacter {
             )));
         }
 
-        self.update_state();
         self.movements
-            .apply_gravity(self.base().is_on_floor(), &delta);
-        self.movements.handle_acceleration(self.state.state());
+            .apply_gravity(self.base().is_on_floor_only(), &delta);
+        self.movements
+            .handle_acceleration(self.state.state(), frame);
         self.update_camera(prev_vel);
 
         let v = self.movements.velocity;
@@ -160,9 +162,6 @@ impl MainCharacter {
     #[signal]
     fn parried_attack();
 
-    // fn wall_grab(&mut self) {
-    //     if self.base().is_on_wall_only() {}
-    // }
 
     // TODO: Finish this and remove parried signal.
     fn on_area_entered_hitbox(&mut self, area: Gd<Area2D>) {
@@ -420,6 +419,17 @@ impl MainCharacter {
             .timeout()
             .connect_other(this, Self::on_jump_limit_timeout);
         self.timers.insert(PlayerTimer::JumpTimeLimit, timer);
+
+        // Wall jump limit
+        let mut timer = Timer::new_alloc();
+        timer.set_wait_time(0.1);
+        timer.set_one_shot(true);
+        timer.set_timer_process_callback(TimerProcessCallback::PHYSICS);
+        timer
+            .signals()
+            .timeout()
+            .connect_other(this, Self::on_jump_limit_timeout);
+        self.timers.insert(PlayerTimer::WallJumpLimit, timer);
 
         let mut pt = self.timers.clone();
         pt.values_mut().for_each(|timer| {
