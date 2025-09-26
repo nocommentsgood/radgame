@@ -41,20 +41,6 @@ fn is_airborne(state: &State, previous_state: &State) -> bool {
     ))
 }
 
-pub fn not_on_floor(ent: &Gd<impl Inherits<CharacterBody2D>>, state: &State) -> bool {
-    if !ent.upcast_ref().is_on_floor() {
-        matches!(
-            state,
-            State::MoveFallingLeft {}
-                | State::MoveFallingRight {}
-                | State::FallingLeft {}
-                | State::FallingRight {}
-        )
-    } else {
-        false
-    }
-}
-
 #[derive(Default, Clone, Copy)]
 pub struct Speeds {
     pub running: f32,

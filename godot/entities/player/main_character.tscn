@@ -3766,7 +3766,6 @@ _data = {
 }
 
 [node name="MainCharacter" type="MainCharacter"]
-temp_jump_speed = 350.0
 physics_interpolation_mode = 1
 collision_layer = 130
 collision_mask = 2
@@ -3815,7 +3814,7 @@ playback_auto_capture = false
 process_priority = -2
 position = Vector2(0, -23)
 target_position = Vector2(20, 0)
-collision_mask = 64
+collision_mask = 66
 collide_with_areas = true
 
 [node name="ItemComponent" type="ItemComponent" parent="."]

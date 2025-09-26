@@ -1,7 +1,9 @@
 use std::collections::HashMap;
 
 use godot::{
-    classes::{AnimationPlayer, CharacterBody2D, ICharacterBody2D, Input, RayCast2D, Timer},
+    classes::{
+        AnimationPlayer, Area2D, CharacterBody2D, ICharacterBody2D, Input, RayCast2D, Timer,
+    },
     obj::WithBaseField,
     prelude::*,
 };
@@ -118,9 +120,7 @@ impl ICharacterBody2D for MainCharacter {
         }
         let prev_vel = self.movements.velocity;
 
-        if self.movements.velocity.y.is_sign_positive()
-            && ent_physics::not_on_floor(&self.to_gd(), self.state.state())
-        {
+        if !self.base().is_on_floor() && self.movements.velocity.y.is_sign_positive() {
             let input = InputHandler::handle(&Input::singleton(), self);
             self.transition_sm(&Event::FailedFloorCheck(input));
         }
@@ -160,55 +160,33 @@ impl MainCharacter {
     #[signal]
     fn parried_attack();
 
-    #[signal]
-    fn player_died();
-
-    #[signal]
-    pub fn animation_state_changed();
-
-    /// Transition state to `falling` when Y axis velocity is positive.
-    fn not_on_floor(&mut self) {
-        if !self.base().is_on_floor() {
-            let is_falling = matches!(
-                self.state.state(),
-                State::MoveFallingLeft {}
-                    | State::MoveFallingRight {}
-                    | State::FallingLeft {}
-                    | State::FallingRight {}
-            );
-
-            if self.movements.velocity.y.is_sign_positive() && !is_falling {
-                let input = InputHandler::handle(&Input::singleton(), self);
-                self.transition_sm(&Event::FailedFloorCheck(input));
-            }
-        }
-    }
-
     // fn wall_grab(&mut self) {
-    //     if !self.base().is_on_floor() && self.base().is_on_wall_only() {
-    //         let input = InputHandler::
-    //     }
+    //     if self.base().is_on_wall_only() {}
     // }
 
-    // fn on_area_entered_hitbox(&mut self, area: Gd<Area2D>) {
-    //     if let Ok(h_box) = &area.try_cast::<Hurtbox>()
-    //         && !self.parried_attack(h_box)
-    //     {
-    // self.timers.get_mut(&PT::HurtAnimation).unwrap().start();
-    // let damaging =
-    //     DynGd::<Area2D, dyn Damaging>::from_godot(h_box.clone().upcast::<Area2D>());
-    // let target = self.to_gd().upcast::<Node2D>();
-    // let guard = self.base_mut();
-    // let damageable = DynGd::<Node2D, dyn Damageable>::from_godot(target);
-    // damaging.dyn_bind().do_damage(damageable);
-    // drop(guard);
-    // let mut camera = self.base().get_node_as::<PlayerCamera>("ShakyPlayerCamera");
-    // camera
-    //     .bind_mut()
-    //     .add_trauma(TraumaLevel::from(damaging.dyn_bind().damage_amount()));
-    // self.transition_sm(&Event::Hurt);
-    //     }
-    // }
+    // TODO: Finish this and remove parried signal.
+    fn on_area_entered_hitbox(&mut self, area: Gd<Area2D>) {
+        let hurtbox = area.cast::<Hurtbox>();
+        // let data = hurtbox.bind().data.unwrap();
+        if hurtbox.bind().data.as_ref().unwrap().parryable && self.parried_attack(&hurtbox) {}
+        // if let Ok(h_box) = &area.try_cast::<Hurtbox>()
+        //     && !self.parried_attack(h_box)
+        // {
+        //     self.timers.get_mut(&PT::HurtAnimation).unwrap().start();
+        //     let damaging =
+        //         DynGd::<Area2D, dyn Damaging>::from_godot(h_box.clone().upcast::<Area2D>());
+        //     let target = self.to_gd().upcast::<Node2D>();
+        //     let guard = self.base_mut();
+        //     let damageable = DynGd::<Node2D, dyn Damageable>::from_godot(target);
+        //     damaging.dyn_bind().do_damage(damageable);
+        //     drop(guard);
+        //     let mut camera = self.base().get_node_as::<PlayerCamera>("ShakyPlayerCamera");
+        //     camera
+        //         .bind_mut()
+        //         .add_trauma(TraumaLevel::from(damaging.dyn_bind().damage_amount()));
+        //     self.transition_sm(&Event::Hurt);
+        // }
+    }
 
     fn on_parry_timeout(&mut self) {
         let input = InputHandler::handle(&Input::singleton(), self);
