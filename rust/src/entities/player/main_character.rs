@@ -14,7 +14,7 @@ use crate::{
     entities::{
         damage::{AttackData, Damage, DamageType, Damageable, HasHealth},
         enemies::projectile::Projectile,
-        ent_physics::{self, Movement, Speeds},
+        ent_physics::{self, Movement, PhysicsFrame, Speeds},
         entity_stats::{EntityStats, Stat, StatModifier, StatVal},
         hit_reg::{self, Hitbox, Hurtbox},
         movements::Direction,
@@ -115,41 +115,44 @@ impl ICharacterBody2D for MainCharacter {
     }
 
     fn physics_process(&mut self, delta: f32) {
+        let frame = PhysicsFrame::new(
+            *self.state.state(),
+            self.previous_state,
+            self.base().is_on_floor(),
+            self.base().is_on_floor_only(),
+            self.base().is_on_wall_only(),
+            self.hit_reg.left_colliding().unwrap(),
+            self.hit_reg.right_colliding().unwrap(),
+            delta,
+        );
         let input = DevInputHandler::handle_unhandled(&Input::singleton(), self);
+
         if self.inputs != input {
             self.inputs = input;
             self.transition_sm(&Event::InputChanged(input));
         }
-        let prev_vel = self.movements.velocity;
 
-        if !self.base().is_on_floor() && self.movements.velocity.y.is_sign_positive() {
-            let input = InputHandler::handle(&Input::singleton(), self);
+        if self.movements.not_on_floor(&frame) {
             self.transition_sm(&Event::FailedFloorCheck(input));
         }
 
-        if self
-            .movements
-            .landed(self.to_gd(), self.state.state(), &self.previous_state)
-        {
-            self.transition_sm(&Event::Landed(Inputs(
-                InputHandler::get_movement(&Input::singleton()).0,
-                None,
-            )));
+        if self.movements.landed(&frame) {
+            self.transition_sm(&Event::Landed(input));
         }
 
-        self.wall_grab();
+        if Movement::wall_grab(&frame, &input) {
+            self.transition_sm(&Event::GrabbedWall(input));
+        }
 
-        self.movements
-            .apply_gravity(self.base().is_on_floor_only(), &delta);
+        self.movements.apply_gravity(frame);
         self.movements.handle_acceleration(self.state.state());
-        self.update_camera(prev_vel);
+        self.update_camera(self.movements.velocity);
 
         let v = self.movements.velocity;
         self.base_mut().set_velocity(v);
         self.base_mut().move_and_slide();
 
         if ent_physics::hit_ceiling(&mut self.to_gd(), &mut self.movements) {
-            let input = InputHandler::handle(&Input::singleton(), self);
             self.transition_sm(&Event::HitCeiling(input));
         }
     }
@@ -162,30 +165,6 @@ impl MainCharacter {
 
     #[signal]
     fn parried_attack();
-
-    fn wall_grab(&mut self) {
-        if self.base().is_on_wall_only()
-            && !matches!(
-                self.state.state(),
-                State::WallGrabLeft {} | State::WallGrabRight {}
-            )
-        {
-            let input = InputHandler::handle(&Input::singleton(), self);
-            match input.0 {
-                Some(crate::utils::input_hanlder::MoveButton::Left) => {
-                    if self.hit_reg.left_colliding().is_some_and(|left| left) {
-                        self.transition_sm(&Event::GrabbedWall(input));
-                    }
-                }
-                Some(crate::utils::input_hanlder::MoveButton::Right) => {
-                    if self.hit_reg.right_colliding().is_some_and(|right| right) {
-                        self.transition_sm(&Event::GrabbedWall(input));
-                    }
-                }
-                _ => (),
-            }
-        }
-    }
 
     // TODO: Finish this and remove parried signal.
     fn on_area_entered_hitbox(&mut self, area: Gd<Area2D>) {

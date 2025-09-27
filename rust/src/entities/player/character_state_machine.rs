@@ -1171,6 +1171,7 @@ impl CharacterStateMachine {
     ) -> Response<State> {
         match event {
             Event::InputChanged(inputs) => match (&inputs.0, inputs.1) {
+                // Jumping
                 (Some(MoveButton::Left), Some(ModifierButton::Jump)) => {
                     if let Some(timer) = context.get_mut(&PlayerTimer::WallJumpLimit)
                         && timer.get_time_left() == 0.0
@@ -1181,10 +1182,13 @@ impl CharacterStateMachine {
                         Handled
                     }
                 }
+
+                // Falling
                 (Some(MoveButton::Right), _) => Response::Transition(State::move_falling_right()),
                 _ => Response::Transition(State::falling_left()),
             },
 
+            // Landed
             Event::Landed(inputs) => match (&inputs.0, inputs.1) {
                 (Some(MoveButton::Left), _) => Response::Transition(State::move_left()),
                 (Some(MoveButton::Right), _) => Response::Transition(State::move_right()),
@@ -1204,6 +1208,7 @@ impl CharacterStateMachine {
     ) -> Response<State> {
         match event {
             Event::InputChanged(inputs) => match (&inputs.0, inputs.1) {
+                // Jumping
                 (Some(MoveButton::Right), Some(ModifierButton::Jump)) => {
                     if let Some(timer) = context.get_mut(&PlayerTimer::WallJumpLimit)
                         && timer.get_time_left() == 0.0
@@ -1214,10 +1219,13 @@ impl CharacterStateMachine {
                         Handled
                     }
                 }
+
+                // Falling
                 (Some(MoveButton::Left), _) => Response::Transition(State::move_falling_left()),
                 _ => Response::Transition(State::falling_right()),
             },
 
+            // Landed
             Event::Landed(inputs) => match (&inputs.0, inputs.1) {
                 (Some(MoveButton::Left), _) => Response::Transition(State::move_left()),
                 (Some(MoveButton::Right), _) => Response::Transition(State::move_right()),
@@ -1238,7 +1246,6 @@ where
     if let Some(timer) = context.get_mut(&PlayerTimer::JumpTimeLimit)
         && timer.get_time_left() == 0.0
     {
-        println!("Starting timer");
         timer.start();
         completed()
     } else {

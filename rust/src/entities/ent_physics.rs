@@ -4,7 +4,7 @@ use godot::{
     obj::{Gd, Inherits},
 };
 
-use crate::entities::player::character_state_machine::State;
+use crate::{entities::player::character_state_machine::State, utils::input_hanlder::Inputs};
 
 /// Ceiling collision handling and response.
 pub fn hit_ceiling(ent: &mut Gd<impl Inherits<CharacterBody2D>>, movement: &mut Movement) -> bool {
@@ -21,15 +21,15 @@ pub fn hit_ceiling(ent: &mut Gd<impl Inherits<CharacterBody2D>>, movement: &mut 
 }
 
 /// Whether the entity is or was previously in an airborne state.
-fn is_airborne(state: &State, previous_state: &State) -> bool {
+fn is_airborne(frame: &PhysicsFrame) -> bool {
     (matches!(
-        state,
+        frame.state,
         State::FallingRight {}
             | State::MoveFallingLeft {}
             | State::MoveFallingRight {}
             | State::FallingLeft {}
     ) || matches!(
-        previous_state,
+        frame.previous_state,
         State::JumpingLeft {}
             | State::JumpingRight {}
             | State::MoveJumpingRight {}
@@ -107,20 +107,20 @@ impl Movement {
             .bounce(collision.get_normal().normalized_or_zero())
     }
 
-    pub fn apply_gravity(&mut self, on_floor: bool, delta: &f32) {
+    pub fn apply_gravity(&mut self, frame: PhysicsFrame) {
         const GRAVITY: f32 = 1500.0;
         const TERMINAL_VELOCITY: f32 = 500.0;
 
-        if !on_floor {
-            self.early_gravity += delta;
+        if !frame.on_floor_only {
+            self.early_gravity += frame.delta;
 
             if self.velocity.y < TERMINAL_VELOCITY {
                 if self.early_gravity >= 0.8 {
-                    self.velocity.y += GRAVITY * delta;
+                    self.velocity.y += GRAVITY * frame.delta;
                 } else if self.early_gravity < 0.8 && self.early_gravity >= 0.4 {
-                    self.velocity.y += 1700.0 * delta;
+                    self.velocity.y += 1700.0 * frame.delta;
                 } else {
-                    self.velocity.y += 2000.0 * delta;
+                    self.velocity.y += 2000.0 * frame.delta;
                 }
             }
         }
@@ -128,18 +128,70 @@ impl Movement {
 
     /// Checks if the entity was airborne in the previous physics frame and if the entity has since
     /// landed on the floor.
-    pub fn landed(
-        &mut self,
-        ent: Gd<impl Inherits<CharacterBody2D>>,
-        state: &State,
-        previous_state: &State,
-    ) -> bool {
-        if ent.upcast_ref().is_on_floor_only() && is_airborne(state, previous_state) {
+    pub fn landed(&mut self, frame: &PhysicsFrame) -> bool {
+        if frame.on_floor_only && is_airborne(frame) {
             self.velocity.y = 0.0;
             self.early_gravity = 0.0;
             true
         } else {
             false
+        }
+    }
+
+    pub fn wall_grab(frame: &PhysicsFrame, input: &Inputs) -> bool {
+        if frame.on_wall_only
+            && !matches!(
+                frame.state,
+                State::WallGrabLeft {} | State::WallGrabRight {}
+            )
+        {
+            match input.0 {
+                Some(crate::utils::input_hanlder::MoveButton::Left) => frame.left_wall_colliding,
+                Some(crate::utils::input_hanlder::MoveButton::Right) => frame.right_wall_colliding,
+                _ => false,
+            }
+        } else {
+            false
+        }
+    }
+
+    pub fn not_on_floor(&self, frame: &PhysicsFrame) -> bool {
+        !frame.on_floor && self.velocity.y.is_sign_positive()
+    }
+}
+
+pub struct PhysicsFrame {
+    state: State,
+    previous_state: State,
+    on_floor: bool,
+    on_floor_only: bool,
+    on_wall_only: bool,
+    left_wall_colliding: bool,
+    right_wall_colliding: bool,
+    delta: f32,
+}
+
+impl PhysicsFrame {
+    #[allow(clippy::too_many_arguments)]
+    pub fn new(
+        state: State,
+        previous_state: State,
+        on_floor: bool,
+        on_floor_only: bool,
+        on_wall_only: bool,
+        left_wall_colliding: bool,
+        right_wall_colliding: bool,
+        delta: f32,
+    ) -> Self {
+        Self {
+            state,
+            previous_state,
+            on_floor,
+            on_floor_only,
+            on_wall_only,
+            left_wall_colliding,
+            right_wall_colliding,
+            delta,
         }
     }
 }
