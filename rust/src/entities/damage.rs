@@ -41,8 +41,7 @@ pub enum Resistance {
     Elemental(ElementType, ModifierKind),
 }
 
-#[derive(GodotClass, Clone)]
-#[class(no_init)]
+#[derive(Clone)]
 pub struct AttackData {
     pub hurtbox: Gd<Hurtbox>,
     pub parryable: bool,

@@ -270,11 +270,6 @@ impl MainCharacter {
         }
     }
 
-    /// Updates the state, setting `previous_state` to the current state.
-    fn update_state(&mut self) {
-        self.previous_state = *self.state.state();
-    }
-
     fn update_animation(&mut self) {
         self.animation_player
             .play_ex()
@@ -519,21 +514,6 @@ impl Damageable for Gd<MainCharacter> {
                     .emit(cur, new, attack.damage.raw);
                 self.bind_mut().transition_sm(&Event::Hurt);
             }
-        }
-    }
-}
-
-// TODO: Move this.
-trait Reset {
-    fn reset(&mut self);
-}
-
-impl Reset for Gd<Timer> {
-    fn reset(&mut self) {
-        if self.get_time_left() != 0.0 {
-            self.stop();
-            self.start();
-            self.stop();
         }
     }
 }
