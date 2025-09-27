@@ -14,7 +14,7 @@ use crate::{
     entities::{
         damage::{AttackData, Damage, DamageType, Damageable, HasHealth},
         enemies::projectile::Projectile,
-        ent_physics::{self, Movement, PhysicsFrameData, Speeds},
+        ent_physics::{self, Movement, Speeds},
         entity_stats::{EntityStats, Stat, StatModifier, StatVal},
         hit_reg::{self, Hitbox, Hurtbox},
         movements::Direction,
@@ -40,7 +40,7 @@ type Event = csm::Event;
 #[class(init, base=CharacterBody2D)]
 pub struct MainCharacter {
     inputs: Inputs,
-    pub previous_state: State,
+    previous_state: State,
     pub timers: HashMap<PlayerTimer, Gd<Timer>>,
     pub state: StateMachine<csm::CharacterStateMachine>,
     pub stats: EntityStats,
@@ -120,7 +120,6 @@ impl ICharacterBody2D for MainCharacter {
             self.inputs = input;
             self.transition_sm(&Event::InputChanged(input));
         }
-        let frame = self.new_frame();
         let prev_vel = self.movements.velocity;
 
         if !self.base().is_on_floor() && self.movements.velocity.y.is_sign_positive() {
@@ -142,8 +141,7 @@ impl ICharacterBody2D for MainCharacter {
 
         self.movements
             .apply_gravity(self.base().is_on_floor_only(), &delta);
-        self.movements
-            .handle_acceleration(self.state.state(), frame);
+        self.movements.handle_acceleration(self.state.state());
         self.update_camera(prev_vel);
 
         let v = self.movements.velocity;
@@ -164,21 +162,6 @@ impl MainCharacter {
 
     #[signal]
     fn parried_attack();
-
-    fn new_frame(&self) -> PhysicsFrameData {
-        let guard = self.base();
-        PhysicsFrameData::new(
-            *self.state.state(),
-            self.movements.velocity,
-            guard.is_on_floor(),
-            guard.is_on_floor_only(),
-            guard.is_on_wall(),
-            guard.is_on_wall_only(),
-            guard.is_on_ceiling(),
-            guard.is_on_ceiling_only(),
-            guard.get_physics_process_delta_time() as f32,
-        )
-    }
 
     fn wall_grab(&mut self) {
         if self.base().is_on_wall_only()
