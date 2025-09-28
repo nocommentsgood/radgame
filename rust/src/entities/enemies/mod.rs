@@ -6,6 +6,7 @@ mod has_enemy_sensors;
 mod has_state;
 mod nav_enemy;
 mod patrol_component;
+mod physics;
 pub mod projectile;
 mod projectile_enemy;
 mod test_enemy;

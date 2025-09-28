@@ -10,11 +10,11 @@ use godot::{
 };
 use statig::prelude::StateMachine;
 
+use super::physics;
 use crate::{
     entities::{
         damage::{AttackData, Damage, DamageType, Damageable, HasHealth},
         enemies::projectile::Projectile,
-        ent_physics::{self, Movement, PhysicsFrame, Speeds},
         entity_stats::{EntityStats, Stat, StatModifier, StatVal},
         hit_reg::{self, Hitbox, Hurtbox},
         movements::Direction,
@@ -44,7 +44,7 @@ pub struct MainCharacter {
     pub timers: HashMap<PlayerTimer, Gd<Timer>>,
     pub state: StateMachine<csm::CharacterStateMachine>,
     pub stats: EntityStats,
-    movements: Movement,
+    movements: physics::Movement,
     base: Base<CharacterBody2D>,
 
     #[init(val = OnReady::from_base_fn(|this| {
@@ -72,7 +72,7 @@ pub struct MainCharacter {
 #[godot_api]
 impl ICharacterBody2D for MainCharacter {
     fn ready(&mut self) {
-        self.movements.speeds = Speeds {
+        self.movements.speeds = physics::Speeds {
             running: 180.0,
             jumping: 300.0,
             dodging: 250.0,
@@ -115,7 +115,7 @@ impl ICharacterBody2D for MainCharacter {
     }
 
     fn physics_process(&mut self, delta: f32) {
-        let frame = PhysicsFrame::new(
+        let frame = physics::PhysicsFrame::new(
             *self.state.state(),
             self.previous_state,
             self.base().is_on_floor(),
@@ -140,7 +140,7 @@ impl ICharacterBody2D for MainCharacter {
             self.transition_sm(&Event::Landed(input));
         }
 
-        if Movement::wall_grab(&frame, &input) {
+        if physics::Movement::wall_grab(&frame, &input) {
             self.transition_sm(&Event::GrabbedWall(input));
         }
 
@@ -152,7 +152,7 @@ impl ICharacterBody2D for MainCharacter {
         self.base_mut().set_velocity(v);
         self.base_mut().move_and_slide();
 
-        if ent_physics::hit_ceiling(&mut self.to_gd(), &mut self.movements) {
+        if physics::hit_ceiling(&mut self.to_gd(), &mut self.movements) {
             self.transition_sm(&Event::HitCeiling(input));
         }
     }
