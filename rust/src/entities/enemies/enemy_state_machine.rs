@@ -1,6 +1,8 @@
 use statig::Response::Handled;
 use statig::{Response, state_machine};
 
+use crate::entities::enemies::time::EnemyTimers;
+
 #[derive(Default, Debug, Clone)]
 pub struct EnemyStateMachine {
     just_chain_attacked: bool,
@@ -15,7 +17,7 @@ pub enum EnemyEvent {
     LostPlayer,
     InAttackRange,
     RayCastNotColliding,
-    TimerElapsed,
+    TimerElapsed(EnemyTimers),
     #[default]
     None,
 }
@@ -39,18 +41,21 @@ impl State {
     }
 }
 
-#[state_machine(initial = "State::idle()", state(derive(Debug, Clone)))]
+#[state_machine(initial = "State::idle()", state(derive(Debug, Clone, PartialEq)))]
 impl EnemyStateMachine {
     #[state(superstate = "passive")]
     fn idle(&self, event: &EnemyEvent) -> Response<State> {
         match event {
-            EnemyEvent::TimerElapsed => {
-                if !self.disable_movement {
-                    Response::Transition(State::patrol())
-                } else {
-                    Handled
+            EnemyEvent::TimerElapsed(timer) => match timer {
+                EnemyTimers::Idle => {
+                    if !self.disable_movement {
+                        Response::Transition(State::patrol())
+                    } else {
+                        Handled
+                    }
                 }
-            }
+                _ => Handled,
+            },
             EnemyEvent::FoundPlayer => Response::Super,
             EnemyEvent::FailedFloorCheck => Response::Transition(State::falling()),
             _ => Response::Handled,
@@ -60,7 +65,10 @@ impl EnemyStateMachine {
     #[state(superstate = "passive")]
     fn patrol(&mut self, event: &EnemyEvent) -> Response<State> {
         match event {
-            EnemyEvent::TimerElapsed => Response::Transition(State::idle()),
+            EnemyEvent::TimerElapsed(timer) => match timer {
+                EnemyTimers::Patrol => Response::Transition(State::idle()),
+                _ => Handled,
+            },
             EnemyEvent::RayCastNotColliding => {
                 self.disable_movement = true;
                 Response::Transition(State::idle())
@@ -98,7 +106,13 @@ impl EnemyStateMachine {
         match event {
             EnemyEvent::FailedFloorCheck => Response::Transition(State::falling()),
             EnemyEvent::LostPlayer => Response::Super,
-            EnemyEvent::TimerElapsed => Response::Transition(State::chase_player()),
+            EnemyEvent::TimerElapsed(timer) => {
+                if let EnemyTimers::Attack = timer {
+                    Response::Transition(State::chase_player())
+                } else {
+                    Handled
+                }
+            }
             _ => Handled,
         }
     }
@@ -108,7 +122,13 @@ impl EnemyStateMachine {
         match event {
             EnemyEvent::FailedFloorCheck => Response::Transition(State::falling()),
             EnemyEvent::LostPlayer => Response::Super,
-            EnemyEvent::TimerElapsed => Response::Transition(State::chase_player()),
+            EnemyEvent::TimerElapsed(timer) => {
+                if let EnemyTimers::Attack = timer {
+                    Response::Transition(State::chase_player())
+                } else {
+                    Handled
+                }
+            }
             _ => Handled,
         }
     }
