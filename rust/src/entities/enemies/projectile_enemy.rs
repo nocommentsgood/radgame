@@ -2,7 +2,6 @@ use std::collections::HashMap;
 
 use super::{
     animatable::Animatable,
-    enemy_state_ext::EnemyEntityStateMachineExt,
     enemy_state_machine::{EnemyStateMachine, State},
     has_enemy_sensors::HasEnemySensors,
     has_state::HasState,
@@ -100,7 +99,7 @@ impl INode2D for ProjectileEnemy {
             self.base_mut().add_child(&timer.clone());
         });
 
-        self.connect_signals();
+        // self.connect_signals();
 
         self.stats.insert(Stat::Health, StatVal::new(20));
         self.stats.insert(Stat::MaxHealth, StatVal::new(20));
@@ -108,21 +107,21 @@ impl INode2D for ProjectileEnemy {
 
         self.hitbox_mut().bind_mut().damageable_parent = Some(Box::new(self.to_gd()));
 
-        self.idle();
+        // self.idle();
         self.animation_player.play_ex().name("idle_east").done();
     }
 
     fn process(&mut self, _delta: f64) {
-        match self.state.state() {
-            State::ChasePlayer {} => {
-                if let Some(p) = self.get_player_pos() {
-                    self.nav_agent.set_target_position(p);
-                }
-                self.chase_player()
-            }
-            State::Patrol {} => self.patrol(),
-            _ => (),
-        }
+        // match self.state.state() {
+        //     State::ChasePlayer {} => {
+        //         if let Some(p) = self.get_player_pos() {
+        //             self.nav_agent.set_target_position(p);
+        //         }
+        //         self.chase_player()
+        //     }
+        //     State::Patrol {} => self.patrol(),
+        //     _ => (),
+        // }
 
         // dbg!(self.state.state());
     }
@@ -225,41 +224,5 @@ impl HasHealth for Gd<ProjectileEnemy> {
 impl Damageable for Gd<ProjectileEnemy> {
     fn handle_attack(&mut self, attack: AttackData) {
         self.take_damage(attack.damage.raw);
-    }
-}
-
-impl EnemyEntityStateMachineExt for ProjectileEnemy {
-    fn get_chain_attack_count(&self) -> u32 {
-        self.chain_attack_count
-    }
-    fn set_chain_attack_count(&mut self, amount: u32) {
-        self.chain_attack_count = amount;
-    }
-    fn timers(&mut self) -> &mut HashMap<EnemyTimer, Gd<godot::classes::Timer>> {
-        &mut self.timers
-    }
-
-    fn patrol_comp(&self) -> &PatrolComp {
-        &self.patrol_comp
-    }
-
-    fn get_player_pos(&self) -> Option<Vector2> {
-        self.player_pos
-    }
-
-    fn attack_implementation(&mut self) {
-        if let Some(target) = self.get_player_pos() {
-            self.shoot_projectile(target);
-        }
-    }
-    fn on_sm_state_changed(&mut self) {
-        match self.sm().state() {
-            State::Attack {} => self.attack(),
-            State::Attack2 {} => self.chain_attack(),
-            State::Idle {} => self.idle(),
-            State::Patrol {} => (),
-            State::Falling {} => (),
-            State::ChasePlayer {} => (),
-        }
     }
 }

@@ -3,6 +3,25 @@ use statig::{Response, state_machine};
 
 use crate::entities::enemies::time::EnemyTimers;
 
+#[derive(Clone)]
+pub enum EnemySMType {
+    Basic(statig::blocking::StateMachine<EnemyStateMachine>),
+}
+
+impl EnemySMType {
+    pub fn handle(&mut self, event: &EnemyEvent) {
+        match self {
+            EnemySMType::Basic(state_machine) => state_machine.handle(event),
+        }
+    }
+
+    pub fn state(&self) -> &State {
+        match self {
+            EnemySMType::Basic(state_machine) => state_machine.state(),
+        }
+    }
+}
+
 #[derive(Default, Debug, Clone)]
 pub struct EnemyStateMachine {
     just_chain_attacked: bool,
@@ -136,5 +155,9 @@ impl EnemyStateMachine {
             EnemyEvent::FoundPlayer => Response::Transition(State::chase_player()),
             _ => Response::Super,
         }
+    }
+
+    pub fn new() -> statig::blocking::StateMachine<Self> {
+        statig::blocking::StateMachine::default()
     }
 }

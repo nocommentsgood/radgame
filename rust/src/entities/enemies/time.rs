@@ -12,6 +12,7 @@ pub enum EnemyTimers {
     AttackAnimation,
 }
 
+#[derive(Clone)]
 pub struct Timers {
     pub attack: Gd<Timer>,
     pub patrol: Gd<Timer>,

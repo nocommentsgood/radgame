@@ -1,14 +1,13 @@
-use std::fmt::Display;
-
 use godot::{
-    classes::{AnimationPlayer, Node, Node2D, Sprite2D},
-    obj::{Gd, OnReady},
+    classes::{AnimationPlayer, Node, Sprite2D},
+    obj::Gd,
 };
-
 use statig::{IntoStateMachine, blocking::State};
+use std::fmt::Display;
 
 use crate::entities::movements::Direction;
 
+#[derive(Clone)]
 pub struct EntGraphics {
     sprite: Gd<Sprite2D>,
     pub animation_player: Gd<AnimationPlayer>,

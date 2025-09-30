@@ -51,6 +51,7 @@ impl Hurtbox {
     }
 }
 
+#[derive(Clone)]
 pub struct HitReg {
     pub hitbox: Gd<Hitbox>,
     pub hurtbox: Gd<Hurtbox>,

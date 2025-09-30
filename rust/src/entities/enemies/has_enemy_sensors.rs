@@ -2,7 +2,6 @@ use godot::{
     builtin::Vector2,
     classes::{Area2D, Node, Node2D, RayCast2D},
     obj::{Gd, Inherits, WithBaseField},
-    register::{IndirectSignalReceiver, SignalReceiver},
 };
 
 use super::has_state::HasState;
@@ -131,6 +130,7 @@ impl PlayerDetection {
     }
 }
 
+#[derive(Clone)]
 pub struct EnemySensors {
     pub hit_reg: HitReg,
     pub player_detection: PlayerDetection,

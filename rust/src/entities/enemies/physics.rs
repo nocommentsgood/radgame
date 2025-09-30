@@ -1,11 +1,8 @@
-use godot::{
-    builtin::Vector2,
-    classes::{Engine, ProjectSettings},
-    prelude::GodotClass,
-};
+use godot::{builtin::Vector2, classes::Node2D, obj::Gd, prelude::GodotClass};
 
 use crate::entities::enemies::enemy_state_machine::State;
 
+#[derive(Clone, Copy)]
 pub struct Speeds {
     patrol: f32,
     aggro: f32,
@@ -18,11 +15,9 @@ impl Speeds {
 }
 
 /// Used for setting the maximum distance an enemy can move in its patrol state.
-#[derive(GodotClass, Default)]
+#[derive(GodotClass, Default, Clone)]
 #[class(no_init)]
 pub struct PatrolComp {
-    #[export]
-    c: Vector2,
     /// The furthest distance the entity should move to the left in its patrol state.
     /// Note that only the x-axis is considered.
     pub left_target: Vector2,
@@ -33,6 +28,7 @@ pub struct PatrolComp {
 }
 
 impl PatrolComp {
+    /// Computes the normalized vector to the further patrol target.
     pub fn get_furthest_distance_x_axis(&self, current_pos: Vector2) -> Vector2 {
         let left_dist = (self.left_target.x - current_pos.x).abs();
         let right_dist = (self.right_target.x - current_pos.x).abs();
@@ -43,8 +39,16 @@ impl PatrolComp {
             Vector2::RIGHT
         }
     }
+
+    pub fn new(left_target: Vector2, right_target: Vector2) -> Self {
+        Self {
+            left_target,
+            right_target,
+        }
+    }
 }
 
+#[derive(Clone, Copy)]
 pub struct Movement {
     speeds: Speeds,
     pub velocity: Vector2,
@@ -68,11 +72,11 @@ impl Movement {
         self.velocity.x = cur_position.direction_to(target).x;
     }
 
-    pub fn update_patrol_target(&mut self, frame: &FrameData) {
+    pub fn update_patrol_target(&mut self, frame: &PhysicsFrameData) {
         self.velocity = frame.patrol.get_furthest_distance_x_axis(frame.cur) * self.speeds.patrol;
     }
 
-    pub fn update(&mut self, frame: &FrameData) {
+    pub fn update(&mut self, frame: &PhysicsFrameData) {
         match frame.state {
             State::ChasePlayer {} => {
                 if let Some(pos) = frame.player {
@@ -87,7 +91,7 @@ impl Movement {
     }
 }
 
-pub struct FrameData<'a> {
+pub struct PhysicsFrameData<'a> {
     state: &'a State,
     on_floor: bool,
     cur: Vector2,
@@ -96,7 +100,7 @@ pub struct FrameData<'a> {
     delta: f32,
 }
 
-impl<'a> FrameData<'a> {
+impl<'a> PhysicsFrameData<'a> {
     pub fn new(
         state: &'a State,
         on_floor: bool,
