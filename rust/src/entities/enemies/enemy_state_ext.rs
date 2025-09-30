@@ -6,11 +6,9 @@ use godot::{
     obj::{Gd, Inherits, WithBaseField, WithUserSignals},
 };
 
-use super::{enemy_state_machine::*, patrol_component::PatrolComp};
+use super::enemy_state_machine::*;
 use crate::entities::{
-    enemies::{
-        animatable::Animatable, has_enemy_sensors::HasEnemySensors, patrol_component::EnemySpeeds,
-    },
+    enemies::{animatable::Animatable, has_enemy_sensors::HasEnemySensors, physics::PatrolComp},
     player::main_character::MainCharacter,
     time::EnemyTimer,
 };
@@ -30,7 +28,6 @@ where
     Self: Inherits<Node2D> + WithBaseField<Base: Inherits<Node2D>> + WithUserSignals,
 {
     fn timers(&mut self) -> &mut HashMap<EnemyTimer, Gd<Timer>>;
-    fn speeds(&self) -> &EnemySpeeds;
     fn patrol_comp(&self) -> &PatrolComp;
     fn get_player_pos(&self) -> Option<Vector2>;
     fn get_chain_attack_count(&self) -> u32;
@@ -66,69 +63,16 @@ where
             .signals()
             .timeout()
             .connect_other(&this, Self::on_idle_timeout);
-        self.aggro_area_mut()
-            .signals()
-            .area_entered()
-            .connect_other(&this, Self::on_aggro_area_entered);
-        self.aggro_area_mut()
-            .signals()
-            .area_exited()
-            .connect_other(&this, Self::on_aggro_area_exited);
-    }
-
-    fn fall(&mut self) {
-        let velocity = Vector2::DOWN * self.speeds().aggro;
-        self.set_velocity(velocity);
-        self.slide();
-    }
-
-    fn on_aggro_area_entered(&mut self, area: Gd<Area2D>) {
-        if area.is_in_group("player")
-            && let Some(player) = area.get_parent()
-            && let Ok(player) = player.try_cast::<MainCharacter>()
-        {
-            let speed = self.speeds().aggro;
-            self.set_player_pos(Some(player.get_global_position()));
-            let velocity = Vector2::new(
-                self.base()
-                    .upcast_ref::<Node2D>()
-                    .get_position()
-                    .direction_to(player.get_global_position())
-                    .x,
-                0.0,
-            ) * speed;
-            self.set_velocity(velocity);
-            self.update_animation();
-            self.transition_sm(&EnemyEvent::FoundPlayer);
-        }
-    }
-
-    fn track_player(&mut self) {
-        let areas = self.aggro_area().get_overlapping_areas();
-        for area in areas.iter_shared() {
-            if area.is_in_group("player") {
-                let player = area.get_parent().unwrap().cast::<MainCharacter>();
-                self.set_player_pos(Some(player.get_global_position()));
-            }
-        }
-    }
-
-    fn on_aggro_area_exited(&mut self, area: Gd<Area2D>) {
-        if area.is_in_group("player") {
-            self.set_player_pos(None);
-            self.transition_sm(&EnemyEvent::LostPlayer);
-        }
     }
 
     fn attack(&mut self) {
         self.timers().get_mut(&ET::AttackAnimation).unwrap().start();
         self.timers().get_mut(&ET::AttackCooldown).unwrap().start();
-        self.track_player();
         self.attack_implementation();
     }
 
     fn on_attack_animation_timeout(&mut self) {
-        self.transition_sm(&EnemyEvent::TimerElapsed);
+        // self.transition_sm(&EnemyEvent::TimerElapsed);
     }
 
     fn chain_attack(&mut self) {
@@ -143,7 +87,7 @@ where
         if self.get_chain_attack_count() >= 2 {
             self.set_chain_attack_count(0);
             self.timers().get_mut(&ET::AttackCooldown).unwrap().start();
-            self.transition_sm(&EnemyEvent::TimerElapsed);
+            // self.transition_sm(&EnemyEvent::TimerElapsed);
         } else {
             self.set_chain_attack_count(self.get_chain_attack_count() + 1);
             self.chain_attack();
@@ -160,7 +104,7 @@ where
     }
 
     fn on_patrol_timeout(&mut self) {
-        self.transition_sm(&EnemyEvent::TimerElapsed);
+        // self.transition_sm(&EnemyEvent::TimerElapsed);
     }
 
     fn idle(&mut self) {
@@ -170,9 +114,8 @@ where
     fn on_idle_timeout(&mut self) {
         let v = self
             .patrol_comp()
-            .get_furthest_distance(self.base().upcast_ref::<Node2D>().get_position());
-        self.set_velocity(v * self.speeds().patrol);
-        self.transition_sm(&EnemyEvent::TimerElapsed);
+            .get_furthest_distance_x_axis(self.base().upcast_ref::<Node2D>().get_position());
+        // self.transition_sm(&EnemyEvent::TimerElapsed);
     }
 
     /// Run in `process()`
@@ -201,27 +144,27 @@ where
 
     /// Run in `process()`
     fn chase_player(&mut self) {
-        let speed = self.speeds().aggro;
-        self.track_player();
-
-        if let Some(p) = self.get_player_pos() {
-            let velocity = Vector2::new(
-                self.base()
-                    .upcast_ref::<Node2D>()
-                    .get_position()
-                    .direction_to(p)
-                    .x,
-                0.0,
-            );
-            self.set_velocity(velocity.normalized_or_zero() * speed);
-            self.slide();
-        }
-
-        if self.attack_area().has_overlapping_areas()
-            && self.timers()[&ET::AttackCooldown].get_time_left() == 0.0
-        {
-            self.transition_sm(&EnemyEvent::InAttackRange);
-        }
+        // let speed = self.speeds().aggro;
+        // self.track_player();
+        //
+        // if let Some(p) = self.get_player_pos() {
+        //     let velocity = Vector2::new(
+        //         self.base()
+        //             .upcast_ref::<Node2D>()
+        //             .get_position()
+        //             .direction_to(p)
+        //             .x,
+        //         0.0,
+        //     );
+        //     self.set_velocity(velocity.normalized_or_zero() * speed);
+        //     self.slide();
+        // }
+        //
+        // if self.attack_area().has_overlapping_areas()
+        //     && self.timers()[&ET::AttackCooldown].get_time_left() == 0.0
+        // {
+        //     self.transition_sm(&EnemyEvent::InAttackRange);
+        // }
     }
 
     fn transition_sm(&mut self, event: &EnemyEvent) {
@@ -241,8 +184,8 @@ where
             State::Attack2 {} => self.chain_attack(),
             State::Idle {} => self.idle(),
             State::Patrol {} => self.patrol(),
-            State::Falling {} => self.fall(),
             State::ChasePlayer {} => self.chase_player(),
+            _ => (),
         }
     }
 }

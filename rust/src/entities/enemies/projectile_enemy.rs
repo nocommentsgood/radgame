@@ -6,12 +6,11 @@ use super::{
     enemy_state_machine::{EnemyStateMachine, State},
     has_enemy_sensors::HasEnemySensors,
     has_state::HasState,
-    patrol_component::PatrolComp,
     projectile::Projectile,
 };
 use crate::entities::{
     damage::{AttackData, Damageable, HasHealth},
-    enemies::patrol_component::EnemySpeeds,
+    enemies::physics::PatrolComp,
     entity_stats::{Stat, StatVal},
     hit_reg::Hurtbox,
     movements::{Direction, Move, Moveable, MoveableEntity},
@@ -30,7 +29,7 @@ const BULLET_SPEED: real = 500.0;
 pub struct ProjectileEnemy {
     velocity: Vector2,
     chain_attack_count: u32,
-    speeds: EnemySpeeds,
+    // speeds: EnemySpeeds,
     direction: Direction,
     stats: HashMap<Stat, StatVal>,
     state: statig::blocking::StateMachine<EnemyStateMachine>,
@@ -103,11 +102,6 @@ impl INode2D for ProjectileEnemy {
 
         self.connect_signals();
 
-        self.speeds = EnemySpeeds {
-            patrol: 150.0,
-            aggro: 250.0,
-        };
-
         self.stats.insert(Stat::Health, StatVal::new(20));
         self.stats.insert(Stat::MaxHealth, StatVal::new(20));
         self.stats.insert(Stat::AttackDamage, StatVal::new(10));
@@ -127,7 +121,6 @@ impl INode2D for ProjectileEnemy {
                 self.chase_player()
             }
             State::Patrol {} => self.patrol(),
-            State::Attack2 {} => self.track_player(),
             _ => (),
         }
 
@@ -244,10 +237,6 @@ impl EnemyEntityStateMachineExt for ProjectileEnemy {
     }
     fn timers(&mut self) -> &mut HashMap<EnemyTimer, Gd<godot::classes::Timer>> {
         &mut self.timers
-    }
-
-    fn speeds(&self) -> &EnemySpeeds {
-        &self.speeds
     }
 
     fn patrol_comp(&self) -> &PatrolComp {

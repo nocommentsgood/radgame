@@ -46,16 +46,9 @@ impl EnemyStateMachine {
     #[state(superstate = "passive")]
     fn idle(&self, event: &EnemyEvent) -> Response<State> {
         match event {
-            EnemyEvent::TimerElapsed(timer) => match timer {
-                EnemyTimers::Idle => {
-                    if !self.disable_movement {
-                        Response::Transition(State::patrol())
-                    } else {
-                        Handled
-                    }
-                }
-                _ => Handled,
-            },
+            EnemyEvent::TimerElapsed(EnemyTimers::Idle) if !self.disable_movement => {
+                Response::Transition(State::patrol())
+            }
             EnemyEvent::FoundPlayer => Response::Super,
             EnemyEvent::FailedFloorCheck => Response::Transition(State::falling()),
             _ => Response::Handled,
@@ -65,10 +58,7 @@ impl EnemyStateMachine {
     #[state(superstate = "passive")]
     fn patrol(&mut self, event: &EnemyEvent) -> Response<State> {
         match event {
-            EnemyEvent::TimerElapsed(timer) => match timer {
-                EnemyTimers::Patrol => Response::Transition(State::idle()),
-                _ => Handled,
-            },
+            EnemyEvent::TimerElapsed(EnemyTimers::Patrol) => Response::Transition(State::idle()),
             EnemyEvent::RayCastNotColliding => {
                 self.disable_movement = true;
                 Response::Transition(State::idle())
@@ -82,8 +72,7 @@ impl EnemyStateMachine {
     #[state(superstate = "aggresive")]
     fn chase_player(&mut self, event: &EnemyEvent) -> Response<State> {
         match event {
-            EnemyEvent::RayCastNotColliding => {
-                self.disable_movement = true;
+            EnemyEvent::RayCastNotColliding if self.disable_movement => {
                 Response::Transition(State::idle())
             }
             EnemyEvent::LostPlayer => Response::Super,
@@ -106,12 +95,8 @@ impl EnemyStateMachine {
         match event {
             EnemyEvent::FailedFloorCheck => Response::Transition(State::falling()),
             EnemyEvent::LostPlayer => Response::Super,
-            EnemyEvent::TimerElapsed(timer) => {
-                if let EnemyTimers::Attack = timer {
-                    Response::Transition(State::chase_player())
-                } else {
-                    Handled
-                }
+            EnemyEvent::TimerElapsed(EnemyTimers::Attack) => {
+                Response::Transition(State::chase_player())
             }
             _ => Handled,
         }
@@ -122,12 +107,8 @@ impl EnemyStateMachine {
         match event {
             EnemyEvent::FailedFloorCheck => Response::Transition(State::falling()),
             EnemyEvent::LostPlayer => Response::Super,
-            EnemyEvent::TimerElapsed(timer) => {
-                if let EnemyTimers::Attack = timer {
-                    Response::Transition(State::chase_player())
-                } else {
-                    Handled
-                }
+            EnemyEvent::TimerElapsed(EnemyTimers::Attack) => {
+                Response::Transition(State::chase_player())
             }
             _ => Handled,
         }

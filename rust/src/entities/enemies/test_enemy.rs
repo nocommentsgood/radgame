@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, ops::Deref};
 
 use godot::{
     classes::{AnimationPlayer, Area2D, CharacterBody2D, ICharacterBody2D, RayCast2D, Timer},
@@ -20,6 +20,7 @@ use crate::entities::{
         physics::{self, FrameData, PatrolComp},
         time::{EnemyTimers, Timers},
     },
+    ent_graphics::EntGraphics,
     hit_reg::{HitReg, Hitbox, Hurtbox},
     movements::{Direction, Move, Moveable, MoveableBody},
     time::EnemyTimer,
@@ -257,7 +258,9 @@ struct ModularTestEnemy {
     #[init(val = OnReady::manual())]
     movement: OnReady<physics::Movement>,
 
-    #[init(val = OnReady::manual())]
+    #[init(val = OnReady::from_base_fn(EntGraphics::new))]
+    graphics: OnReady<EntGraphics>,
+
     #[init(val = OnReady::from_base_fn(EnemySensors::new))]
     sensors: OnReady<EnemySensors>,
 
@@ -279,7 +282,6 @@ impl ICharacterBody2D for ModularTestEnemy {
             physics::Speeds::new(100.0, 150.0),
             Vector2::default(),
         ));
-
         self.sensors.hit_reg.hurtbox.bind_mut().data = Some(AttackData {
             hurtbox: self.sensors.hit_reg.hurtbox.clone(),
             parryable: true,
@@ -307,6 +309,7 @@ impl ICharacterBody2D for ModularTestEnemy {
             .signals()
             .area_entered()
             .connect_other(&self.to_gd(), Self::on_attack_area_entered);
+
         self.timers
             .idle
             .signals()
@@ -364,6 +367,11 @@ impl ICharacterBody2D for ModularTestEnemy {
             self.sensors.player_position(),
             &self.patrol,
             delta,
+        );
+
+        self.graphics.update(
+            self.sm.state(),
+            &Direction::from_vel(&self.movement.velocity),
         );
         self.movement.update(&frame);
         let v = self.movement.velocity;
