@@ -1,35 +1,37 @@
 use godot::{
     builtin::Vector2,
-    classes::{Area2D, CharacterBody2D, ICharacterBody2D, Node},
-    obj::{Base, Gd, OnReady, WithBaseField},
-    prelude::{GodotClass, godot_api},
+    classes::{Area2D, Node, Node2D, RayCast2D},
+    obj::Gd,
 };
 use statig::prelude::StateMachine;
 
 use super::enemy_state_machine::{EnemyEvent, State};
-use crate::entities::{
-    damage::{AttackData, Damage, DamageType},
-    enemies::{
-        enemy_state_machine::EnemySMType,
-        has_enemy_sensors::EnemySensors,
-        physics::{Movement, PhysicsFrameData, Speeds},
-        time::{EnemyTimers, Timers},
+use crate::{
+    entities::{
+        enemies::{
+            enemy_body_actor::EnemyBodyActor,
+            enemy_state_machine::EnemySMType,
+            physics::{Movement, PhysicsFrameData, Speeds},
+            time::Timers,
+        },
+        ent_graphics::EntGraphics,
+        hit_reg::{HitReg, Hitbox, Hurtbox},
+        movements::Direction,
     },
-    ent_graphics::EntGraphics,
-    movements::Direction,
+    utils::collision_layers::CollisionLayers,
 };
 
-enum EnemyType {
+pub enum EnemyType {
     EnemyBodyActor,
 }
 
 #[derive(Clone)]
-struct EnemyContext {
-    movement: Movement,
+pub struct EnemyContext {
+    pub movement: Movement,
     graphics: EntGraphics,
-    sensors: EnemySensors,
-    timers: Timers,
-    sm: EnemySMType,
+    pub sensors: EnemySensors,
+    pub timers: Timers,
+    pub sm: EnemySMType,
 }
 
 impl EnemyContext {
@@ -111,7 +113,7 @@ impl EnemyContext {
         this
     }
 
-    fn physics_process(&mut self, frame: PhysicsFrameData) {
+    pub fn physics_process(&mut self, frame: PhysicsFrameData) {
         if self.sensors.is_any_raycast_colliding() {
             self.sm.handle(&EnemyEvent::RayCastNotColliding);
         }
@@ -150,93 +152,101 @@ impl EnemyContext {
     }
 }
 
-/// Basic enemy type with a base of type CharacterBody2D.
-#[derive(GodotClass)]
-#[class(base = CharacterBody2D, init)]
-struct EnemyBodyActor {
-    #[export]
-    left_target: Vector2,
-    #[export]
-    right_target: Vector2,
-
-    #[init(val = OnReady::from_base_fn(|base|
-        EnemyContext::new_and_init(
-            base,
-            Speeds::new(100.0, 150.0),
-            Vector2::default(),
-            Vector2::default(),
-            EnemyType::EnemyBodyActor,
-        )))]
-    base: OnReady<EnemyContext>,
-    body: Base<CharacterBody2D>,
+#[derive(Clone)]
+pub struct PlayerDetection {
+    pub aggro_area: Gd<Area2D>,
+    pub attack_area: Gd<Area2D>,
+    player_position: Option<Vector2>,
 }
 
-#[godot_api]
-impl ICharacterBody2D for EnemyBodyActor {
-    fn ready(&mut self) {
-        self.base
-            .movement
-            .set_patrol_targets(self.left_target, self.right_target);
+impl PlayerDetection {
+    pub fn new(mut aggro_area: Gd<Area2D>, mut attack_area: Gd<Area2D>) -> Self {
+        aggro_area.set_collision_mask_value(CollisionLayers::PlayerHitbox as i32, true);
+        attack_area.set_collision_mask_value(CollisionLayers::PlayerHitbox as i32, true);
 
-        self.base.sensors.hit_reg.hurtbox.bind_mut().data = Some(AttackData {
-            hurtbox: self.base.sensors.hit_reg.hurtbox.clone(),
-            parryable: true,
-            damage: Damage {
-                raw: 10,
-                d_type: DamageType::Physical,
-            },
-        });
+        let this = Self {
+            aggro_area,
+            attack_area,
+            player_position: Option::None,
+        };
+
+        let mut that = this.clone();
+        let mut and = this.clone();
+        this.aggro_area
+            .signals()
+            .area_entered()
+            .connect(move |area| that.on_aggro_area_entered(area));
+        this.aggro_area
+            .signals()
+            .area_exited()
+            .connect(move |area| and.on_aggro_area_exited(area));
+
+        this
     }
 
-    fn physics_process(&mut self, delta: f32) {
-        let frame = self.new_phy_frame(delta);
-        self.base.physics_process(frame);
-        let v = self.base.movement.velocity();
-        self.base_mut().set_velocity(v);
-        self.base_mut().move_and_slide();
-    }
-}
-
-impl EnemyBodyActor {
-    fn new_phy_frame(&self, delta: f32) -> PhysicsFrameData {
-        PhysicsFrameData::new(
-            self.base.sm.state().clone(),
-            self.base().is_on_floor(),
-            self.base().get_global_position(),
-            self.base.sensors.player_position(),
-            delta,
-        )
-    }
-
-    fn on_aggro_area_entered(&mut self, _area: Gd<Area2D>) {
-        self.base.sm.handle(&EnemyEvent::FoundPlayer);
+    fn on_aggro_area_entered(&mut self, area: Gd<Area2D>) {
+        self.player_position = Some(area.get_global_position());
     }
 
     fn on_aggro_area_exited(&mut self, _area: Gd<Area2D>) {
-        self.base.sm.handle(&EnemyEvent::LostPlayer);
+        self.player_position = None;
     }
 
-    fn on_attack_area_entered(&mut self, _area: Gd<Area2D>) {
-        self.base.sm.handle(&EnemyEvent::InAttackRange);
+    pub fn track_player_position(&mut self) {
+        let areas = self.aggro_area.get_overlapping_areas();
+        for area in areas.iter_shared() {
+            let player = area
+                .get_owner()
+                .expect("Aggro_area overlapping areas should be the player's hitbox")
+                .cast::<Node2D>();
+            self.player_position = Some(player.get_global_position());
+        }
     }
+}
 
-    fn on_idle_timeout(&mut self) {
-        if self.base.sm.state() == (&State::Idle {}) {
-            self.base.movement.patrol();
+#[derive(Clone)]
+pub struct EnemySensors {
+    pub hit_reg: HitReg,
+    pub player_detection: PlayerDetection,
+    left_ground_cast: Gd<RayCast2D>,
+    right_ground_cast: Gd<RayCast2D>,
+    left_wall_cast: Gd<RayCast2D>,
+    right_wall_cast: Gd<RayCast2D>,
+}
 
-            self.base
-                .sm
-                .handle(&EnemyEvent::TimerElapsed(EnemyTimers::Idle));
-            self.base.timers.patrol.start();
+impl EnemySensors {
+    pub fn new(base_enemy: &Gd<Node>) -> Self {
+        Self {
+            hit_reg: HitReg::new(
+                base_enemy.get_node_as::<Hitbox>("EnemySensors/Hitbox"),
+                base_enemy.get_node_as::<Hurtbox>("EnemySensors/Hurtboxes"),
+                base_enemy.try_get_node_as::<RayCast2D>("EnemySensors/LeftWallCast"),
+                base_enemy.try_get_node_as::<RayCast2D>("EnemySensors/RightWallCast"),
+            ),
+            player_detection: PlayerDetection::new(
+                base_enemy.get_node_as("EnemySensors/AggroArea"),
+                base_enemy.get_node_as("EnemySensors/AttackArea"),
+            ),
+            left_ground_cast: base_enemy.get_node_as::<RayCast2D>("EnemySensors/LeftGroundCast"),
+            right_ground_cast: base_enemy.get_node_as::<RayCast2D>("EnemySensors/RightGroundCast"),
+            left_wall_cast: base_enemy.get_node_as::<RayCast2D>("EnemySensors/LeftWallCast"),
+            right_wall_cast: base_enemy.get_node_as::<RayCast2D>("EnemySensors/RightWallCast"),
         }
     }
 
-    fn on_patrol_timeout(&mut self) {
-        if self.base.sm.state() == (&State::Patrol {}) {
-            self.base
-                .sm
-                .handle(&EnemyEvent::TimerElapsed(EnemyTimers::Patrol));
-            self.base.timers.idle.start();
-        }
+    fn is_wall_cast_colliding(&self) -> bool {
+        self.left_wall_cast.is_colliding() || self.right_wall_cast.is_colliding()
+    }
+
+    fn is_ground_cast_colliding(&self) -> bool {
+        self.left_ground_cast.is_colliding() || self.right_ground_cast.is_colliding()
+    }
+
+    pub fn is_any_raycast_colliding(&self) -> bool {
+        self.is_wall_cast_colliding() || !self.is_ground_cast_colliding()
+    }
+
+    pub fn player_position(&self) -> Option<Vector2> {
+        self.player_detection.player_position
     }
 }

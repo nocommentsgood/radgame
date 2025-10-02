@@ -1,11 +1,8 @@
-pub mod animatable;
 mod bouncing_enemy;
+mod enemy_body_actor;
+mod enemy_context;
 mod enemy_state_machine;
-mod has_enemy_sensors;
-mod has_state;
-mod nav_enemy;
 mod physics;
 pub mod projectile;
 mod projectile_enemy;
-mod test_enemy;
 mod time;

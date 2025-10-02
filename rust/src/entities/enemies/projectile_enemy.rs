@@ -1,10 +1,7 @@
 use std::collections::HashMap;
 
 use super::{
-    animatable::Animatable,
     enemy_state_machine::{EnemyStateMachine, State},
-    has_enemy_sensors::HasEnemySensors,
-    has_state::HasState,
     projectile::Projectile,
 };
 use crate::entities::{
@@ -101,8 +98,6 @@ impl INode2D for ProjectileEnemy {
         self.stats.insert(Stat::MaxHealth, StatVal::new(20));
         self.stats.insert(Stat::AttackDamage, StatVal::new(10));
 
-        self.hitbox_mut().bind_mut().damageable_parent = Some(Box::new(self.to_gd()));
-
         // self.idle();
         self.animation_player.play_ex().name("idle_east").done();
     }
@@ -153,22 +148,6 @@ impl ProjectileEnemy {
     }
 }
 
-impl HasState for ProjectileEnemy {
-    fn sm_mut(&mut self) -> &mut statig::prelude::StateMachine<EnemyStateMachine> {
-        &mut self.state
-    }
-
-    fn sm(&self) -> &statig::prelude::StateMachine<EnemyStateMachine> {
-        &self.state
-    }
-}
-
-impl HasEnemySensors for ProjectileEnemy {
-    fn set_player_pos(&mut self, pos: Option<godot::builtin::Vector2>) {
-        self.player_pos = pos;
-    }
-}
-
 impl Moveable for ProjectileEnemy {
     fn get_velocity(&self) -> Vector2 {
         self.velocity
@@ -184,22 +163,6 @@ impl MoveableEntity for ProjectileEnemy {}
 impl Move for ProjectileEnemy {
     fn slide(&mut self) {
         self.node_slide(false);
-    }
-}
-
-impl Animatable for ProjectileEnemy {
-    fn anim_player_mut(&mut self) -> &mut Gd<godot::classes::AnimationPlayer> {
-        &mut self.animation_player
-    }
-
-    fn get_direction(&self) -> &Direction {
-        &self.direction
-    }
-
-    fn update_direction(&mut self) {
-        if !self.velocity.x.is_zero_approx() {
-            self.direction = Direction::from_vel(&self.velocity);
-        }
     }
 }
 
