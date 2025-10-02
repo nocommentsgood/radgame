@@ -9,7 +9,6 @@ use super::{
 };
 use crate::entities::{
     damage::{AttackData, Damageable, HasHealth},
-    enemies::physics::PatrolComp,
     entity_stats::{Stat, StatVal},
     hit_reg::Hurtbox,
     movements::{Direction, Move, Moveable, MoveableEntity},
@@ -34,7 +33,6 @@ pub struct ProjectileEnemy {
     state: statig::blocking::StateMachine<EnemyStateMachine>,
     #[init(val = HashMap::with_capacity(4))]
     timers: HashMap<EnemyTimer, Gd<Timer>>,
-    patrol_comp: PatrolComp,
     player_pos: Option<Vector2>,
     base: Base<Node2D>,
 
@@ -64,8 +62,6 @@ impl INode2D for ProjectileEnemy {
             .velocity_computed()
             .connect_other(&self.to_gd(), Self::on_velocity_computed);
 
-        self.patrol_comp.left_target = self.left_target;
-        self.patrol_comp.right_target = self.right_target;
         self.projectile_scene.init(load("uid://bh5oo6002wig6"));
 
         self.timers
