@@ -1,15 +1,55 @@
-[gd_scene load_steps=2 format=3 uid="uid://cq3qswo7ofmu3"]
+[gd_scene load_steps=4 format=3 uid="uid://cq3qswo7ofmu3"]
 
 [ext_resource type="PackedScene" uid="uid://ktv3myqxd2dt" path="res://entities/enemies/enemy_sensors.tscn" id="1_lt114"]
+[ext_resource type="Texture2D" uid="uid://c350iit4lopo8" path="res://assets/icon.svg" id="1_nh2pl"]
 
-[node name="BaseEnemyEntity" type="Node2D"]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_rk420"]
+size = Vector2(59, 57)
+
+[node name="BaseEnemyEntity" type="MockEnemy"]
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
+scale = Vector2(0.5, 0.5)
+texture = ExtResource("1_nh2pl")
 
 [node name="AnimationPlayer" type="AnimationPlayer" parent="."]
 
 [node name="NavigationAgent2D" type="NavigationAgent2D" parent="."]
 
 [node name="EnemySensors" parent="." instance=ExtResource("1_lt114")]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("RectangleShape2D_rk420")
+
+[node name="AttackAnim" type="Timer" parent="."]
+wait_time = 1.6999999999999995
+
+[node name="Patrol" type="Timer" parent="."]
+wait_time = 2.5
+
+[node name="Idle" type="Timer" parent="."]
+wait_time = 1.5
+
+[node name="AttackChain" type="Timer" parent="."]
+wait_time = 1.35
+
+[node name="Attack" type="Timer" parent="."]
+wait_time = 2.0
+
+[node name="LeftGroundCast" type="RayCast2D" parent="."]
+target_position = Vector2(-21, 30)
+collision_mask = 2
+
+[node name="RightGroundCast" type="RayCast2D" parent="."]
+target_position = Vector2(23, 30)
+collision_mask = 2
+
+[node name="LeftWallCast" type="RayCast2D" parent="."]
+target_position = Vector2(-55, 0)
+collision_mask = 2
+
+[node name="RightWallCast" type="RayCast2D" parent="."]
+target_position = Vector2(55, 0)
+collision_mask = 2
 
 [editable path="EnemySensors"]

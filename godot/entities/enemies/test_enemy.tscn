@@ -6,8 +6,8 @@
 [ext_resource type="PackedScene" uid="uid://ktv3myqxd2dt" path="res://entities/enemies/enemy_sensors.tscn" id="4_2q423"]
 [ext_resource type="Texture2D" uid="uid://7w0bckfil2tq" path="res://assets/entities/knight/Jump.png" id="4_8yqgs"]
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_eqfgp"]
-size = Vector2(23, 43)
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_3nicp"]
+height = 43.17
 
 [sub_resource type="Animation" id="Animation_wk0bb"]
 length = 0.001
@@ -1053,8 +1053,10 @@ size = Vector2(325, 132)
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_0n8mu"]
 size = Vector2(20, 42)
 
-[node name="TestEnemy" type="TestEnemy" groups=["enemy"]]
-collision_layer = 2
+[node name="TestEnemy" type="EnemyBodyActor" groups=["enemy"]]
+left_target = Vector2(620, 0)
+right_target = Vector2(859, 0)
+collision_layer = 0
 collision_mask = 2
 slide_on_ceiling = false
 floor_constant_speed = true
@@ -1062,7 +1064,7 @@ platform_on_leave = 2
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 position = Vector2(0.5, 2.415)
-shape = SubResource("RectangleShape2D_eqfgp")
+shape = SubResource("CapsuleShape2D_3nicp")
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
 position = Vector2(0, -6.375)
@@ -1097,5 +1099,25 @@ shape = SubResource("RectangleShape2D_j0yqt")
 shape = SubResource("RectangleShape2D_0n8mu")
 
 [node name="NavigationAgent2D" type="NavigationAgent2D" parent="."]
+
+[node name="AttackAnim" type="Timer" parent="."]
+wait_time = 1.6999999999999995
+one_shot = true
+
+[node name="Patrol" type="Timer" parent="."]
+wait_time = 0.5
+one_shot = true
+
+[node name="Idle" type="Timer" parent="."]
+wait_time = 2.0
+one_shot = true
+
+[node name="AttackChain" type="Timer" parent="."]
+wait_time = 1.35
+one_shot = true
+
+[node name="Attack" type="Timer" parent="."]
+wait_time = 2.0
+one_shot = true
 
 [editable path="EnemySensors"]
