@@ -1,4 +1,8 @@
-use godot::builtin::Vector2;
+use godot::{
+    builtin::Vector2,
+    classes::{CharacterBody2D, Node2D},
+    obj::Gd,
+};
 
 use crate::entities::enemies::enemy_state_machine::State;
 
@@ -24,9 +28,14 @@ pub struct Movement {
 }
 
 impl Movement {
-    pub fn new(speeds: Speeds, left_target: Vector2, right_target: Vector2) -> Self {
+    pub fn new(
+        current_position: Vector2,
+        speeds: Speeds,
+        left_target: Vector2,
+        right_target: Vector2,
+    ) -> Self {
         Self {
-            current_position: Vector2::ZERO,
+            current_position,
             speeds,
             velocity: Vector2::ZERO,
             left_target,
@@ -41,7 +50,7 @@ impl Movement {
 
     fn apply_gravity(&mut self, delta: f32) {
         const GRAVITY: f32 = 1500.0;
-        self.velocity.y = Vector2::DOWN.y * GRAVITY * delta;
+        self.velocity.y += self.velocity().y + Vector2::DOWN.y * GRAVITY * delta;
     }
 
     pub fn velocity(&self) -> Vector2 {
@@ -53,52 +62,65 @@ impl Movement {
         let right_dist = (self.right_target.x - self.current_position.x).abs();
 
         if left_dist > right_dist {
-            self.velocity = Vector2::LEFT * self.speeds.patrol;
+            self.velocity = Vector2::LEFT;
         } else {
-            self.velocity = Vector2::RIGHT * self.speeds.patrol;
+            self.velocity = Vector2::RIGHT;
         }
     }
 
-    /// Applies movement dependent on the current state.
-    pub fn update(&mut self, frame: &PhysicsFrameData) {
-        self.current_position = frame.cur_pos;
-        match frame.state {
+    pub fn update(
+        &mut self,
+        strategy: &mut MovementStrategy,
+        state: &State,
+        player_pos: Option<Vector2>,
+        delta: f32,
+    ) {
+        match state {
+            State::RecoverLeft {} => self.velocity.x = Vector2::RIGHT.x,
+            State::RecoverRight {} => self.velocity.x = Vector2::LEFT.x,
+            State::Patrol {} => (),
+            State::Falling {} => self.apply_gravity(delta),
             State::ChasePlayer {} => {
-                if let Some(pos) = frame.player {
-                    self.velocity.x = self.current_position.direction_to(pos).x * self.speeds.aggro;
+                if let Some(player_pos) = player_pos {
+                    self.velocity.x = self.current_position.direction_to(player_pos).x;
                 }
             }
-            State::Falling {} => self.apply_gravity(frame.delta),
-            State::Idle {} => self.velocity = Vector2::ZERO,
-            State::Attack {} | State::Attack2 {} => self.velocity = Vector2::ZERO,
+            _ => self.velocity = Vector2::ZERO,
+        }
+        self.accelerate(state);
+        self.apply_movement(strategy, delta);
+    }
+
+    fn accelerate(&mut self, state: &State) {
+        self.velocity.x = Vector2::ZERO.x;
+        match state {
+            State::Patrol {} | State::RecoverLeft {} | State::RecoverRight {} => {
+                self.velocity.x *= self.speeds.patrol;
+            }
+            State::ChasePlayer {} => self.velocity *= self.speeds.aggro,
             _ => (),
         }
     }
-}
 
-#[derive(Clone, Debug)]
-pub struct PhysicsFrameData {
-    state: State,
-    pub on_floor: bool,
-    cur_pos: Vector2,
-    player: Option<Vector2>,
-    delta: f32,
-}
-
-impl PhysicsFrameData {
-    pub fn new(
-        state: State,
-        on_floor: bool,
-        cur: Vector2,
-        player: Option<Vector2>,
-        delta: f32,
-    ) -> Self {
-        Self {
-            state,
-            on_floor,
-            cur_pos: cur,
-            player,
-            delta,
+    pub fn apply_movement(&mut self, strategy: &mut MovementStrategy, delta: f32) {
+        match strategy {
+            MovementStrategy::MoveAndSlide(gd) => {
+                self.current_position = gd.get_global_position();
+                gd.set_velocity(self.velocity);
+                gd.move_and_slide();
+            }
+            MovementStrategy::ManualSetPosition(node) => {
+                self.current_position = node.get_global_position();
+                node.set_global_position(self.current_position + self.velocity * delta);
+            }
         }
     }
+}
+
+/// `MoveAndSlide`: Internally calls `CharacterBody2D::move_and_slide()`
+///
+/// `ManualSetPosition`: Moves the node manually i.e. `current_position + velocity * delta`
+pub enum MovementStrategy {
+    MoveAndSlide(Gd<CharacterBody2D>),
+    ManualSetPosition(Gd<Node2D>),
 }
