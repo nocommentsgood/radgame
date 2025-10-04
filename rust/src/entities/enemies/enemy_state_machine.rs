@@ -5,6 +5,7 @@ use statig::prelude::StateMachine;
 use statig::{Response, state_machine};
 
 use crate::entities::enemies::time::EnemyTimers;
+use crate::entities::movements::Direction;
 
 #[derive(Clone)]
 pub enum EnemySMType {
@@ -13,6 +14,7 @@ pub enum EnemySMType {
 
 impl EnemySMType {
     pub fn handle(&mut self, event: &EnemyEvent) {
+        dbg!(&event);
         match self {
             EnemySMType::Basic(state_machine) => state_machine.handle(event),
         }
@@ -24,7 +26,7 @@ impl EnemySMType {
         }
     }
 
-    pub fn inner(&mut self) -> &mut StateMachine<EnemyStateMachine> {
+    pub fn inner_mut(&mut self) -> &mut StateMachine<EnemyStateMachine> {
         match self {
             EnemySMType::Basic(state_machine) => state_machine,
         }
@@ -34,7 +36,6 @@ impl EnemySMType {
 #[derive(Debug, Clone, Default)]
 pub struct EnemyStateMachine {
     just_chain_attacked: bool,
-    disable_movement: bool,
 }
 
 #[derive(Default, Debug)]
@@ -44,7 +45,8 @@ pub enum EnemyEvent {
     OnFloor,
     LostPlayer,
     InAttackRange,
-    RayCastNotColliding,
+    RayCastFailed(Direction),
+    WallCastRecovered,
     TimerElapsed(EnemyTimers),
     #[default]
     None,
@@ -53,7 +55,9 @@ pub enum EnemyEvent {
 impl Display for State {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            State::Patrol { .. } => write!(f, "patrol"),
+            State::Patrol { .. } | State::RecoverLeft {} | State::RecoverRight {} => {
+                write!(f, "patrol")
+            }
             State::Idle {} => write!(f, "idle"),
             State::ChasePlayer { .. } => write!(f, "patrol"),
             State::Attack { .. } => write!(f, "attack"),
@@ -72,11 +76,9 @@ impl State {
 #[state_machine(initial = "State::idle()", state(derive(Debug, Clone, PartialEq)))]
 impl EnemyStateMachine {
     #[state]
-    fn idle(&self, event: &EnemyEvent) -> Response<State> {
+    fn idle(&mut self, event: &EnemyEvent) -> Response<State> {
         match event {
-            EnemyEvent::TimerElapsed(EnemyTimers::Idle) if !self.disable_movement => {
-                Response::Transition(State::patrol())
-            }
+            EnemyEvent::TimerElapsed(EnemyTimers::Idle) => Response::Transition(State::patrol()),
             EnemyEvent::FoundPlayer => Response::Transition(State::chase_player()),
             EnemyEvent::FailedFloorCheck => Response::Transition(State::falling()),
             _ => Response::Handled,
@@ -86,11 +88,14 @@ impl EnemyStateMachine {
     #[state]
     fn patrol(&mut self, event: &EnemyEvent) -> Response<State> {
         match event {
-            EnemyEvent::TimerElapsed(EnemyTimers::Patrol) => Response::Transition(State::idle()),
-            EnemyEvent::RayCastNotColliding => {
-                self.disable_movement = true;
-                Response::Transition(State::idle())
+            EnemyEvent::RayCastFailed(dir) => {
+                if let Direction::Left = dir {
+                    Response::Transition(State::recover_left())
+                } else {
+                    Response::Transition(State::recover_right())
+                }
             }
+            EnemyEvent::TimerElapsed(EnemyTimers::Patrol) => Response::Transition(State::idle()),
             EnemyEvent::FoundPlayer => Response::Transition(State::chase_player()),
             EnemyEvent::FailedFloorCheck => Response::Transition(State::falling()),
             _ => Handled,
@@ -100,10 +105,14 @@ impl EnemyStateMachine {
     #[state]
     fn chase_player(&mut self, event: &EnemyEvent) -> Response<State> {
         match event {
-            EnemyEvent::RayCastNotColliding if self.disable_movement => {
-                Response::Transition(State::idle())
+            EnemyEvent::RayCastFailed(dir) => {
+                if let Direction::Left = dir {
+                    Response::Transition(State::recover_left())
+                } else {
+                    Response::Transition(State::recover_right())
+                }
             }
-            EnemyEvent::LostPlayer => Response::Transition(State::patrol()),
+            EnemyEvent::LostPlayer => Response::Transition(State::idle()),
             EnemyEvent::FailedFloorCheck => Response::Transition(State::falling()),
             EnemyEvent::InAttackRange => {
                 if self.just_chain_attacked {
@@ -146,6 +155,22 @@ impl EnemyStateMachine {
     fn falling(event: &EnemyEvent) -> Response<State> {
         match event {
             EnemyEvent::OnFloor => Response::Transition(State::idle()),
+            _ => Handled,
+        }
+    }
+
+    #[state]
+    fn recover_left(event: &EnemyEvent) -> Response<State> {
+        match event {
+            EnemyEvent::WallCastRecovered => Response::Transition(State::idle()),
+            _ => Handled,
+        }
+    }
+
+    #[state]
+    fn recover_right(event: &EnemyEvent) -> Response<State> {
+        match event {
+            EnemyEvent::WallCastRecovered => Response::Transition(State::idle()),
             _ => Handled,
         }
     }
