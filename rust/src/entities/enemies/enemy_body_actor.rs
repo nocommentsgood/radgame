@@ -9,8 +9,8 @@ use super::enemy_state_machine::{EnemyEvent, State};
 use crate::entities::{
     damage::{AttackData, Damage, DamageType},
     enemies::{
-        enemy_context::{EnemyContext, EnemyType},
-        physics::{PhysicsFrameData, Speeds},
+        enemy_context::{EnemyContext, EnemyType, Raycasts},
+        physics::Speeds,
         time::EnemyTimers,
     },
 };
@@ -45,7 +45,7 @@ impl ICharacterBody2D for EnemyBodyActor {
 
         self.base.sensors.hit_reg.hurtbox.bind_mut().data = Some(AttackData {
             hurtbox: self.base.sensors.hit_reg.hurtbox.clone(),
-            parryable: true,
+            parryable: false,
             damage: Damage {
                 raw: 10,
                 d_type: DamageType::Physical,
@@ -54,31 +54,53 @@ impl ICharacterBody2D for EnemyBodyActor {
     }
 
     fn physics_process(&mut self, delta: f32) {
-        let frame = self.new_phy_frame(delta);
-        self.base.physics_process(frame);
-        let v = self.base.movement.velocity();
-        self.base_mut().set_velocity(v);
-        self.base_mut().move_and_slide();
+        if !self.base().is_on_floor() {
+            self.base.sm.handle(&EnemyEvent::FailedFloorCheck);
+        }
+        if let &State::Falling {} = self.base.sm.state()
+            && self.base().is_on_floor()
+        {
+            self.base.sm.handle(&EnemyEvent::OnFloor);
+        }
+
+        match self.base.sm.state() {
+            State::Patrol {} | State::ChasePlayer {}
+                if self.base.sensors.are_raycasts_failing() =>
+            {
+                match self.base.sensors.which() {
+                    Raycasts::Ground(dir) => {
+                        self.base.sm.handle(&EnemyEvent::RayCastFailed(dir));
+                    }
+                    Raycasts::Wall(dir) => {
+                        self.base.sm.handle(&EnemyEvent::RayCastFailed(dir));
+                    }
+                }
+            }
+            State::RecoverLeft {} | State::RecoverRight {}
+                if !self.base.sensors.is_wall_cast_colliding() =>
+            {
+                self.base.sm.handle(&EnemyEvent::WallCastRecovered);
+            }
+            State::ChasePlayer {} => self.base.sensors.player_detection.track_player_position(),
+            _ => (),
+        }
+        let this = self.to_gd();
+        self.base.update_movement(
+            &mut super::physics::MovementStrategy::MoveAndSlide(this.upcast()),
+            delta,
+        );
+        self.base.update_graphics();
     }
 }
 
 impl EnemyBodyActor {
-    fn new_phy_frame(&self, delta: f32) -> PhysicsFrameData {
-        PhysicsFrameData::new(
-            self.base.sm.state().clone(),
-            self.base().is_on_floor(),
-            self.base().get_global_position(),
-            self.base.sensors.player_position(),
-            delta,
-        )
-    }
-
     pub fn on_aggro_area_entered(&mut self, _area: Gd<Area2D>) {
         self.base.sm.handle(&EnemyEvent::FoundPlayer);
     }
 
     pub fn on_aggro_area_exited(&mut self, _area: Gd<Area2D>) {
         self.base.sm.handle(&EnemyEvent::LostPlayer);
+        self.base.timers.idle.start();
     }
 
     pub fn on_attack_area_entered(&mut self, _area: Gd<Area2D>) {
