@@ -19,7 +19,7 @@ pub struct Projectile {
     pub hurtbox: OnReady<Gd<Hurtbox>>,
     start_pos: Vector2,
     pub speed: real,
-    #[init(val = OnReady::manual())]
+    #[init(node = "Timer")]
     timer: OnReady<Gd<Timer>>,
     base: Base<Node2D>,
 }
@@ -30,24 +30,17 @@ impl INode2D for Projectile {
         self.speed = 500.0;
         self.start_pos = self.base().get_position();
         self.hurtbox.bind_mut().data = Some(AttackData {
-            hurtbox: self.hurtbox.clone(),
             parryable: true,
             damage: Damage {
                 raw: 10,
                 d_type: DamageType::Elemental(ElementType::Fire),
             },
         });
-        let mut timer = Timer::new_alloc();
-        timer.set_wait_time(2.0);
-        self.base_mut().add_child(&timer);
-
-        self.timer.init(timer);
 
         self.timer
             .signals()
             .timeout()
             .connect_other(&self.to_gd(), Self::on_timer_timeout);
-        self.timer.start();
     }
 
     fn process(&mut self, delta: f64) {
@@ -65,6 +58,13 @@ impl Projectile {
 
     fn on_timer_timeout(&mut self) {
         self.base_mut().queue_free();
+    }
+
+    pub fn set_damage(&mut self, damage: Damage) {
+        self.hurtbox.bind_mut().data = Some(AttackData {
+            damage,
+            parryable: true,
+        });
     }
 
     pub fn on_parried(&mut self) {

@@ -43,7 +43,6 @@ pub enum Resistance {
 
 #[derive(Clone)]
 pub struct AttackData {
-    pub hurtbox: Gd<Hurtbox>,
     pub parryable: bool,
     pub damage: Damage,
 }

@@ -53,7 +53,6 @@ impl Ability {
                 // Set ability's damage amount.
                 let mut right_pillar = ability.get_node_as::<Hurtbox>("RightPillar");
                 right_pillar.bind_mut().data = Some(AttackData {
-                    hurtbox: right_pillar.clone(),
                     parryable: false,
                     damage: Damage {
                         raw: 10,
@@ -62,7 +61,6 @@ impl Ability {
                 });
                 let mut left_pillar = ability.get_node_as::<Hurtbox>("LeftPillar");
                 left_pillar.bind_mut().data = Some(AttackData {
-                    hurtbox: right_pillar.clone(),
                     parryable: false,
                     damage: Damage {
                         raw: 10,

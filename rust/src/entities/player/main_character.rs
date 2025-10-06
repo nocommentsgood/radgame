@@ -105,7 +105,6 @@ impl ICharacterBody2D for MainCharacter {
 
         self.hit_reg.hitbox.bind_mut().damageable_parent = Some(Box::new(self.to_gd()));
         self.hit_reg.hurtbox.bind_mut().data = Some(AttackData {
-            hurtbox: self.hit_reg.hurtbox.clone(),
             parryable: false,
             damage: Damage {
                 raw: self.stats.get_raw(Stat::AttackDamage),
@@ -229,6 +228,7 @@ impl MainCharacter {
     }
 
     fn parried_attack(&mut self, area: &Gd<Hurtbox>) -> bool {
+        todo!("Refactor parrying");
         match self.state.state() {
             State::ParryLeft {} | State::ParryRight {} => {
                 if self.timers.get(&PT::PerfectParry).unwrap().get_time_left() > 0.0 {
@@ -496,8 +496,9 @@ impl HasHealth for Gd<MainCharacter> {
 
 impl Damageable for Gd<MainCharacter> {
     fn handle_attack(&mut self, attack: AttackData) {
+        todo!("Remove Damageable trait from player");
         if attack.parryable {
-            let parried = self.bind_mut().parried_attack(&attack.hurtbox);
+            let parried = true;
             if !parried {
                 let mut guard = self.bind_mut();
                 guard.timers.get_mut(&PT::HurtAnimation).unwrap().start();

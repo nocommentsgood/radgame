@@ -70,7 +70,6 @@ impl BounceEnemy {
             hurtbox.set_collision_layer_value(CollisionLayers::EnemyHurtbox as i32, true);
             hurtbox.set_collision_mask_value(CollisionLayers::PlayerHitbox as i32, true);
             hurtbox.bind_mut().data = Some(AttackData {
-                hurtbox: hurtbox.clone(),
                 parryable: true,
                 damage: Damage {
                     raw: 5,

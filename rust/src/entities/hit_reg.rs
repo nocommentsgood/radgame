@@ -39,8 +39,6 @@ impl IArea2D for Hurtbox {
 #[godot_api]
 impl Hurtbox {
     fn on_hit(&mut self, area: Gd<Area2D>) {
-        self.data.as_mut().unwrap().hurtbox = self.to_gd();
-
         let mut hitbox = area.cast::<Hitbox>();
         hitbox
             .bind_mut()

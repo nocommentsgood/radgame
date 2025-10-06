@@ -44,7 +44,6 @@ impl ICharacterBody2D for EnemyBodyActor {
             .set_patrol_targets(self.left_target, self.right_target);
 
         self.base.sensors.hit_reg.hurtbox.bind_mut().data = Some(AttackData {
-            hurtbox: self.base.sensors.hit_reg.hurtbox.clone(),
             parryable: false,
             damage: Damage {
                 raw: 10,
