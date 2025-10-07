@@ -80,7 +80,6 @@ impl ICharacterBody2D for EnemyBodyActor {
             {
                 self.base.sm.handle(&EnemyEvent::WallCastRecovered);
             }
-            State::ChasePlayer {} => self.base.sensors.player_detection.track_player_position(),
             _ => (),
         }
         let this = self.to_gd();

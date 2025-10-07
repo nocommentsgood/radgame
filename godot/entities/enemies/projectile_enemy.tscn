@@ -695,7 +695,7 @@ position = Vector2(-28, 0)
 shape = SubResource("RectangleShape2D_l7ghs")
 debug_color = Color(0.808802, 0.15934, 0.920065, 0.42)
 
-[node name="AggroArea" type="Area2D" parent="EnemySensors"]
+[node name="AggroArea" type="AggroArea" parent="EnemySensors"]
 collision_layer = 0
 collision_mask = 4
 

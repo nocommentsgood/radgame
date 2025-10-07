@@ -1,7 +1,8 @@
 use godot::{
     builtin::Vector2,
-    classes::{Area2D, Node, Node2D, RayCast2D},
-    obj::Gd,
+    classes::{Area2D, IArea2D, Node, Node2D, RayCast2D},
+    obj::{Base, Gd, WithBaseField, WithUserSignals},
+    prelude::{GodotClass, godot_api},
 };
 use statig::prelude::StateMachine;
 
@@ -157,15 +158,13 @@ impl EnemyContext {
         self.movement.update(
             strategy,
             self.sm.state(),
-            self.sensors.player_position(),
+            self.sensors.player_detection.player_position(),
             delta,
         );
     }
 
     pub fn handle_attack_area(&mut self) {
         if let State::ChasePlayer {} = self.sm.state() {
-            self.sensors.player_detection.track_player_position();
-
             if self.timers.attack.get_time_left() == 0.0
                 && self
                     .sensors
@@ -180,55 +179,75 @@ impl EnemyContext {
     }
 }
 
-#[derive(Clone)]
-pub struct PlayerDetection {
-    pub aggro_area: Gd<Area2D>,
-    pub attack_area: Gd<Area2D>,
+#[derive(GodotClass)]
+#[class(base=Area2D, init)]
+pub struct AggroArea {
     player_position: Option<Vector2>,
+    base: Base<Area2D>,
 }
 
-impl PlayerDetection {
-    pub fn new(mut aggro_area: Gd<Area2D>, mut attack_area: Gd<Area2D>) -> Self {
-        aggro_area.set_collision_mask_value(CollisionLayers::PlayerHitbox as i32, true);
-        attack_area.set_collision_mask_value(CollisionLayers::PlayerHitbox as i32, true);
-
-        let this = Self {
-            aggro_area,
-            attack_area,
-            player_position: Option::None,
-        };
-
-        let mut that = this.clone();
-        let mut and = this.clone();
-        this.aggro_area
-            .signals()
+#[godot_api]
+impl IArea2D for AggroArea {
+    fn ready(&mut self) {
+        self.base_mut().set_process(false);
+        self.signals()
             .area_entered()
-            .connect(move |area| that.on_aggro_area_entered(area));
-        this.aggro_area
-            .signals()
+            .connect_self(Self::on_area_entered);
+        self.signals()
             .area_exited()
-            .connect(move |area| and.on_aggro_area_exited(area));
-
-        this
+            .connect_self(Self::on_area_exited);
     }
 
-    fn on_aggro_area_entered(&mut self, area: Gd<Area2D>) {
+    fn process(&mut self, _delta: f32) {
+        self.track_player_position();
+    }
+}
+
+#[godot_api]
+impl AggroArea {
+    fn on_area_entered(&mut self, area: Gd<Area2D>) {
+        self.base_mut().set_process(true);
         self.player_position = Some(area.get_global_position());
     }
 
-    fn on_aggro_area_exited(&mut self, _area: Gd<Area2D>) {
+    fn on_area_exited(&mut self, _area: Gd<Area2D>) {
+        self.base_mut().set_process(false);
         self.player_position = None;
     }
 
-    pub fn track_player_position(&mut self) {
-        let areas = self.aggro_area.get_overlapping_areas();
-        for area in areas.iter_shared() {
-            let player = area
-                .get_owner()
-                .expect("Aggro_area overlapping areas should be the player's hitbox")
-                .cast::<Node2D>();
-            self.player_position = Some(player.get_global_position());
+    fn track_player_position(&mut self) {
+        if self.base().has_overlapping_areas() {
+            let areas = self.base().get_overlapping_areas();
+            for area in areas.iter_shared() {
+                let player = area
+                    .get_owner()
+                    .expect("Aggro_area overlapping areas should be the player's hitbox")
+                    .cast::<Node2D>();
+                self.player_position = Some(player.get_global_position());
+            }
         }
+    }
+}
+
+#[derive(Clone)]
+pub struct PlayerDetection {
+    pub aggro_area: Gd<AggroArea>,
+    pub attack_area: Gd<Area2D>,
+}
+
+impl PlayerDetection {
+    pub fn new(mut aggro_area: Gd<AggroArea>, mut attack_area: Gd<Area2D>) -> Self {
+        aggro_area.set_collision_mask_value(CollisionLayers::PlayerHitbox as i32, true);
+        attack_area.set_collision_mask_value(CollisionLayers::PlayerHitbox as i32, true);
+
+        Self {
+            aggro_area,
+            attack_area,
+        }
+    }
+
+    pub fn player_position(&self) -> Option<Vector2> {
+        self.aggro_area.bind().player_position
     }
 }
 
@@ -246,19 +265,19 @@ impl EnemySensors {
     pub fn new(base_enemy: &Gd<Node>) -> Self {
         Self {
             hit_reg: HitReg::new(
-                base_enemy.get_node_as::<Hitbox>("EnemySensors/Hitbox"),
-                base_enemy.get_node_as::<Hurtbox>("EnemySensors/Hurtboxes"),
-                base_enemy.try_get_node_as::<RayCast2D>("EnemySensors/LeftWallCast"),
-                base_enemy.try_get_node_as::<RayCast2D>("EnemySensors/RightWallCast"),
+                base_enemy.get_node_as("EnemySensors/Hitbox"),
+                base_enemy.get_node_as("EnemySensors/Hurtboxes"),
+                base_enemy.try_get_node_as("EnemySensors/LeftWallCast"),
+                base_enemy.try_get_node_as("EnemySensors/RightWallCast"),
             ),
             player_detection: PlayerDetection::new(
                 base_enemy.get_node_as("EnemySensors/AggroArea"),
                 base_enemy.get_node_as("EnemySensors/AttackArea"),
             ),
-            left_ground_cast: base_enemy.get_node_as::<RayCast2D>("EnemySensors/LeftGroundCast"),
-            right_ground_cast: base_enemy.get_node_as::<RayCast2D>("EnemySensors/RightGroundCast"),
-            left_wall_cast: base_enemy.get_node_as::<RayCast2D>("EnemySensors/LeftWallCast"),
-            right_wall_cast: base_enemy.get_node_as::<RayCast2D>("EnemySensors/RightWallCast"),
+            left_ground_cast: base_enemy.get_node_as("EnemySensors/LeftGroundCast"),
+            right_ground_cast: base_enemy.get_node_as("EnemySensors/RightGroundCast"),
+            left_wall_cast: base_enemy.get_node_as("EnemySensors/LeftWallCast"),
+            right_wall_cast: base_enemy.get_node_as("EnemySensors/RightWallCast"),
         }
     }
 
@@ -316,10 +335,6 @@ impl EnemySensors {
 
     pub fn is_right_wallcast_colliding(&self) -> bool {
         self.right_wall_cast.is_colliding()
-    }
-
-    pub fn player_position(&self) -> Option<Vector2> {
-        self.player_detection.player_position
     }
 }
 

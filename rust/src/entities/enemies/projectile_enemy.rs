@@ -8,7 +8,7 @@ use crate::entities::{
     damage::{AttackData, Damage, DamageType, Damageable, HasHealth},
     enemies::{
         enemy_context::{EnemyContext, EnemyType},
-        enemy_state_machine::EnemyEvent,
+        enemy_state_machine::{EnemyEvent, EnemySMType},
         physics::{MovementStrategy, Speeds},
         time::EnemyTimers,
     },
@@ -242,16 +242,12 @@ impl INode2D for NewProjectileEnemy {
         // self.base.handle_attack_area();
         self.handle_attack_area();
 
-        if let &State::Attack {} = self.base.sm.state()
-            && self.base.timers.attack.get_time_left() == 0.0
-        {
-            self.shoot_projectile();
-            self.base.timers.attack.start();
-            self.base.timers.attack_anim.start();
-        }
-        if let &State::ChasePlayer {} = self.base.sm.state() {
-            self.base.sensors.player_detection.track_player_position();
-        }
+        // if let &State::Attack {} = self.base.sm.state()
+        //     && self.base.timers.attack.get_time_left() == 0.0
+        // {
+        //     self.shoot_projectile();
+        //     self.base.sm.handle(&EnemyEvent::);
+        // }
 
         let this = self.to_gd();
         self.base.update_movement(
@@ -277,7 +273,10 @@ impl NewProjectileEnemy {
         if self.base.timers.attack.get_time_left() == 0.0 {
             self.shoot_projectile();
         }
+        let p = self.base.sm.state().clone();
         self.base.sm.handle(&EnemyEvent::InAttackRange);
+        let n = self.base.sm.state();
+        EnemySMType::handle_action(&p, n, &self.to_gd().upcast(), EnemyType::NewProjectileEnemy);
     }
 
     pub fn on_idle_timeout(&mut self) {
@@ -313,8 +312,6 @@ impl NewProjectileEnemy {
 
     fn handle_attack_area(&mut self) {
         if let State::ChasePlayer {} = self.base.sm.state() {
-            self.base.sensors.player_detection.track_player_position();
-
             if self.base.timers.attack.get_time_left() == 0.0
                 && self
                     .base
@@ -323,14 +320,23 @@ impl NewProjectileEnemy {
                     .attack_area
                     .has_overlapping_areas()
             {
+                let p = self.base.sm.state().clone();
                 self.base.sm.handle(&EnemyEvent::InAttackRange);
-                // self.shoot_projectile();
+                let n = self.base.sm.state();
+                EnemySMType::handle_action(
+                    &p,
+                    n,
+                    &self.to_gd().upcast(),
+                    EnemyType::NewProjectileEnemy,
+                );
             }
         }
     }
 
-    fn shoot_projectile(&mut self) {
-        if let Some(player_pos) = self.base.sensors.player_position() {
+    pub fn shoot_projectile(&mut self) {
+        if self.base.timers.attack.get_time_left() == 0.0
+            && let Some(player_pos) = self.base.sensors.player_detection.player_position()
+        {
             let mut inst = self.projectile_scene.instantiate_as::<Projectile>();
             let target = self
                 .base()
