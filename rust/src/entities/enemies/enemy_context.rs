@@ -12,6 +12,7 @@ use crate::{
             enemy_body_actor::EnemyBodyActor,
             enemy_state_machine::EnemySMType,
             physics::{Movement, Speeds},
+            projectile_enemy::NewProjectileEnemy,
             time::Timers,
         },
         ent_graphics::EntGraphics,
@@ -21,8 +22,11 @@ use crate::{
     utils::collision_layers::CollisionLayers,
 };
 
+#[derive(Clone, Default, Debug)]
 pub enum EnemyType {
+    #[default]
     EnemyBodyActor,
+    NewProjectileEnemy,
 }
 
 #[derive(Clone)]
@@ -62,7 +66,7 @@ impl EnemyContext {
         this.sm.inner_mut().init();
 
         match ty {
-            EnemyType::EnemyBodyActor => {
+            EnemyType::EnemyBodyActor | EnemyType::NewProjectileEnemy => {
                 if let Ok(entity) = node.clone().try_cast::<EnemyBodyActor>() {
                     this.timers
                         .idle
@@ -96,6 +100,45 @@ impl EnemyContext {
                         .signals()
                         .area_entered()
                         .connect_other(&entity, EnemyBodyActor::on_attack_area_entered);
+                } else if let Ok(entity) = node.clone().try_cast::<NewProjectileEnemy>() {
+                    this.timers
+                        .idle
+                        .signals()
+                        .timeout()
+                        .connect_other(&entity, NewProjectileEnemy::on_idle_timeout);
+
+                    this.timers
+                        .attack
+                        .signals()
+                        .timeout()
+                        .connect_other(&entity, NewProjectileEnemy::on_attack_timeout);
+
+                    this.timers
+                        .patrol
+                        .signals()
+                        .timeout()
+                        .connect_other(&entity, NewProjectileEnemy::on_patrol_timeout);
+
+                    this.sensors
+                        .player_detection
+                        .aggro_area
+                        .signals()
+                        .area_entered()
+                        .connect_other(&entity, NewProjectileEnemy::on_aggro_area_entered);
+
+                    this.sensors
+                        .player_detection
+                        .aggro_area
+                        .signals()
+                        .area_exited()
+                        .connect_other(&entity, NewProjectileEnemy::on_aggro_area_exited);
+
+                    this.sensors
+                        .player_detection
+                        .attack_area
+                        .signals()
+                        .area_entered()
+                        .connect_other(&entity, NewProjectileEnemy::on_attack_area_entered);
                 }
             }
         }
