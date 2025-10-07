@@ -1,4 +1,4 @@
-[gd_scene load_steps=15 format=4 uid="uid://c3iixjrk3ypgs"]
+[gd_scene load_steps=16 format=4 uid="uid://c3iixjrk3ypgs"]
 
 [ext_resource type="PackedScene" uid="uid://d0yxvbpejsju5" path="res://maps/base_map.tscn" id="1_b71ab"]
 [ext_resource type="PackedScene" uid="uid://bvamjbuhuto6u" path="res://maps/background.tscn" id="2_6b7mj"]
@@ -8,6 +8,7 @@
 [ext_resource type="PackedScene" uid="uid://cb2l6ctn5uru8" path="res://world/sliding_door.tscn" id="4_42yok"]
 [ext_resource type="PackedScene" uid="uid://dmnvgp7j5vtfe" path="res://entities/enemies/test_enemy.tscn" id="7_6b7mj"]
 [ext_resource type="PackedScene" uid="uid://cfbrt6vkya0f3" path="res://entities/enemies/mock_enemy.tscn" id="7_pbr4s"]
+[ext_resource type="PackedScene" uid="uid://bcae4wnfye0do" path="res://entities/enemies/projectile_enemy.tscn" id="9_svl6s"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_pbr4s"]
 texture = ExtResource("2_pwco0")
@@ -311,22 +312,25 @@ tile_set = SubResource("TileSet_cabd0")
 position = Vector2(313, 55)
 
 [node name="NavigationRegion2D" type="NavigationRegion2D" parent="NavRegions" index="0"]
-visible = false
 navigation_polygon = SubResource("NavigationPolygon_k1jtb")
 navigation_layers = 2
 
 [node name="FlyingNavRegion" type="NavigationRegion2D" parent="NavRegions" index="1"]
-visible = false
 navigation_polygon = SubResource("NavigationPolygon_pbr4s")
 navigation_layers = 4
 
 [node name="TestEnemy" parent="Enemies" index="0" instance=ExtResource("7_6b7mj")]
 left_target = Vector2(540, 0)
-right_target = Vector2(926, 0)
-position = Vector2(767, 90)
+right_target = Vector2(1110, 0)
+position = Vector2(608, -10)
 
 [node name="MockEnemy" parent="Enemies" index="1" instance=ExtResource("7_pbr4s")]
 position = Vector2(1801, 41)
+
+[node name="ProjectileEnemy" parent="Enemies" index="2" instance=ExtResource("9_svl6s")]
+left_target = Vector2(-34, 0)
+right_target = Vector2(336, 0)
+position = Vector2(190, -129)
 
 [node name="CameraData" type="CameraData" parent="CameraData" index="0" node_paths=PackedStringArray("shape")]
 shape = NodePath("CollisionShape2D")

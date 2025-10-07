@@ -5,14 +5,20 @@ use super::{
     projectile::Projectile,
 };
 use crate::entities::{
-    damage::{AttackData, Damageable, HasHealth},
+    damage::{AttackData, Damage, DamageType, Damageable, HasHealth},
+    enemies::{
+        enemy_context::{EnemyContext, EnemyType},
+        enemy_state_machine::EnemyEvent,
+        physics::{MovementStrategy, Speeds},
+        time::EnemyTimers,
+    },
     entity_stats::{Stat, StatVal},
     hit_reg::Hurtbox,
     movements::{Direction, Move, Moveable, MoveableEntity},
     time::EnemyTimer,
 };
 use godot::{
-    classes::{AnimationPlayer, Timer},
+    classes::{AnimationPlayer, Area2D, Timer},
     prelude::*,
 };
 
@@ -183,5 +189,161 @@ impl HasHealth for Gd<ProjectileEnemy> {
 impl Damageable for Gd<ProjectileEnemy> {
     fn handle_attack(&mut self, attack: AttackData) {
         self.take_damage(attack.damage.raw);
+    }
+}
+
+#[derive(GodotClass)]
+#[class(init, base=Node2D)]
+pub struct NewProjectileEnemy {
+    #[export]
+    left_target: Vector2,
+    #[export]
+    right_target: Vector2,
+
+    #[init(val = OnReady::manual())]
+    projectile_scene: OnReady<Gd<PackedScene>>,
+
+    #[init(val = OnReady::manual())]
+    inst: OnReady<Gd<Projectile>>,
+
+    #[init(val = OnReady::from_base_fn(|base| EnemyContext::new_and_init(base, Speeds::new(150.0, 175.0), Vector2::default(), Vector2::default(), EnemyType::NewProjectileEnemy)))]
+    base: OnReady<EnemyContext>,
+    node: Base<Node2D>,
+}
+
+#[godot_api]
+impl INode2D for NewProjectileEnemy {
+    fn ready(&mut self) {
+        self.projectile_scene
+            .init(load("res://world/projectile.tscn"));
+
+        self.inst
+            .init(self.projectile_scene.instantiate_as::<Projectile>());
+        self.base.sensors.hit_reg.hurtbox.bind_mut().data = Some(AttackData {
+            parryable: true,
+            damage: Damage {
+                raw: 10,
+                d_type: DamageType::Physical,
+            },
+        });
+        self.base
+            .movement
+            .set_patrol_targets(self.left_target, self.right_target);
+
+        self.base
+            .timers
+            .attack_anim
+            .signals()
+            .timeout()
+            .connect_other(&self.to_gd(), Self::on_attack_anim_timeout);
+    }
+
+    fn process(&mut self, delta: f32) {
+        // self.base.handle_attack_area();
+        self.handle_attack_area();
+
+        if let &State::Attack {} = self.base.sm.state()
+            && self.base.timers.attack.get_time_left() == 0.0
+        {
+            self.shoot_projectile();
+            self.base.timers.attack.start();
+            self.base.timers.attack_anim.start();
+        }
+        if let &State::ChasePlayer {} = self.base.sm.state() {
+            self.base.sensors.player_detection.track_player_position();
+        }
+
+        let this = self.to_gd();
+        self.base.update_movement(
+            &mut MovementStrategy::ManualSetPosition(this.upcast()),
+            delta,
+        );
+        self.base.update_graphics();
+    }
+}
+
+#[godot_api]
+impl NewProjectileEnemy {
+    pub fn on_aggro_area_entered(&mut self, _area: Gd<Area2D>) {
+        self.base.sm.handle(&EnemyEvent::FoundPlayer);
+    }
+
+    pub fn on_aggro_area_exited(&mut self, _area: Gd<Area2D>) {
+        self.base.sm.handle(&EnemyEvent::LostPlayer);
+        self.base.timers.idle.start();
+    }
+
+    pub fn on_attack_area_entered(&mut self, _area: Gd<Area2D>) {
+        if self.base.timers.attack.get_time_left() == 0.0 {
+            self.shoot_projectile();
+        }
+        self.base.sm.handle(&EnemyEvent::InAttackRange);
+    }
+
+    pub fn on_idle_timeout(&mut self) {
+        if self.base.sm.state() == (&State::Idle {}) {
+            self.base
+                .sm
+                .handle(&EnemyEvent::TimerElapsed(EnemyTimers::Idle));
+            self.base.timers.patrol.start();
+            self.base.movement.patrol();
+        }
+    }
+
+    pub fn on_patrol_timeout(&mut self) {
+        if self.base.sm.state() == (&State::Patrol {}) {
+            self.base
+                .sm
+                .handle(&EnemyEvent::TimerElapsed(EnemyTimers::Patrol));
+            self.base.timers.idle.start();
+        }
+    }
+
+    pub fn on_attack_timeout(&mut self) {
+        self.base
+            .sm
+            .handle(&EnemyEvent::TimerElapsed(EnemyTimers::Attack));
+    }
+
+    fn on_attack_anim_timeout(&mut self) {
+        self.base
+            .sm
+            .handle(&EnemyEvent::TimerElapsed(EnemyTimers::AttackAnimation));
+    }
+
+    fn handle_attack_area(&mut self) {
+        if let State::ChasePlayer {} = self.base.sm.state() {
+            self.base.sensors.player_detection.track_player_position();
+
+            if self.base.timers.attack.get_time_left() == 0.0
+                && self
+                    .base
+                    .sensors
+                    .player_detection
+                    .attack_area
+                    .has_overlapping_areas()
+            {
+                self.base.sm.handle(&EnemyEvent::InAttackRange);
+                // self.shoot_projectile();
+            }
+        }
+    }
+
+    fn shoot_projectile(&mut self) {
+        if let Some(player_pos) = self.base.sensors.player_position() {
+            let mut inst = self.projectile_scene.instantiate_as::<Projectile>();
+            let target = self
+                .base()
+                .get_global_position()
+                .direction_to(player_pos)
+                .normalized_or_zero();
+            let pos = self.base().get_global_position();
+            inst.set_global_position(pos);
+            inst.bind_mut().velocity = target * 500.0;
+            println!("shoot_projectile");
+            self.base.timers.attack_anim.start();
+            self.base.timers.attack.start();
+            self.base_mut().add_sibling(&inst);
+        }
     }
 }

@@ -4,21 +4,6 @@
 [ext_resource type="Texture2D" uid="uid://dtumlhkn3n0to" path="res://assets/entities/samurai/RUN.png" id="3_ws556"]
 [ext_resource type="Texture2D" uid="uid://dmi2l7gc2cobb" path="res://assets/entities/samurai/ATTACK 1.png" id="4_nthab"]
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_1p0qd"]
-size = Vector2(20, 43)
-
-[sub_resource type="CircleShape2D" id="CircleShape2D_0hcks"]
-radius = 162.003
-
-[sub_resource type="CircleShape2D" id="CircleShape2D_p0ckh"]
-radius = 162.003
-
-[sub_resource type="CircleShape2D" id="CircleShape2D_isb6e"]
-radius = 210.06
-
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_0n8mu"]
-size = Vector2(20, 42)
-
 [sub_resource type="Animation" id="Animation_ws556"]
 length = 0.001
 tracks/0/type = "value"
@@ -623,12 +608,61 @@ _data = {
 &"patrol_west": SubResource("Animation_0ki2n")
 }
 
-[node name="ProjectileEnemy" type="ProjectileEnemy"]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_1p0qd"]
+size = Vector2(20, 43)
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_0hcks"]
+radius = 135.07405
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_l7ghs"]
+size = Vector2(34, 43)
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_p0ckh"]
+radius = 161.80544
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_0n8mu"]
+size = Vector2(20, 42)
+
+[node name="ProjectileEnemy" type="NewProjectileEnemy"]
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
 position = Vector2(0, -13)
 texture = ExtResource("2_ws556")
 hframes = 9
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="."]
+libraries = {
+&"": SubResource("AnimationLibrary_nthab")
+}
+
+[node name="NavigationAgent2D" type="NavigationAgent2D" parent="."]
+path_desired_distance = 4.0
+navigation_layers = 4
+avoidance_enabled = true
+radius = 17.21
+time_horizon_obstacles = 1.01
+debug_use_custom = true
+debug_path_custom_line_width = 2.0
+
+[node name="AttackAnim" type="Timer" parent="."]
+wait_time = 0.5
+one_shot = true
+
+[node name="Patrol" type="Timer" parent="."]
+wait_time = 0.5
+one_shot = true
+
+[node name="Idle" type="Timer" parent="."]
+wait_time = 2.0
+one_shot = true
+
+[node name="AttackChain" type="Timer" parent="."]
+wait_time = 1.35
+one_shot = true
+
+[node name="Attack" type="Timer" parent="."]
+wait_time = 2.0
+one_shot = true
 
 [node name="EnemySensors" type="Node2D" parent="."]
 
@@ -657,7 +691,8 @@ shape = SubResource("CircleShape2D_0hcks")
 debug_color = Color(0.808802, 0.15934, 0.920065, 0.42)
 
 [node name="AttackShapeWest" type="CollisionShape2D" parent="EnemySensors/AttackArea"]
-shape = SubResource("CircleShape2D_p0ckh")
+position = Vector2(-28, 0)
+shape = SubResource("RectangleShape2D_l7ghs")
 debug_color = Color(0.808802, 0.15934, 0.920065, 0.42)
 
 [node name="AggroArea" type="Area2D" parent="EnemySensors"]
@@ -665,7 +700,7 @@ collision_layer = 0
 collision_mask = 4
 
 [node name="AggroShape" type="CollisionShape2D" parent="EnemySensors/AggroArea"]
-shape = SubResource("CircleShape2D_isb6e")
+shape = SubResource("CircleShape2D_p0ckh")
 debug_color = Color(0.998547, 0, 0.139145, 0.42)
 
 [node name="Hitbox" type="Hitbox" parent="EnemySensors"]
@@ -677,23 +712,19 @@ shape = SubResource("RectangleShape2D_0n8mu")
 debug_color = Color(0.717091, 0.4817, 0, 0.42)
 
 [node name="LeftGroundCast" type="RayCast2D" parent="EnemySensors"]
+enabled = false
 target_position = Vector2(-21, 30)
 collision_mask = 2
 
 [node name="RightGroundCast" type="RayCast2D" parent="EnemySensors"]
+enabled = false
 target_position = Vector2(23, 30)
 collision_mask = 2
 
-[node name="AnimationPlayer" type="AnimationPlayer" parent="."]
-libraries = {
-&"": SubResource("AnimationLibrary_nthab")
-}
+[node name="LeftWallCast" type="RayCast2D" parent="EnemySensors"]
+target_position = Vector2(-55, 0)
+collision_mask = 2
 
-[node name="NavigationAgent2D" type="NavigationAgent2D" parent="."]
-path_desired_distance = 4.0
-navigation_layers = 4
-avoidance_enabled = true
-radius = 17.21
-time_horizon_obstacles = 1.01
-debug_use_custom = true
-debug_path_custom_line_width = 2.0
+[node name="RightWallCast" type="RayCast2D" parent="EnemySensors"]
+target_position = Vector2(55, 0)
+collision_mask = 2

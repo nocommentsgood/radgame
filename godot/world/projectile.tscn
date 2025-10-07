@@ -7,11 +7,14 @@
 [node name="Projectile" type="Projectile"]
 
 [node name="Hurtbox" type="Hurtbox" parent="." groups=["enemy_projectile"]]
-collision_layer = 0
-collision_mask = 0
+collision_layer = 32
+collision_mask = 4
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Hurtbox"]
 shape = SubResource("CircleShape2D_qxf0c")
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
 texture = ExtResource("1_a85iw")
+
+[node name="Timer" type="Timer" parent="."]
+autostart = true
