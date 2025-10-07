@@ -11,7 +11,7 @@ use crate::{
         enemies::{
             enemy_body_actor::EnemyBodyActor,
             enemy_state_machine::EnemySMType,
-            physics::{Movement, PhysicsFrameData, Speeds},
+            physics::{Movement, Speeds},
             time::Timers,
         },
         ent_graphics::EntGraphics,
@@ -48,13 +48,18 @@ impl EnemyContext {
         ty: EnemyType,
     ) -> Self {
         let mut this = Self {
-            movement: Movement::new(speeds, left_patrol_target, right_patrol_target),
+            movement: Movement::new(
+                node.clone().cast::<Node2D>().get_global_position(),
+                speeds,
+                left_patrol_target,
+                right_patrol_target,
+            ),
             graphics: EntGraphics::new(node),
             sensors: EnemySensors::new(node),
             timers: Timers::new(node),
             sm: EnemySMType::Basic(StateMachine::default()),
         };
-        this.sm.inner().init();
+        this.sm.inner_mut().init();
 
         match ty {
             EnemyType::EnemyBodyActor => {
@@ -98,10 +103,6 @@ impl EnemyContext {
         this
     }
 
-    pub fn physics_process(&mut self, frame: PhysicsFrameData) {
-        if self.sensors.is_any_raycast_colliding() {
-            self.sm.handle(&EnemyEvent::RayCastNotColliding);
-        }
     pub fn update_graphics(&mut self) {
         self.graphics.update(
             self.sm.state(),
@@ -109,30 +110,29 @@ impl EnemyContext {
         );
     }
 
-        if !frame.on_floor {
-            self.sm.handle(&EnemyEvent::FailedFloorCheck);
-        }
+    pub fn update_movement(&mut self, strategy: &mut super::physics::MovementStrategy, delta: f32) {
+        self.movement.update(
+            strategy,
+            self.sm.state(),
+            self.sensors.player_position(),
+            delta,
+        );
+    }
 
-        match self.sm.state() {
-            State::ChasePlayer {} => {
-                self.sensors.player_detection.track_player_position();
-                if self
+    pub fn handle_attack_area(&mut self) {
+        if let State::ChasePlayer {} = self.sm.state() {
+            self.sensors.player_detection.track_player_position();
+
+            if self.timers.attack.get_time_left() == 0.0
+                && self
                     .sensors
                     .player_detection
                     .attack_area
                     .has_overlapping_areas()
-                    && self.timers.attack.get_time_left() == 0.0
-                {
-                    self.timers.attack.start();
-                    self.sm.handle(&EnemyEvent::InAttackRange);
-                }
+            {
+                // self.timers.attack.start();
+                self.sm.handle(&EnemyEvent::InAttackRange);
             }
-            State::Falling {} => {
-                if frame.on_floor {
-                    self.sm.handle(&EnemyEvent::OnFloor);
-                }
-            }
-            _ => (),
         }
     }
 }
