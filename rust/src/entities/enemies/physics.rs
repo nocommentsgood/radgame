@@ -50,7 +50,7 @@ impl Movement {
 
     fn apply_gravity(&mut self, delta: f32) {
         const GRAVITY: f32 = 1500.0;
-        self.velocity.y += self.velocity().y + Vector2::DOWN.y * GRAVITY * delta;
+        self.velocity.y += GRAVITY * delta;
     }
 
     pub fn velocity(&self) -> Vector2 {
@@ -78,8 +78,7 @@ impl Movement {
         match state {
             State::RecoverLeft {} => self.velocity.x = Vector2::RIGHT.x,
             State::RecoverRight {} => self.velocity.x = Vector2::LEFT.x,
-            State::Patrol {} => (),
-            State::Falling {} => self.apply_gravity(delta),
+            State::Patrol {} | State::Falling {} => (),
             State::ChasePlayer {} => {
                 if let Some(player_pos) = player_pos {
                     self.velocity.x = self.current_position.direction_to(player_pos).x;
@@ -87,15 +86,18 @@ impl Movement {
             }
             _ => self.velocity = Vector2::ZERO,
         }
-        self.accelerate(state);
+        self.accelerate(state, delta);
         self.apply_movement(strategy, delta);
     }
 
-    fn accelerate(&mut self, state: &State) {
-        self.velocity.x = Vector2::ZERO.x;
+    fn accelerate(&mut self, state: &State, delta: f32) {
+        self.velocity = self.velocity.normalized_or_zero();
         match state {
             State::Patrol {} | State::RecoverLeft {} | State::RecoverRight {} => {
                 self.velocity.x *= self.speeds.patrol;
+            }
+            State::Falling {} => {
+                self.apply_gravity(delta);
             }
             State::ChasePlayer {} => self.velocity *= self.speeds.aggro,
             _ => (),

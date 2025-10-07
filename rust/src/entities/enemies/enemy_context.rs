@@ -234,19 +234,68 @@ impl EnemySensors {
         }
     }
 
-    fn is_wall_cast_colliding(&self) -> bool {
+    pub fn are_raycasts_failing(&self) -> bool {
+        self.is_wall_cast_colliding() || !self.is_groundcast_colliding()
+    }
+
+    pub fn which(&self) -> Raycasts {
+        if self.is_wall_cast_colliding() {
+            let dir = self.wall_collision_dir();
+            Raycasts::Wall(dir)
+        } else if !self.is_groundcast_colliding() {
+            let dir = self.groundcast_no_collision_dir();
+            Raycasts::Ground(dir)
+        } else {
+            unreachable!()
+        }
+    }
+
+    pub fn is_wall_cast_colliding(&self) -> bool {
         self.left_wall_cast.is_colliding() || self.right_wall_cast.is_colliding()
     }
 
-    fn is_ground_cast_colliding(&self) -> bool {
-        self.left_ground_cast.is_colliding() || self.right_ground_cast.is_colliding()
+    fn is_groundcast_colliding(&self) -> bool {
+        self.left_ground_cast.is_colliding() || self.right_wall_cast.is_colliding()
     }
 
-    pub fn is_any_raycast_colliding(&self) -> bool {
-        self.is_wall_cast_colliding() || !self.is_ground_cast_colliding()
+    pub fn wall_collision_dir(&self) -> Direction {
+        if self.is_left_wallcast_colliding() {
+            Direction::Left
+        } else if self.is_right_wallcast_colliding() {
+            Direction::Right
+        } else {
+            unreachable!(
+                "is_wall_cast_colliding returned true but wall_collision_dir couldn't return a direction"
+            );
+        }
+    }
+
+    /// The direction of the groundcast that is not colliding.
+    /// Groundcast should always be colliding, else the entity is about to fall.
+    pub fn groundcast_no_collision_dir(&self) -> Direction {
+        if !self.left_ground_cast.is_colliding() {
+            Direction::Left
+        } else if !self.right_ground_cast.is_colliding() {
+            Direction::Right
+        } else {
+            unreachable!()
+        }
+    }
+
+    fn is_left_wallcast_colliding(&self) -> bool {
+        self.left_wall_cast.is_colliding()
+    }
+
+    pub fn is_right_wallcast_colliding(&self) -> bool {
+        self.right_wall_cast.is_colliding()
     }
 
     pub fn player_position(&self) -> Option<Vector2> {
         self.player_detection.player_position
     }
+}
+
+pub enum Raycasts {
+    Ground(Direction),
+    Wall(Direction),
 }
