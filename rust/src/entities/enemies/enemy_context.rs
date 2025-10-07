@@ -28,28 +28,13 @@ pub enum EnemyType {
 #[derive(Clone)]
 pub struct EnemyContext {
     pub movement: Movement,
-    graphics: EntGraphics,
+    pub graphics: EntGraphics,
     pub sensors: EnemySensors,
     pub timers: Timers,
     pub sm: EnemySMType,
 }
 
 impl EnemyContext {
-    pub fn new(
-        node: &Gd<Node>,
-        speeds: Speeds,
-        left_patrol_target: Vector2,
-        right_patrol_target: Vector2,
-    ) -> Self {
-        Self {
-            movement: Movement::new(speeds, left_patrol_target, right_patrol_target),
-            graphics: EntGraphics::new(node),
-            sensors: EnemySensors::new(node),
-            timers: Timers::new(node),
-            sm: EnemySMType::Basic(StateMachine::default()),
-        }
-    }
-
     /// Provides limited default initialization such as connecting timer signal callbacks.
     /// Required methods:
     /// - `on_idle_timeout()` `on_patrol_timeout()`
@@ -117,6 +102,12 @@ impl EnemyContext {
         if self.sensors.is_any_raycast_colliding() {
             self.sm.handle(&EnemyEvent::RayCastNotColliding);
         }
+    pub fn update_graphics(&mut self) {
+        self.graphics.update(
+            self.sm.state(),
+            &Direction::from_vel(&self.movement.velocity()),
+        );
+    }
 
         if !frame.on_floor {
             self.sm.handle(&EnemyEvent::FailedFloorCheck);
@@ -143,12 +134,6 @@ impl EnemyContext {
             }
             _ => (),
         }
-
-        self.movement.update(&frame);
-        self.graphics.update(
-            self.sm.state(),
-            &Direction::from_vel(&self.movement.velocity()),
-        );
     }
 }
 
