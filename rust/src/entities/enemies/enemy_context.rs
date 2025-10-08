@@ -6,7 +6,6 @@ use godot::{
 };
 use statig::prelude::StateMachine;
 
-use super::enemy_state_machine::{EnemyEvent, State};
 use crate::{
     entities::{
         enemies::{
@@ -17,7 +16,7 @@ use crate::{
             time::Timers,
         },
         ent_graphics::EntGraphics,
-        hit_reg::{HitReg, Hitbox, Hurtbox},
+        hit_reg::HitReg,
         movements::Direction,
     },
     utils::collision_layers::CollisionLayers,
@@ -66,6 +65,7 @@ impl EnemyContext {
         };
         this.sm.inner_mut().init();
 
+        // TODO: This is pretty useless.
         match ty {
             EnemyType::EnemyBodyActor | EnemyType::NewProjectileEnemy => {
                 if let Ok(entity) = node.clone().try_cast::<EnemyBodyActor>() {
@@ -154,6 +154,7 @@ impl EnemyContext {
         );
     }
 
+    /// Sets the normalized velocity, applies acceleration, and moves the entity.
     pub fn update_movement(&mut self, strategy: &mut super::physics::MovementStrategy, delta: f32) {
         self.movement.update(
             strategy,
@@ -162,33 +163,22 @@ impl EnemyContext {
             delta,
         );
     }
-
-    pub fn handle_attack_area(&mut self) {
-        if let State::ChasePlayer {} = self.sm.state() {
-            if self.timers.attack.get_time_left() == 0.0
-                && self
-                    .sensors
-                    .player_detection
-                    .attack_area
-                    .has_overlapping_areas()
-            {
-                // self.timers.attack.start();
-                self.sm.handle(&EnemyEvent::InAttackRange);
-            }
-        }
-    }
 }
 
+/// Area that tracks the player's position. Enables processing when entered, disables when exited.
 #[derive(GodotClass)]
 #[class(base=Area2D, init)]
 pub struct AggroArea {
     player_position: Option<Vector2>,
+    is_tracking: bool,
     base: Base<Area2D>,
 }
 
 #[godot_api]
 impl IArea2D for AggroArea {
     fn ready(&mut self) {
+        self.base_mut()
+            .set_collision_mask_value(CollisionLayers::PlayerHitbox as i32, true);
         self.base_mut().set_process(false);
         self.signals()
             .area_entered()
@@ -206,11 +196,13 @@ impl IArea2D for AggroArea {
 #[godot_api]
 impl AggroArea {
     fn on_area_entered(&mut self, area: Gd<Area2D>) {
+        self.is_tracking = true;
         self.base_mut().set_process(true);
         self.player_position = Some(area.get_global_position());
     }
 
     fn on_area_exited(&mut self, _area: Gd<Area2D>) {
+        self.is_tracking = false;
         self.base_mut().set_process(false);
         self.player_position = None;
     }
@@ -221,7 +213,7 @@ impl AggroArea {
             for area in areas.iter_shared() {
                 let player = area
                     .get_owner()
-                    .expect("Aggro_area overlapping areas should be the player's hitbox")
+                    .expect("AggroArea overlapping areas should be the player's hitbox. Check the physics layers bit masks.")
                     .cast::<Node2D>();
                 self.player_position = Some(player.get_global_position());
             }
@@ -231,13 +223,12 @@ impl AggroArea {
 
 #[derive(Clone)]
 pub struct PlayerDetection {
-    pub aggro_area: Gd<AggroArea>,
-    pub attack_area: Gd<Area2D>,
+    aggro_area: Gd<AggroArea>,
+    attack_area: Gd<Area2D>,
 }
 
 impl PlayerDetection {
-    pub fn new(mut aggro_area: Gd<AggroArea>, mut attack_area: Gd<Area2D>) -> Self {
-        aggro_area.set_collision_mask_value(CollisionLayers::PlayerHitbox as i32, true);
+    pub fn new(aggro_area: Gd<AggroArea>, mut attack_area: Gd<Area2D>) -> Self {
         attack_area.set_collision_mask_value(CollisionLayers::PlayerHitbox as i32, true);
 
         Self {
@@ -248,6 +239,10 @@ impl PlayerDetection {
 
     pub fn player_position(&self) -> Option<Vector2> {
         self.aggro_area.bind().player_position
+    }
+
+    pub fn attack_area_overlapping(&self) -> bool {
+        self.attack_area.has_overlapping_areas()
     }
 }
 
@@ -281,10 +276,14 @@ impl EnemySensors {
         }
     }
 
+    /// True if a wallcast is colliding or a groundcast is not colliding.
     pub fn are_raycasts_failing(&self) -> bool {
         self.is_wall_cast_colliding() || !self.is_groundcast_colliding()
     }
 
+    /// If a raycast check is failing, return the type of raycast and the direction of the raycast.
+    /// Note that wall raycasts failing state is colliding and ground raycast failing state is
+    /// **not** colliding.
     pub fn which(&self) -> Raycasts {
         if self.is_wall_cast_colliding() {
             let dir = self.wall_collision_dir();
@@ -297,10 +296,13 @@ impl EnemySensors {
         }
     }
 
+    /// Wallcasts should only collide when the entity is too close to a wall. If the entity is
+    /// close to a wall, movement should stop and the case should be handled.
     pub fn is_wall_cast_colliding(&self) -> bool {
         self.left_wall_cast.is_colliding() || self.right_wall_cast.is_colliding()
     }
 
+    /// Groundcasts should always be colliding unless the entity is at a ledge.
     fn is_groundcast_colliding(&self) -> bool {
         self.left_ground_cast.is_colliding() || self.right_wall_cast.is_colliding()
     }

@@ -657,10 +657,12 @@ wait_time = 2.0
 one_shot = true
 
 [node name="AttackChain" type="Timer" parent="."]
-wait_time = 1.35
+editor_description = "The time between rapid attacks."
+wait_time = 0.5
 one_shot = true
 
 [node name="Attack" type="Timer" parent="."]
+editor_description = "The attack cooldown timer."
 wait_time = 2.0
 one_shot = true
 

@@ -32,18 +32,18 @@ pub struct EnemyBodyActor {
             Vector2::default(),
             EnemyType::EnemyBodyActor,
         )))]
-    base: OnReady<EnemyContext>,
+    ctx: OnReady<EnemyContext>,
     body: Base<CharacterBody2D>,
 }
 
 #[godot_api]
 impl ICharacterBody2D for EnemyBodyActor {
     fn ready(&mut self) {
-        self.base
+        self.ctx
             .movement
             .set_patrol_targets(self.left_target, self.right_target);
 
-        self.base.sensors.hit_reg.hurtbox.bind_mut().data = Some(AttackData {
+        self.ctx.sensors.hit_reg.hurtbox.bind_mut().data = Some(AttackData {
             parryable: false,
             damage: Damage {
                 raw: 10,
@@ -54,74 +54,72 @@ impl ICharacterBody2D for EnemyBodyActor {
 
     fn physics_process(&mut self, delta: f32) {
         if !self.base().is_on_floor() {
-            self.base.sm.handle(&EnemyEvent::FailedFloorCheck);
+            self.ctx.sm.handle(&EnemyEvent::FailedFloorCheck);
         }
-        if let &State::Falling {} = self.base.sm.state()
+        if let &State::Falling {} = self.ctx.sm.state()
             && self.base().is_on_floor()
         {
-            self.base.sm.handle(&EnemyEvent::OnFloor);
+            self.ctx.sm.handle(&EnemyEvent::OnFloor);
         }
 
-        match self.base.sm.state() {
-            State::Patrol {} | State::ChasePlayer {}
-                if self.base.sensors.are_raycasts_failing() =>
-            {
-                match self.base.sensors.which() {
+        match self.ctx.sm.state() {
+            State::Patrol {} | State::ChasePlayer {} if self.ctx.sensors.are_raycasts_failing() => {
+                match self.ctx.sensors.which() {
                     Raycasts::Ground(dir) => {
-                        self.base.sm.handle(&EnemyEvent::RayCastFailed(dir));
+                        self.ctx.sm.handle(&EnemyEvent::RayCastFailed(dir));
                     }
                     Raycasts::Wall(dir) => {
-                        self.base.sm.handle(&EnemyEvent::RayCastFailed(dir));
+                        self.ctx.sm.handle(&EnemyEvent::RayCastFailed(dir));
                     }
                 }
             }
             State::RecoverLeft {} | State::RecoverRight {}
-                if !self.base.sensors.is_wall_cast_colliding() =>
+                if !self.ctx.sensors.is_wall_cast_colliding() =>
             {
-                self.base.sm.handle(&EnemyEvent::WallCastRecovered);
+                self.ctx.sm.handle(&EnemyEvent::WallCastRecovered);
             }
             _ => (),
         }
         let this = self.to_gd();
-        self.base.update_movement(
+        self.ctx.update_movement(
             &mut super::physics::MovementStrategy::MoveAndSlide(this.upcast()),
             delta,
         );
-        self.base.update_graphics();
+        self.ctx.update_graphics();
     }
 }
 
 impl EnemyBodyActor {
     pub fn on_aggro_area_entered(&mut self, _area: Gd<Area2D>) {
-        self.base.sm.handle(&EnemyEvent::FoundPlayer);
+        self.ctx.sm.handle(&EnemyEvent::FoundPlayer);
     }
 
     pub fn on_aggro_area_exited(&mut self, _area: Gd<Area2D>) {
-        self.base.sm.handle(&EnemyEvent::LostPlayer);
-        self.base.timers.idle.start();
+        self.ctx.sm.handle(&EnemyEvent::LostPlayer);
+        self.ctx.timers.idle.start();
     }
 
     pub fn on_attack_area_entered(&mut self, _area: Gd<Area2D>) {
-        self.base.sm.handle(&EnemyEvent::InAttackRange);
+        self.ctx.sm.handle(&EnemyEvent::InAttackRange);
     }
 
     pub fn on_idle_timeout(&mut self) {
-        if self.base.sm.state() == (&State::Idle {}) {
-            self.base.movement.patrol();
+        if self.ctx.sm.state() == (&State::Idle {}) {
+            self.ctx.movement.patrol();
 
-            self.base
+            self.ctx
                 .sm
                 .handle(&EnemyEvent::TimerElapsed(EnemyTimers::Idle));
-            self.base.timers.patrol.start();
+            self.ctx.timers.patrol.start();
         }
     }
 
     pub fn on_patrol_timeout(&mut self) {
-        if self.base.sm.state() == (&State::Patrol {}) {
-            self.base
+        if self.ctx.sm.state() == (&State::Patrol {}) {
+            self.ctx
                 .sm
                 .handle(&EnemyEvent::TimerElapsed(EnemyTimers::Patrol));
-            self.base.timers.idle.start();
+            self.ctx.timers.idle.start();
         }
     }
 }
