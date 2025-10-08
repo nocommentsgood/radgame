@@ -12,7 +12,7 @@ use crate::{
         damage::{AttackData, Damage, DamageType, Damageable, ElementType, HasHealth},
         enemies::projectile::Projectile,
         hit_reg::{Hitbox, Hurtbox},
-        movements,
+        movements::{self},
     },
     utils::collision_layers::CollisionLayers,
 };
@@ -21,7 +21,6 @@ use crate::{
 #[class(init, base = StaticBody2D)]
 pub struct BounceEnemy {
     health: u32,
-    #[init(val = Vector2::UP)]
     velocity: Vector2,
     #[init(node = "EntityHitbox")]
     hitbox: OnReady<Gd<Hitbox>>,
@@ -40,6 +39,7 @@ pub struct BounceEnemy {
 #[godot_api]
 impl IStaticBody2D for BounceEnemy {
     fn ready(&mut self) {
+        self.velocity = Vector2::UP;
         self.hitbox.bind_mut().damageable_parent = Some(Box::new(self.to_gd()));
 
         self.timer
@@ -48,7 +48,7 @@ impl IStaticBody2D for BounceEnemy {
             .connect_other(&self.to_gd(), Self::shoot);
     }
     fn physics_process(&mut self, delta: f32) {
-        movements::move_bounce(self, self.velocity, 50.0, delta);
+        movements::move_bounce(&mut self.to_gd().upcast(), &mut self.velocity, 50.0, delta);
     }
 }
 
@@ -81,16 +81,6 @@ impl BounceEnemy {
         for projectile in projectiles {
             self.base_mut().add_sibling(&projectile);
         }
-    }
-}
-
-impl movements::Moveable for BounceEnemy {
-    fn get_velocity(&self) -> Vector2 {
-        self.velocity
-    }
-
-    fn set_velocity(&mut self, velocity: Vector2) {
-        self.velocity = velocity;
     }
 }
 

@@ -235,19 +235,13 @@ impl MovementBehavior for AlternatingMovement {
 }
 
 /// Moves and collides a PhysicsBody2D, bouncing the body off of the collision normal.
-pub fn move_bounce<T>(phys: &mut T, velocity: Vector2, speed: f32, delta: f32)
-where
-    T: WithBaseField<Base: Inherits<PhysicsBody2D>> + Moveable,
-{
-    let collision = phys
-        .base_mut()
-        .upcast_mut()
-        .move_and_collide(velocity * delta * speed);
+pub fn move_bounce(phys: &mut Gd<PhysicsBody2D>, velocity: &mut Vector2, speed: f32, delta: f32) {
+    let collision = phys.move_and_collide(*velocity * delta * speed);
 
     if let Some(c) = collision {
         let reflect = c.get_remainder().bounce(c.get_normal());
-        phys.set_velocity(velocity.bounce(c.get_normal()));
-        phys.base_mut().upcast_mut().move_and_collide(reflect);
+        *velocity = velocity.bounce(c.get_normal());
+        phys.move_and_collide(reflect);
     }
 }
 
