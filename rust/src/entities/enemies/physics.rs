@@ -80,8 +80,12 @@ impl Movement {
             State::RecoverRight {} => self.velocity.x = Vector2::LEFT.x,
             State::Patrol {} | State::Falling {} => (),
             State::ChasePlayer {} => {
-                if let Some(player_pos) = player_pos {
+                if let Some(player_pos) = player_pos
+                    && (self.current_position.x - player_pos.x).abs() >= 30.0
+                {
                     self.velocity.x = self.current_position.direction_to(player_pos).x;
+                } else {
+                    self.velocity = Vector2::ZERO;
                 }
             }
             _ => self.velocity = Vector2::ZERO,
