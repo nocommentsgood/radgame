@@ -14,9 +14,10 @@ pub enum EnemySMType {
 
 impl EnemySMType {
     pub fn handle(&mut self, event: &EnemyEvent) {
-        dbg!(&event);
         match self {
-            EnemySMType::Basic(state_machine) => state_machine.handle(event),
+            EnemySMType::Basic(state_machine) => {
+                state_machine.handle(event);
+            }
         }
     }
 
@@ -64,12 +65,6 @@ impl Display for State {
             State::Attack2 { .. } => write!(f, "chain_attack"),
             State::Falling { .. } => write!(f, "fall"),
         }
-    }
-}
-
-impl State {
-    pub fn as_discriminant(&self) -> std::mem::Discriminant<Self> {
-        std::mem::discriminant(self)
     }
 }
 
@@ -132,7 +127,7 @@ impl EnemyStateMachine {
         match event {
             EnemyEvent::FailedFloorCheck => Response::Transition(State::falling()),
             EnemyEvent::LostPlayer => Response::Transition(State::idle()),
-            EnemyEvent::TimerElapsed(EnemyTimers::Attack) => {
+            EnemyEvent::TimerElapsed(EnemyTimers::AttackAnimation) => {
                 Response::Transition(State::chase_player())
             }
             _ => Handled,
@@ -144,7 +139,7 @@ impl EnemyStateMachine {
         match event {
             EnemyEvent::FailedFloorCheck => Response::Transition(State::falling()),
             EnemyEvent::LostPlayer => Response::Transition(State::idle()),
-            EnemyEvent::TimerElapsed(EnemyTimers::Attack) => {
+            EnemyEvent::TimerElapsed(EnemyTimers::AttackChain) => {
                 Response::Transition(State::chase_player())
             }
             _ => Handled,
