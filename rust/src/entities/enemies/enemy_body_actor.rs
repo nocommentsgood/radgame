@@ -4,14 +4,16 @@ use godot::{
     obj::{Base, Gd, OnReady, WithBaseField},
     prelude::{GodotClass, godot_api},
 };
+use statig::prelude::StateMachine;
 
 use super::enemy_state_machine::{EnemyEvent, State};
 use crate::entities::{
     damage::{AttackData, Damage, DamageType},
     enemies::{
         enemy_context::{EnemyContext, EnemyType, Raycasts},
+        enemy_state_machine::EnemySMType,
         physics::Speeds,
-        time::EnemyTimers,
+        time::{EnemyTimers, Timers},
     },
 };
 
@@ -24,14 +26,7 @@ pub struct EnemyBodyActor {
     #[export]
     right_target: Vector2,
 
-    #[init(val = OnReady::from_base_fn(|base|
-        EnemyContext::new_and_init(
-            base,
-            Speeds::new(100.0, 150.0),
-            Vector2::default(),
-            Vector2::default(),
-            EnemyType::EnemyBodyActor,
-        )))]
+    #[init(val = OnReady::manual())]
     ctx: OnReady<EnemyContext>,
     body: Base<CharacterBody2D>,
 }
@@ -39,9 +34,32 @@ pub struct EnemyBodyActor {
 #[godot_api]
 impl ICharacterBody2D for EnemyBodyActor {
     fn ready(&mut self) {
-        self.ctx
-            .movement
-            .set_patrol_targets(self.left_target, self.right_target);
+        let this = self.to_gd();
+        let ctx = EnemyContext::new(
+            &this.clone().upcast(),
+            Speeds::new(100.0, 150.0),
+            self.left_target,
+            self.right_target,
+            Timers::new_with_signals(
+                &this.clone().upcast(),
+                {
+                    let mut this = this.clone();
+                    move || this.bind_mut().on_attack_timeout()
+                },
+                {
+                    let mut this = this.clone();
+                    move || this.bind_mut().on_patrol_timeout()
+                },
+                {
+                    let mut this = this.clone();
+                    move || this.bind_mut().on_idle_timeout()
+                },
+                || (),
+                || (),
+            ),
+            EnemySMType::Basic(StateMachine::default()),
+        );
+        self.ctx.init(ctx);
 
         self.ctx.sensors.hit_reg.hurtbox.bind_mut().data = Some(AttackData {
             parryable: false,
@@ -121,5 +139,11 @@ impl EnemyBodyActor {
                 .handle(&EnemyEvent::TimerElapsed(EnemyTimers::Patrol));
             self.ctx.timers.idle.start();
         }
+    }
+
+    fn on_attack_timeout(&mut self) {
+        self.ctx
+            .sm
+            .handle(&EnemyEvent::TimerElapsed(EnemyTimers::Attack));
     }
 }

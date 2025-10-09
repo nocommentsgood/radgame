@@ -2,10 +2,10 @@ use super::{enemy_state_machine::State, projectile::Projectile};
 use crate::entities::{
     damage::{AttackData, Damage, DamageType},
     enemies::{
-        enemy_context::{EnemyContext, EnemyType},
-        enemy_state_machine::EnemyEvent,
+        enemy_context::EnemyContext,
+        enemy_state_machine::{EnemyEvent, EnemySMType},
         physics::{MovementStrategy, Speeds},
-        time::EnemyTimers,
+        time::{EnemyTimers, Timers},
     },
 };
 use godot::{
@@ -15,6 +15,7 @@ use godot::{
     prelude::{GodotClass, godot_api},
     tools::load,
 };
+use statig::prelude::StateMachine;
 
 #[derive(GodotClass)]
 #[class(init, base=Node2D)]
@@ -30,7 +31,7 @@ pub struct NewProjectileEnemy {
     #[init(val = OnReady::manual())]
     inst: OnReady<Gd<Projectile>>,
 
-    #[init(val = OnReady::from_base_fn(|base| EnemyContext::new_and_init(base, Speeds::new(150.0, 175.0), Vector2::default(), Vector2::default(), EnemyType::NewProjectileEnemy)))]
+    #[init(val = OnReady::manual())]
     ctx: OnReady<EnemyContext>,
     node: Base<Node2D>,
 }
@@ -43,6 +44,40 @@ impl INode2D for NewProjectileEnemy {
 
         self.inst
             .init(self.projectile_scene.instantiate_as::<Projectile>());
+
+        let this = self.to_gd();
+        let ctx = EnemyContext::new(
+            &this.clone().upcast(),
+            Speeds::new(150.0, 175.0),
+            self.left_target,
+            self.right_target,
+            Timers::new_with_signals(
+                &this.clone().upcast(),
+                {
+                    let mut this = this.clone();
+                    move || this.bind_mut().on_attack_timeout()
+                },
+                {
+                    let mut this = this.clone();
+                    move || this.bind_mut().on_patrol_timeout()
+                },
+                {
+                    let mut this = this.clone();
+                    move || this.bind_mut().on_idle_timeout()
+                },
+                {
+                    let mut this = this.clone();
+                    move || this.bind_mut().on_attack_chain_timeout()
+                },
+                {
+                    let mut this = this.clone();
+                    move || this.bind_mut().on_attack_anim_timeout()
+                },
+            ),
+            EnemySMType::Basic(StateMachine::default()),
+        );
+        self.ctx.init(ctx);
+
         self.ctx.sensors.hit_reg.hurtbox.bind_mut().data = Some(AttackData {
             parryable: true,
             damage: Damage {
@@ -50,22 +85,7 @@ impl INode2D for NewProjectileEnemy {
                 d_type: DamageType::Physical,
             },
         });
-        self.ctx
-            .movement
-            .set_patrol_targets(self.left_target, self.right_target);
-
-        self.ctx
-            .timers
-            .attack_anim
-            .signals()
-            .timeout()
-            .connect_other(&self.to_gd(), Self::on_attack_anim_timeout);
-        self.ctx
-            .timers
-            .attack_chain
-            .signals()
-            .timeout()
-            .connect_other(&self.to_gd(), Self::on_attack_chain_timeout);
+        self.ctx.timers.idle.start();
     }
 
     fn process(&mut self, delta: f32) {
@@ -114,6 +134,7 @@ impl NewProjectileEnemy {
     }
 
     pub fn on_idle_timeout(&mut self) {
+        println!("Idle timeout");
         if self.ctx.sm.state() == (&State::Idle {}) {
             self.ctx
                 .sm
@@ -124,6 +145,7 @@ impl NewProjectileEnemy {
     }
 
     pub fn on_patrol_timeout(&mut self) {
+        println!("Patrol timeout");
         if self.ctx.sm.state() == (&State::Patrol {}) {
             self.ctx
                 .sm

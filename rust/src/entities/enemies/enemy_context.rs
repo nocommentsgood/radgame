@@ -44,14 +44,15 @@ impl EnemyContext {
     /// - `on_idle_timeout()` `on_patrol_timeout()`
     /// - `on_aggro_area_entered()` `on_aggro_area_exited()`
     /// - `on_attack_area_entered()`
-    pub fn new_and_init(
+    pub fn new(
         node: &Gd<Node>,
         speeds: Speeds,
         left_patrol_target: Vector2,
         right_patrol_target: Vector2,
-        ty: EnemyType,
+        timers: Timers,
+        sm: EnemySMType,
     ) -> Self {
-        let mut this = Self {
+        Self {
             movement: Movement::new(
                 node.clone().cast::<Node2D>().get_global_position(),
                 speeds,
@@ -60,91 +61,9 @@ impl EnemyContext {
             ),
             graphics: EntGraphics::new(node),
             sensors: EnemySensors::new(node),
-            timers: Timers::new(node),
-            sm: EnemySMType::Basic(StateMachine::default()),
-        };
-        this.sm.inner_mut().init();
-
-        // TODO: This is pretty useless.
-        match ty {
-            EnemyType::EnemyBodyActor | EnemyType::NewProjectileEnemy => {
-                if let Ok(entity) = node.clone().try_cast::<EnemyBodyActor>() {
-                    this.timers
-                        .idle
-                        .signals()
-                        .timeout()
-                        .connect_other(&entity, EnemyBodyActor::on_idle_timeout);
-
-                    this.timers
-                        .patrol
-                        .signals()
-                        .timeout()
-                        .connect_other(&entity, EnemyBodyActor::on_patrol_timeout);
-
-                    this.sensors
-                        .player_detection
-                        .aggro_area
-                        .signals()
-                        .area_entered()
-                        .connect_other(&entity, EnemyBodyActor::on_aggro_area_entered);
-
-                    this.sensors
-                        .player_detection
-                        .aggro_area
-                        .signals()
-                        .area_exited()
-                        .connect_other(&entity, EnemyBodyActor::on_aggro_area_exited);
-
-                    this.sensors
-                        .player_detection
-                        .attack_area
-                        .signals()
-                        .area_entered()
-                        .connect_other(&entity, EnemyBodyActor::on_attack_area_entered);
-                } else if let Ok(entity) = node.clone().try_cast::<NewProjectileEnemy>() {
-                    this.timers
-                        .idle
-                        .signals()
-                        .timeout()
-                        .connect_other(&entity, NewProjectileEnemy::on_idle_timeout);
-
-                    this.timers
-                        .attack
-                        .signals()
-                        .timeout()
-                        .connect_other(&entity, NewProjectileEnemy::on_attack_timeout);
-
-                    this.timers
-                        .patrol
-                        .signals()
-                        .timeout()
-                        .connect_other(&entity, NewProjectileEnemy::on_patrol_timeout);
-
-                    this.sensors
-                        .player_detection
-                        .aggro_area
-                        .signals()
-                        .area_entered()
-                        .connect_other(&entity, NewProjectileEnemy::on_aggro_area_entered);
-
-                    this.sensors
-                        .player_detection
-                        .aggro_area
-                        .signals()
-                        .area_exited()
-                        .connect_other(&entity, NewProjectileEnemy::on_aggro_area_exited);
-
-                    this.sensors
-                        .player_detection
-                        .attack_area
-                        .signals()
-                        .area_entered()
-                        .connect_other(&entity, NewProjectileEnemy::on_attack_area_entered);
-                }
-            }
+            timers,
+            sm,
         }
-        this.timers.idle.start();
-        this
     }
 
     pub fn update_graphics(&mut self) {
