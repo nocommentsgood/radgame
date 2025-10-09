@@ -1,5 +1,5 @@
 use godot::{
-    classes::{Area2D, IArea2D, RayCast2D},
+    classes::{Area2D, IArea2D},
     meta::ToGodot,
     obj::{Base, Gd, WithBaseField},
     prelude::{GodotClass, godot_api},
@@ -66,19 +66,38 @@ impl HitReg {
         Self { hitbox, hurtbox }
     }
 
+    pub fn new_with_signals<A, B, C, D>(
         hitbox: Gd<Hitbox>,
         hurtbox: Gd<Hurtbox>,
-        left_wall_cast: Option<Gd<RayCast2D>>,
-        right_wall_cast: Option<Gd<RayCast2D>>,
-    ) -> Self {
-        Self {
-            hitbox,
-            hurtbox,
-            left_wall_cast,
-            right_wall_cast,
-        }
-    }
+        on_hitbox_entered: A,
+        on_hitbox_exited: B,
+        on_hurtbox_entered: C,
+        on_hurtbox_exited: D,
+    ) -> Self
+    where
+        A: FnMut(Gd<Area2D>) + 'static,
+        B: FnMut(Gd<Area2D>) + 'static,
+        C: FnMut(Gd<Area2D>) + 'static,
+        D: FnMut(Gd<Area2D>) + 'static,
+    {
+        let this = Self { hitbox, hurtbox };
+        this.hitbox
+            .signals()
+            .area_entered()
+            .connect(on_hitbox_entered);
 
-
+        this.hitbox
+            .signals()
+            .area_exited()
+            .connect(on_hitbox_exited);
+        this.hurtbox
+            .signals()
+            .area_entered()
+            .connect(on_hurtbox_entered);
+        this.hurtbox
+            .signals()
+            .area_exited()
+            .connect(on_hurtbox_exited);
+        this
     }
 }
