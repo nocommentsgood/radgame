@@ -51,10 +51,14 @@ pub struct MainCharacter {
         hit_reg::HitReg::new(
             this.get_node_as::<Hitbox>("Hitbox"),
             this.get_node_as::<Hurtbox>("Hurtbox"),
-            this.try_get_node_as::<RayCast2D>("LeftWallSensor"),
-            this.try_get_node_as::<RayCast2D>("RightWallSensor"))
+        )
         }))]
     hit_reg: OnReady<hit_reg::HitReg>,
+
+    #[init(node = "LeftWallCast")]
+    left_wall_cast: OnReady<Gd<RayCast2D>>,
+    #[init(node = "RightWallCast")]
+    right_wall_cast: OnReady<Gd<RayCast2D>>,
 
     #[init(val = AbilityComp::new_test())]
     pub ability_comp: AbilityComp,
@@ -120,8 +124,8 @@ impl ICharacterBody2D for MainCharacter {
             self.base().is_on_floor(),
             self.base().is_on_floor_only(),
             self.base().is_on_wall_only(),
-            self.hit_reg.left_colliding().unwrap(),
-            self.hit_reg.right_colliding().unwrap(),
+            self.left_wall_cast.is_colliding(),
+            self.right_wall_cast.is_colliding(),
             delta,
         );
         let input = DevInputHandler::handle_unhandled(&Input::singleton(), self);

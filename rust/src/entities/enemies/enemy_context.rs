@@ -262,8 +262,6 @@ impl EnemySensors {
             hit_reg: HitReg::new(
                 base_enemy.get_node_as("EnemySensors/Hitbox"),
                 base_enemy.get_node_as("EnemySensors/Hurtboxes"),
-                base_enemy.try_get_node_as("EnemySensors/LeftWallCast"),
-                base_enemy.try_get_node_as("EnemySensors/RightWallCast"),
             ),
             player_detection: PlayerDetection::new(
                 base_enemy.get_node_as("EnemySensors/AggroArea"),

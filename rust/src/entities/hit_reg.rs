@@ -16,6 +16,12 @@ pub struct Hitbox {
     base: Base<Area2D>,
 }
 
+#[godot_api]
+impl Hitbox {
+    #[signal]
+    fn dummy();
+}
+
 #[derive(GodotClass)]
 #[class(init, base=Area2D)]
 pub struct Hurtbox {
@@ -49,16 +55,17 @@ impl Hurtbox {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct HitReg {
     pub hitbox: Gd<Hitbox>,
     pub hurtbox: Gd<Hurtbox>,
-    left_wall_cast: Option<Gd<RayCast2D>>,
-    right_wall_cast: Option<Gd<RayCast2D>>,
 }
 
 impl HitReg {
-    pub fn new(
+    pub fn new(hitbox: Gd<Hitbox>, hurtbox: Gd<Hurtbox>) -> Self {
+        Self { hitbox, hurtbox }
+    }
+
         hitbox: Gd<Hitbox>,
         hurtbox: Gd<Hurtbox>,
         left_wall_cast: Option<Gd<RayCast2D>>,
@@ -72,19 +79,6 @@ impl HitReg {
         }
     }
 
-    pub fn left_colliding(&self) -> Option<bool> {
-        if self.left_wall_cast.is_some() {
-            Some(self.left_wall_cast.as_ref().unwrap().is_colliding())
-        } else {
-            None
-        }
-    }
 
-    pub fn right_colliding(&self) -> Option<bool> {
-        if self.right_wall_cast.is_some() {
-            Some(self.right_wall_cast.as_ref().unwrap().is_colliding())
-        } else {
-            None
-        }
     }
 }
