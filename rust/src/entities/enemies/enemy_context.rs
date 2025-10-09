@@ -156,6 +156,45 @@ impl PlayerDetection {
         }
     }
 
+    pub fn new_with_signals<A, B, C, D>(
+        aggro_area: Gd<AggroArea>,
+        mut attack_area: Gd<Area2D>,
+        on_aggro_area_entered: A,
+        on_aggro_area_exited: B,
+        on_attack_area_entered: C,
+        on_attack_area_exited: D,
+    ) -> Self
+    where
+        A: FnMut(Gd<Area2D>) + 'static,
+        B: FnMut(Gd<Area2D>) + 'static,
+        C: FnMut(Gd<Area2D>) + 'static,
+        D: FnMut(Gd<Area2D>) + 'static,
+    {
+        attack_area.set_collision_mask_value(CollisionLayers::PlayerHitbox as i32, true);
+        let this = Self {
+            aggro_area,
+            attack_area,
+        };
+
+        this.aggro_area
+            .signals()
+            .area_entered()
+            .connect(on_aggro_area_entered);
+        this.aggro_area
+            .signals()
+            .area_exited()
+            .connect(on_aggro_area_exited);
+        this.attack_area
+            .signals()
+            .area_entered()
+            .connect(on_attack_area_entered);
+        this.attack_area
+            .signals()
+            .area_exited()
+            .connect(on_attack_area_exited);
+        this
+    }
+
     pub fn player_position(&self) -> Option<Vector2> {
         self.aggro_area.bind().player_position
     }
