@@ -6,7 +6,7 @@
 radius = 59.03389
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_0tmgg"]
-radius = 60.0
+radius = 79.00633
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_a80vk"]
 size = Vector2(700, 300)
@@ -21,11 +21,11 @@ texture = ExtResource("1_a80vk")
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("CircleShape2D_a80vk")
 
-[node name="EntityHitbox" type="Hitbox" parent="."]
-collision_layer = 40
-collision_mask = 4
+[node name="Hitbox" type="Hitbox" parent="."]
+collision_layer = 8
+collision_mask = 20
 
-[node name="CollisionShape2D2" type="CollisionShape2D" parent="EntityHitbox"]
+[node name="CollisionShape2D2" type="CollisionShape2D" parent="Hitbox"]
 shape = SubResource("CircleShape2D_0tmgg")
 
 [node name="ShootCooldown" type="Timer" parent="."]

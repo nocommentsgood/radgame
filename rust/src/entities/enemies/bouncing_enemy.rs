@@ -2,7 +2,7 @@ use std::array;
 
 use godot::{
     builtin::Vector2,
-    classes::{Area2D, IStaticBody2D, PackedScene, StaticBody2D, Timer},
+    classes::{IStaticBody2D, PackedScene, StaticBody2D, Timer},
     obj::{Base, Gd, OnReady, WithBaseField},
     prelude::{GodotClass, godot_api},
 };
@@ -22,14 +22,11 @@ use crate::{
 pub struct BounceEnemy {
     health: u32,
     velocity: Vector2,
-    #[init(node = "EntityHitbox")]
+    #[init(node = "Hitbox")]
     hitbox: OnReady<Gd<Hitbox>>,
 
     #[init(node = "ShootCooldown")]
     timer: OnReady<Gd<Timer>>,
-
-    #[init(node = "AggroArea")]
-    aggro_area: OnReady<Gd<Area2D>>,
 
     #[init(val = OnReady::from_loaded("uid://bh5oo6002wig6"))]
     projectile: OnReady<Gd<PackedScene>>,
