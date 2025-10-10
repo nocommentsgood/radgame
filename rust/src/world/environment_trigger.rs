@@ -156,10 +156,10 @@ impl TriggerableEnvObject for ClosingDoor {
             .base()
             .get_node_as::<CollisionShape2D>("CollisionShape2D");
         if self.is_closed {
-            shape.apply_deferred(|this| this.set_disabled(true));
+            shape.run_deferred_gd(|mut this| this.set_disabled(true));
             self.base_mut().set_process(true);
         } else {
-            shape.apply_deferred(|this| this.set_disabled(false));
+            shape.run_deferred_gd(|mut this| this.set_disabled(false));
             self.base_mut().set_process(true);
         }
     }
@@ -169,7 +169,7 @@ impl TriggerableEnvObject for ClosingDoor {
 #[class(init, base = Node)]
 pub struct MapTransition {
     #[export]
-    #[init(sentinel = StringName::from(c""))]
+    #[init(sentinel = StringName::from(""))]
     next_map_scene: OnEditor<StringName>,
 
     base: Base<Node>,
@@ -184,7 +184,7 @@ impl MapTransition {
 #[godot_dyn]
 impl TriggerableEnvObject for MapTransition {
     fn on_activated(&mut self) {
-        let next = load(self.next_map_scene.arg());
+        let next: Gd<PackedScene> = load(self.next_map_scene.arg());
         self.signals().transition_maps().emit(&next);
     }
 }
@@ -204,7 +204,9 @@ impl SceneTransition {
 #[godot_dyn]
 impl TriggerableEnvObject for SceneTransition {
     fn on_activated(&mut self) {
-        let marker = self.to_gd().upcast();
-        self.signals().scene_transition().emit(&marker);
+        let next = self.to_gd();
+        self.signals()
+            .scene_transition()
+            .emit(&next.upcast::<Marker2D>());
     }
 }

@@ -1,3 +1,4 @@
+use godot::obj::Singleton;
 use godot::{
     classes::{Input, Timer},
     obj::{Gd, WithBaseField, WithUserSignals},

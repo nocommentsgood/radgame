@@ -3,7 +3,7 @@ use std::collections::VecDeque;
 use godot::{
     builtin::Vector2,
     classes::{IStaticBody2D, Node2D, PackedScene, StaticBody2D, Timer},
-    obj::{Base, Gd, NewAlloc, OnReady, WithBaseField, WithDeferredCall},
+    obj::{Base, Gd, NewAlloc, OnReady, WithBaseField},
     prelude::{GodotClass, godot_api},
     tools::load,
 };
@@ -143,7 +143,7 @@ impl IStaticBody2D for JumpPlatform {
 #[godot_api]
 impl JumpPlatform {
     fn free(&mut self) {
-        self.apply_deferred(|this| this.base_mut().queue_free());
+        self.run_deferred(|this| this.base_mut().queue_free());
     }
 
     fn change_dir(&mut self) {

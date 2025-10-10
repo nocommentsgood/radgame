@@ -8,7 +8,7 @@ crate-type = ["cdylib"]
 
 [dependencies]
 fastnoise-lite = "1.1.1"
-godot = { version = "0.3.5", features = [
+godot = { version = "0.4.0", features = [
   "register-docs",
   "experimental-godot-api",
   "experimental-threads",

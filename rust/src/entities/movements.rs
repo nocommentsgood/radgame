@@ -1,3 +1,4 @@
+use godot::obj::Singleton;
 use godot::{
     builtin::Vector2,
     classes::{INode2D, Node2D, PhysicsBody2D, Timer},

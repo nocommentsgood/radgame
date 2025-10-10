@@ -1,5 +1,6 @@
 use godot::{
     classes::{Area2D, CanvasLayer, ColorRect, Marker2D},
+    obj::WithBaseField,
     prelude::*,
 };
 
@@ -115,7 +116,7 @@ impl Main {
                 let map_clone = map.clone();
 
                 // Add the new map to the scene tree and remove the old map.
-                world.apply_deferred(move |world| {
+                world.run_deferred_gd(move |mut world| {
                     world.add_child(&map_clone);
                     world.remove_child(&cur_map);
                     world.move_child(&map_clone, 0);
@@ -287,7 +288,7 @@ impl Main {
             let mut tween = tree.create_tween().unwrap();
             tween.tween_property(&rect, "modulate:a", &0.0.to_variant(), 0.7);
             tween.signals().finished().to_future().await;
-            this.apply_deferred(move |this| this.base_mut().remove_child(&layer));
+            this.run_deferred_gd(move |mut this| this.remove_child(&layer));
         });
     }
 }
