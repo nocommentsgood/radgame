@@ -2,11 +2,12 @@ use super::{enemy_state_machine::State, projectile::Projectile};
 use crate::entities::{
     damage::{AttackData, Damage, DamageType},
     enemies::{
-        enemy_context::EnemyContext,
+        enemy_context::{EnemyContext, EnemySensors, PlayerDetection},
         enemy_state_machine::{EnemyEvent, EnemySMType},
-        physics::{MovementStrategy, Speeds},
+        physics::{Movement, MovementStrategy, Speeds},
         time::{EnemyTimers, Timers},
     },
+    hit_reg::{HitReg, Hitbox},
 };
 use godot::{
     builtin::Vector2,
@@ -46,7 +47,7 @@ impl INode2D for NewProjectileEnemy {
             .init(self.projectile_scene.instantiate_as::<Projectile>());
 
         let this = self.to_gd();
-        let ctx = EnemyContext::new(
+        let ctx = EnemyContext::default_new(
             &this.clone().upcast(),
             Speeds::new(150.0, 175.0),
             self.left_target,

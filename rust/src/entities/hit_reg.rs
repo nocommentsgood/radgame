@@ -100,4 +100,41 @@ impl HitReg {
             .connect(on_hurtbox_exited);
         this
     }
+
+    /// Connects the given callbacks.
+    /// Expected callbacks:
+    /// - hitbox entered
+    /// - hitbox exited
+    /// - hurtbox entered
+    /// - hurtbox exited
+    pub fn connect_signals<A, B, C, D>(
+        &mut self,
+        on_hitbox_entered: A,
+        on_hitbox_exited: B,
+        on_hurtbox_entered: C,
+        on_hurtbox_exited: D,
+    ) where
+        A: FnMut(Gd<Area2D>) + 'static,
+        B: FnMut(Gd<Area2D>) + 'static,
+        C: FnMut(Gd<Area2D>) + 'static,
+        D: FnMut(Gd<Area2D>) + 'static,
+    {
+        self.hitbox
+            .signals()
+            .area_entered()
+            .connect(on_hitbox_entered);
+
+        self.hitbox
+            .signals()
+            .area_exited()
+            .connect(on_hitbox_exited);
+        self.hurtbox
+            .signals()
+            .area_entered()
+            .connect(on_hurtbox_entered);
+        self.hurtbox
+            .signals()
+            .area_exited()
+            .connect(on_hurtbox_exited);
+    }
 }

@@ -44,7 +44,7 @@ impl EnemyContext {
     /// - `on_idle_timeout()` `on_patrol_timeout()`
     /// - `on_aggro_area_entered()` `on_aggro_area_exited()`
     /// - `on_attack_area_entered()`
-    pub fn new(
+    pub fn default_new(
         node: &Gd<Node>,
         speeds: Speeds,
         left_patrol_target: Vector2,
@@ -60,7 +60,46 @@ impl EnemyContext {
                 right_patrol_target,
             ),
             graphics: EntGraphics::new(node),
-            sensors: EnemySensors::new(node),
+            sensors: EnemySensors::default_new(node),
+            timers,
+            sm,
+        }
+    }
+
+    pub fn default_new_with_signals(
+        node: &Gd<Node>,
+        speeds: Speeds,
+        left_patrol_target: Vector2,
+        right_patrol_target: Vector2,
+        timers: Timers,
+        sm: EnemySMType,
+    ) -> Self {
+        let this = Self {
+            movement: Movement::new(
+                node.clone().cast::<Node2D>().get_global_position(),
+                speeds,
+                left_patrol_target,
+                right_patrol_target,
+            ),
+            graphics: EntGraphics::new(node),
+            sensors: EnemySensors::default_new(node),
+            timers,
+            sm,
+        };
+        this
+    }
+
+    pub fn new(
+        movement: Movement,
+        graphics: EntGraphics,
+        sensors: EnemySensors,
+        timers: Timers,
+        sm: EnemySMType,
+    ) -> Self {
+        Self {
+            movement,
+            graphics,
+            sensors,
             timers,
             sm,
         }
@@ -215,7 +254,7 @@ pub struct EnemySensors {
 }
 
 impl EnemySensors {
-    pub fn new(base_enemy: &Gd<Node>) -> Self {
+    pub fn default_new(base_enemy: &Gd<Node>) -> Self {
         Self {
             hit_reg: HitReg::new(
                 base_enemy.get_node_as("EnemySensors/Hitbox"),
@@ -232,6 +271,85 @@ impl EnemySensors {
         }
     }
 
+    pub fn new(
+        hit_reg: HitReg,
+        player_detection: PlayerDetection,
+        left_ground_cast: Gd<RayCast2D>,
+        right_ground_cast: Gd<RayCast2D>,
+        left_wall_cast: Gd<RayCast2D>,
+        right_wall_cast: Gd<RayCast2D>,
+    ) -> Self {
+        Self {
+            hit_reg,
+            player_detection,
+            left_ground_cast,
+            right_ground_cast,
+            left_wall_cast,
+            right_wall_cast,
+        }
+    }
+
+    pub fn connect_signals<A, B, C, D, E, F, G, H>(
+        &mut self,
+        on_hitbox_entered: A,
+        on_hitbox_exited: B,
+        on_hurtbox_entered: C,
+        on_hurtbox_exited: D,
+        on_aggro_area_entered: E,
+        on_aggro_area_exited: F,
+        on_attack_area_entered: G,
+        on_attack_area_exited: H,
+    ) where
+        A: FnMut(Gd<Area2D>) + 'static,
+        B: FnMut(Gd<Area2D>) + 'static,
+        C: FnMut(Gd<Area2D>) + 'static,
+        D: FnMut(Gd<Area2D>) + 'static,
+        E: FnMut(Gd<Area2D>) + 'static,
+        F: FnMut(Gd<Area2D>) + 'static,
+        G: FnMut(Gd<Area2D>) + 'static,
+        H: FnMut(Gd<Area2D>) + 'static,
+    {
+        self.hit_reg
+            .hitbox
+            .signals()
+            .area_entered()
+            .connect(on_hitbox_entered);
+        self.hit_reg
+            .hitbox
+            .signals()
+            .area_exited()
+            .connect(on_hitbox_exited);
+        self.hit_reg
+            .hurtbox
+            .signals()
+            .area_entered()
+            .connect(on_hurtbox_entered);
+        self.hit_reg
+            .hurtbox
+            .signals()
+            .area_exited()
+            .connect(on_hurtbox_exited);
+        self.player_detection
+            .aggro_area
+            .signals()
+            .area_entered()
+            .connect(on_aggro_area_entered);
+        self.player_detection
+            .aggro_area
+            .signals()
+            .area_exited()
+            .connect(on_aggro_area_exited);
+        self.player_detection
+            .attack_area
+            .signals()
+            .area_entered()
+            .connect(on_attack_area_entered);
+        self.player_detection
+            .attack_area
+            .signals()
+            .area_exited()
+            .connect(on_attack_area_exited);
+    }
     /// True if a wallcast is colliding or a groundcast is not colliding.
     pub fn are_raycasts_failing(&self) -> bool {
         self.is_wall_cast_colliding() || !self.is_groundcast_colliding()

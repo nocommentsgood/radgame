@@ -35,7 +35,7 @@ pub struct EnemyBodyActor {
 impl ICharacterBody2D for EnemyBodyActor {
     fn ready(&mut self) {
         let this = self.to_gd();
-        let ctx = EnemyContext::new(
+        let ctx = EnemyContext::default_new(
             &this.clone().upcast(),
             Speeds::new(100.0, 150.0),
             self.left_target,

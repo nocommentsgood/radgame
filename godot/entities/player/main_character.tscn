@@ -3666,11 +3666,11 @@ drag_bottom_margin = 0.0
 editor_draw_limits = true
 editor_draw_drag_margin = true
 
-[node name="LeftWallSensor" type="RayCast2D" parent="."]
+[node name="LeftWallCast" type="RayCast2D" parent="."]
 target_position = Vector2(-15, 0)
 collision_mask = 2
 
-[node name="RightWallSensor" type="RayCast2D" parent="."]
+[node name="RightWallCast" type="RayCast2D" parent="."]
 position = Vector2(5, 0)
 target_position = Vector2(15, 0)
 collision_mask = 2
