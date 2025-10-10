@@ -4,10 +4,7 @@ use godot::{
     prelude::*,
 };
 
-use crate::entities::{
-    entity_stats::ModifierKind,
-    hit_reg::{Hitbox, Hurtbox},
-};
+use crate::entities::{entity_stats::ModifierKind, hit_reg::Hitbox};
 
 pub trait HasHealth {
     fn get_health(&self) -> u32;

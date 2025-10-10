@@ -1,6 +1,6 @@
 use godot::{
     builtin::Vector2,
-    classes::{CharacterBody2D, INode2D, Node2D, PhysicsBody2D, Timer},
+    classes::{INode2D, Node2D, PhysicsBody2D, Timer},
     meta::FromGodot,
     obj::{Base, DynGd, Gd, Inherits, OnEditor, WithBaseField},
     prelude::{Export, GodotClass, GodotConvert, Var, godot_api, godot_dyn},
@@ -31,73 +31,6 @@ impl Direction {
             Direction::Right
         }
     }
-}
-
-pub trait Moveable {
-    fn get_velocity(&self) -> Vector2;
-    fn set_velocity(&mut self, velocity: Vector2);
-}
-
-/// Implements movement for CharacterBody2D's.
-pub trait MoveableBody: Moveable {
-    /// Calls `move_and_slide()` on the CharacterBody2D. Ensure `set_velocity` is set with desired speed
-    /// prior to calling.
-    fn notify_on_floor(&mut self);
-    fn phy_slide(&mut self)
-    where
-        Self: WithBaseField<Base = CharacterBody2D>,
-    {
-        if !self.base().is_on_floor() {
-            let v = self.get_velocity() + Vector2::DOWN;
-            self.base_mut().set_velocity(v);
-            self.base_mut().move_and_slide();
-
-            let mut this = self.base_mut().clone();
-            if let Some(collision) = this.get_last_slide_collision()
-                && let obj = collision.get_collider()
-                && let Some(c) = obj
-                && c.get_class().to_string() == "TileMapLayer"
-            {
-                self.notify_on_floor();
-            }
-        } else {
-            let v = self.get_velocity();
-            self.base_mut().set_velocity(v);
-            self.base_mut().move_and_slide();
-        }
-    }
-}
-
-/// Implement for nodes with no physics movement.
-pub trait MoveableEntity: Moveable {
-    /// Moves the entity to target position.
-    /// Note: Do not provide a delta time calculation in your velocity as this internally calls
-    /// velocity.
-    fn node_slide(&mut self, use_physics_delta: bool)
-    where
-        Self: WithBaseField<Base: Inherits<Node2D>>,
-    {
-        let delta = if use_physics_delta {
-            self.base()
-                .upcast_ref::<Node2D>()
-                .get_physics_process_delta_time()
-        } else {
-            self.base().upcast_ref::<Node2D>().get_process_delta_time()
-        };
-        let pos = self.base().upcast_ref::<Node2D>().get_global_position();
-        let v = self.get_velocity();
-
-        self.base_mut()
-            .upcast_mut::<Node2D>()
-            .set_global_position(pos + v * delta as f32);
-    }
-}
-
-/// Used so both physics based nodes and non-physics based nodes can implement the
-/// `enemy_state_machine_ext` trait, while implementing either `MoveableEntity` or `MoveableBody`
-/// trait depending on their needs.
-pub trait Move: Moveable {
-    fn slide(&mut self);
 }
 
 pub trait MovementBehavior {

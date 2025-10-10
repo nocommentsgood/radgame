@@ -1,7 +1,6 @@
 use std::fmt::Display;
 
 use statig::Response::Handled;
-use statig::prelude::StateMachine;
 use statig::{Response, state_machine};
 
 use crate::entities::enemies::time::EnemyTimers;
@@ -24,12 +23,6 @@ impl EnemySMType {
     pub fn state(&self) -> &State {
         match self {
             EnemySMType::Basic(state_machine) => state_machine.state(),
-        }
-    }
-
-    pub fn inner_mut(&mut self) -> &mut StateMachine<EnemyStateMachine> {
-        match self {
-            EnemySMType::Basic(state_machine) => state_machine,
         }
     }
 }

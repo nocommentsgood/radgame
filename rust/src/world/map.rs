@@ -1,5 +1,5 @@
 use godot::{
-    classes::{Camera2D, Marker2D, NavigationRegion2D, TileMapLayer},
+    classes::{Marker2D, NavigationRegion2D, TileMapLayer},
     prelude::*,
 };
 

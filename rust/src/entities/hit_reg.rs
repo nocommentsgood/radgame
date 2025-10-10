@@ -66,41 +66,6 @@ impl HitReg {
         Self { hitbox, hurtbox }
     }
 
-    pub fn new_with_signals<A, B, C, D>(
-        hitbox: Gd<Hitbox>,
-        hurtbox: Gd<Hurtbox>,
-        on_hitbox_entered: A,
-        on_hitbox_exited: B,
-        on_hurtbox_entered: C,
-        on_hurtbox_exited: D,
-    ) -> Self
-    where
-        A: FnMut(Gd<Area2D>) + 'static,
-        B: FnMut(Gd<Area2D>) + 'static,
-        C: FnMut(Gd<Area2D>) + 'static,
-        D: FnMut(Gd<Area2D>) + 'static,
-    {
-        let this = Self { hitbox, hurtbox };
-        this.hitbox
-            .signals()
-            .area_entered()
-            .connect(on_hitbox_entered);
-
-        this.hitbox
-            .signals()
-            .area_exited()
-            .connect(on_hitbox_exited);
-        this.hurtbox
-            .signals()
-            .area_entered()
-            .connect(on_hurtbox_entered);
-        this.hurtbox
-            .signals()
-            .area_exited()
-            .connect(on_hurtbox_exited);
-        this
-    }
-
     /// Connects the given callbacks.
     /// Expected callbacks:
     /// - hitbox entered

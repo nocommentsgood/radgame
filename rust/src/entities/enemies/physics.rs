@@ -43,11 +43,6 @@ impl Movement {
         }
     }
 
-    pub fn set_patrol_targets(&mut self, left: Vector2, right: Vector2) {
-        self.left_target = left;
-        self.right_target = right;
-    }
-
     fn apply_gravity(&mut self, delta: f32) {
         const GRAVITY: f32 = 1500.0;
         self.velocity.y += GRAVITY * delta;

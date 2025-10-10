@@ -40,26 +40,27 @@ impl ICharacterBody2D for EnemyBodyActor {
             Speeds::new(100.0, 150.0),
             self.left_target,
             self.right_target,
-            Timers::new_with_signals(
-                &this.clone().upcast(),
-                {
-                    let mut this = this.clone();
-                    move || this.bind_mut().on_attack_timeout()
-                },
-                {
-                    let mut this = this.clone();
-                    move || this.bind_mut().on_patrol_timeout()
-                },
-                {
-                    let mut this = this.clone();
-                    move || this.bind_mut().on_idle_timeout()
-                },
-                || (),
-                || (),
-            ),
+            Timers::default_new(&self.to_gd().upcast()),
             EnemySMType::Basic(StateMachine::default()),
         );
         self.ctx.init(ctx);
+
+        self.ctx.timers.connect_signals(
+            {
+                let mut this = this.clone();
+                move || this.bind_mut().on_attack_timeout()
+            },
+            {
+                let mut this = this.clone();
+                move || this.bind_mut().on_patrol_timeout()
+            },
+            {
+                let mut this = this.clone();
+                move || this.bind_mut().on_idle_timeout()
+            },
+            || (),
+            || (),
+        );
 
         self.ctx.sensors.connect_signals(
             |_| (),
@@ -80,6 +81,7 @@ impl ICharacterBody2D for EnemyBodyActor {
             },
             |_| (),
         );
+        self.ctx.timers.idle.start();
 
         self.ctx.sensors.hit_reg.hurtbox.bind_mut().data = Some(AttackData {
             parryable: false,
