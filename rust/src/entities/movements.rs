@@ -36,7 +36,6 @@ impl Direction {
 
 pub trait MovementBehavior {
     fn compute_velocity(&self, cur_pos: Vector2, delta: f32) -> Vector2;
-    fn set_speed(&mut self, speed: f32);
 }
 
 #[derive(GodotClass)]
@@ -62,9 +61,6 @@ impl MovementBehavior for MoveLeft {
     fn compute_velocity(&self, cur_pos: Vector2, delta: f32) -> Vector2 {
         cur_pos + (Vector2::LEFT * self.speed) * delta
     }
-    fn set_speed(&mut self, speed: f32) {
-        self.speed = speed;
-    }
 }
 
 #[derive(GodotClass)]
@@ -89,9 +85,6 @@ impl INode2D for MoveRight {
 impl MovementBehavior for MoveRight {
     fn compute_velocity(&self, cur_pos: Vector2, delta: f32) -> Vector2 {
         cur_pos + Vector2::RIGHT * self.speed * delta
-    }
-    fn set_speed(&mut self, speed: f32) {
-        self.speed = speed;
     }
 }
 
@@ -163,9 +156,6 @@ impl MovementBehavior for AlternatingMovement {
             Direction::Left => cur_pos + Vector2::LEFT * self.speed * delta,
         }
     }
-    fn set_speed(&mut self, speed: f32) {
-        self.speed = speed;
-    }
 }
 
 /// Moves and collides a PhysicsBody2D, bouncing the body off of the collision normal.
@@ -231,11 +221,8 @@ pub fn swap_movement<T: MovementBehavior + Inherits<Node2D>>(
     entity: &mut Node2D,
     old_movement: &Gd<Node2D>,
     new_movement: Gd<T>,
-    speed: f32,
 ) -> DynGd<Node2D, dyn MovementBehavior> {
     entity.remove_child(old_movement);
     entity.add_child(&new_movement.clone().upcast());
-    let mut new = DynGd::<Node2D, dyn MovementBehavior>::from_godot(new_movement.upcast());
-    new.dyn_bind_mut().set_speed(speed);
-    new
+    DynGd::<Node2D, dyn MovementBehavior>::from_godot(new_movement.upcast())
 }
