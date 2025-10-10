@@ -10,7 +10,7 @@ use super::enemy_state_machine::{EnemyEvent, State};
 use crate::entities::{
     damage::{AttackData, Damage, DamageType},
     enemies::{
-        enemy_context::{EnemyContext, EnemyType, Raycasts},
+        enemy_context::{EnemyContext, Raycasts},
         enemy_state_machine::EnemySMType,
         physics::Speeds,
         time::{EnemyTimers, Timers},
@@ -60,6 +60,26 @@ impl ICharacterBody2D for EnemyBodyActor {
             EnemySMType::Basic(StateMachine::default()),
         );
         self.ctx.init(ctx);
+
+        self.ctx.sensors.connect_signals(
+            |_| (),
+            |_| (),
+            |_| (),
+            |_| (),
+            {
+                let mut this = this.clone();
+                move |area| this.bind_mut().on_aggro_area_entered(area)
+            },
+            {
+                let mut this = this.clone();
+                move |area| this.bind_mut().on_aggro_area_exited(area)
+            },
+            {
+                let mut this = this.clone();
+                move |area| this.bind_mut().on_attack_area_entered(area)
+            },
+            |_| (),
+        );
 
         self.ctx.sensors.hit_reg.hurtbox.bind_mut().data = Some(AttackData {
             parryable: false,
