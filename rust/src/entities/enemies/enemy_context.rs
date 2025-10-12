@@ -1,14 +1,5 @@
 use crate::{
-    entities::{
-        enemies::{
-            enemy_state_machine::EnemySMType,
-            physics::{Movement, Speeds},
-            time::Timers,
-        },
-        ent_graphics::EntGraphics,
-        hit_reg::HitReg,
-        movements::Direction,
-    },
+    entities::{hit_reg::HitReg, movements::Direction},
     utils::collision_layers::CollisionLayers,
 };
 
@@ -18,57 +9,6 @@ use godot::{
     obj::{Base, Gd, WithBaseField, WithUserSignals},
     prelude::{GodotClass, godot_api},
 };
-
-#[derive(Clone)]
-pub struct EnemyContext {
-    pub movement: Movement,
-    pub graphics: EntGraphics,
-    pub sensors: EnemySensors,
-    pub timers: Timers,
-    pub sm: EnemySMType,
-}
-
-impl EnemyContext {
-    /// Provides `Self` by obtaining the required nodes in the SceneTree at the expected path.
-    pub fn default_new(
-        node: &Gd<Node>,
-        speeds: Speeds,
-        left_patrol_target: Vector2,
-        right_patrol_target: Vector2,
-        timers: Timers,
-        sm: EnemySMType,
-    ) -> Self {
-        Self {
-            movement: Movement::new(
-                node.clone().cast::<Node2D>().get_global_position(),
-                speeds,
-                left_patrol_target,
-                right_patrol_target,
-            ),
-            graphics: EntGraphics::new(node),
-            sensors: EnemySensors::default_new(node),
-            timers,
-            sm,
-        }
-    }
-
-    pub fn update_graphics(&mut self) {
-        self.graphics.update(
-            self.sm.state(),
-            &Direction::from_vel(&self.movement.velocity()),
-        );
-    }
-
-    /// Sets the normalized velocity, applies acceleration, and moves the entity.
-    pub fn update_movement(&mut self, strategy: &mut super::physics::MovementStrategy, delta: f32) {
-        self.movement.update(
-            strategy,
-            self.sm.state(),
-            self.sensors.player_detection.player_position(),
-            delta,
-        );
-    }
-}
 
 /// Area that tracks the player's position. Enables processing when entered, disables when exited.
 #[derive(GodotClass)]
