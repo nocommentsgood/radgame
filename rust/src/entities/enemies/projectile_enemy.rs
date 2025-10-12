@@ -1,12 +1,9 @@
 use super::{enemy_state_machine::State, projectile::Projectile};
 use crate::entities::{
     damage::{AttackData, Damage, DamageType},
-    enemies::{
-        enemy_context::EnemyContext,
-        enemy_state_machine::{EnemyEvent, EnemySMType},
-        physics::{MovementStrategy, Speeds},
-        time::{EnemyTimers, Timers},
-    },
+    enemies::{enemy_context as ctx, enemy_state_machine as esm, physics, time},
+    ent_graphics::EntGraphics,
+    movements::Direction,
 };
 use godot::{
     builtin::Vector2,
@@ -27,12 +24,19 @@ pub struct NewProjectileEnemy {
 
     #[init(val = OnReady::manual())]
     projectile_scene: OnReady<Gd<PackedScene>>,
-
     #[init(val = OnReady::manual())]
     inst: OnReady<Gd<Projectile>>,
-
     #[init(val = OnReady::manual())]
-    ctx: OnReady<EnemyContext>,
+    movement: OnReady<physics::Movement>,
+    #[init(val = OnReady::manual())]
+    graphics: OnReady<EntGraphics>,
+    #[init(val = OnReady::manual())]
+    sensors: OnReady<ctx::EnemySensors>,
+    #[init(val = OnReady::manual())]
+    timers: OnReady<time::Timers>,
+    #[init(val = OnReady::manual())]
+    sm: OnReady<esm::EnemySMType>,
+
     node: Base<Node2D>,
 }
 
@@ -41,21 +45,24 @@ impl INode2D for NewProjectileEnemy {
     fn ready(&mut self) {
         self.projectile_scene
             .init(load("res://world/projectile.tscn"));
-
         self.inst
             .init(self.projectile_scene.instantiate_as::<Projectile>());
-
-        let this = self.to_gd();
-        let ctx = EnemyContext::default_new(
-            &this.clone().upcast(),
-            Speeds::new(150.0, 175.0),
+        self.movement.init(physics::Movement::new(
+            self.base().get_global_position(),
+            physics::Speeds::new(150.0, 175.0),
             self.left_target,
             self.right_target,
-            Timers::default_new(&self.to_gd().upcast()),
-            EnemySMType::Basic(StateMachine::default()),
-        );
-        self.ctx.init(ctx);
-        self.ctx.timers.connect_signals(
+        ));
+        self.graphics.init(EntGraphics::new(&self.to_gd().upcast()));
+        self.sensors
+            .init(ctx::EnemySensors::default_new(&self.to_gd().upcast()));
+        self.timers
+            .init(time::Timers::default_new(&self.to_gd().upcast()));
+        self.sm
+            .init(esm::EnemySMType::Basic(StateMachine::default()));
+
+        let this = self.to_gd();
+        self.timers.connect_signals(
             {
                 let mut this = this.clone();
                 move || this.bind_mut().on_attack_timeout()
@@ -78,7 +85,7 @@ impl INode2D for NewProjectileEnemy {
             },
         );
 
-        self.ctx.sensors.connect_signals(
+        self.sensors.connect_signals(
             |_| (),
             |_| (),
             |_| (),
@@ -98,101 +105,103 @@ impl INode2D for NewProjectileEnemy {
             |_| (),
         );
 
-        self.ctx.sensors.hit_reg.hurtbox.bind_mut().data = Some(AttackData {
+        self.sensors.hit_reg.hurtbox.bind_mut().data = Some(AttackData {
             parryable: true,
             damage: Damage {
                 raw: 10,
                 d_type: DamageType::Physical,
             },
         });
-        self.ctx.timers.idle.start();
+        self.timers.idle.start();
     }
 
     fn process(&mut self, delta: f32) {
-        match self.ctx.sm.state() {
+        match self.sm.state() {
             State::ChasePlayer {}
-                if self.ctx.sensors.player_detection.attack_area_overlapping()
-                    && self.ctx.timers.attack.get_time_left() == 0.0 =>
+                if self.sensors.player_detection.attack_area_overlapping()
+                    && self.timers.attack.get_time_left() == 0.0 =>
             {
-                self.ctx.sm.handle(&EnemyEvent::InAttackRange);
+                self.sm.handle(&esm::EnemyEvent::InAttackRange);
             }
-            State::Attack {} if self.ctx.timers.attack.get_time_left() == 0.0 => {
+            State::Attack {} if self.timers.attack.get_time_left() == 0.0 => {
                 self.shoot_projectile();
-                self.ctx.timers.attack.start();
-                self.ctx.timers.attack_anim.start();
+                self.timers.attack.start();
+                self.timers.attack_anim.start();
             }
-            State::Attack2 {} if self.ctx.timers.attack.get_time_left() == 0.0 => {
+            State::Attack2 {} if self.timers.attack.get_time_left() == 0.0 => {
                 self.shoot_projectile();
-                self.ctx.timers.attack_chain.start();
-                self.ctx.timers.attack.start();
+                self.timers.attack_chain.start();
+                self.timers.attack.start();
             }
             _ => (),
         }
 
         let this = self.to_gd();
-        self.ctx.update_movement(
-            &mut MovementStrategy::ManualSetPosition(this.upcast()),
+        self.movement.update(
+            &mut physics::MovementStrategy::ManualSetPosition(this.upcast()),
+            self.sm.state(),
+            self.sensors.player_detection.player_position(),
             delta,
         );
-        self.ctx.update_graphics();
+        self.graphics.update(
+            self.sm.state(),
+            &Direction::from_vel(&self.movement.velocity()),
+        );
     }
 }
 
 #[godot_api]
 impl NewProjectileEnemy {
     pub fn on_aggro_area_entered(&mut self, _area: Gd<Area2D>) {
-        self.ctx.sm.handle(&EnemyEvent::FoundPlayer);
+        self.sm.handle(&esm::EnemyEvent::FoundPlayer);
     }
 
     pub fn on_aggro_area_exited(&mut self, _area: Gd<Area2D>) {
-        self.ctx.sm.handle(&EnemyEvent::LostPlayer);
-        self.ctx.timers.idle.start();
+        self.sm.handle(&esm::EnemyEvent::LostPlayer);
+        self.timers.idle.start();
     }
 
     pub fn on_attack_area_entered(&mut self, _area: Gd<Area2D>) {
-        self.ctx.sm.handle(&EnemyEvent::InAttackRange);
+        self.sm.handle(&esm::EnemyEvent::InAttackRange);
     }
 
     pub fn on_idle_timeout(&mut self) {
-        if self.ctx.sm.state() == (&State::Idle {}) {
-            self.ctx
-                .sm
-                .handle(&EnemyEvent::TimerElapsed(EnemyTimers::Idle));
-            self.ctx.timers.patrol.start();
-            self.ctx.movement.patrol();
+        if self.sm.state() == (&State::Idle {}) {
+            self.sm
+                .handle(&esm::EnemyEvent::TimerElapsed(time::EnemyTimers::Idle));
+            self.timers.patrol.start();
+            self.movement.patrol();
         }
     }
 
     pub fn on_patrol_timeout(&mut self) {
-        if self.ctx.sm.state() == (&State::Patrol {}) {
-            self.ctx
-                .sm
-                .handle(&EnemyEvent::TimerElapsed(EnemyTimers::Patrol));
-            self.ctx.timers.idle.start();
+        if self.sm.state() == (&State::Patrol {}) {
+            self.sm
+                .handle(&esm::EnemyEvent::TimerElapsed(time::EnemyTimers::Patrol));
+            self.timers.idle.start();
         }
     }
 
     pub fn on_attack_timeout(&mut self) {
-        self.ctx
-            .sm
-            .handle(&EnemyEvent::TimerElapsed(EnemyTimers::Attack));
+        self.sm
+            .handle(&esm::EnemyEvent::TimerElapsed(time::EnemyTimers::Attack));
     }
 
     fn on_attack_chain_timeout(&mut self) {
         self.shoot_projectile();
-        self.ctx
-            .sm
-            .handle(&EnemyEvent::TimerElapsed(EnemyTimers::AttackChain));
+        self.sm.handle(&esm::EnemyEvent::TimerElapsed(
+            time::EnemyTimers::AttackChain,
+        ));
     }
 
     fn on_attack_anim_timeout(&mut self) {
-        self.ctx
-            .sm
-            .handle(&EnemyEvent::TimerElapsed(EnemyTimers::AttackAnimation));
+        self.sm.handle(&esm::EnemyEvent::TimerElapsed(
+            time::EnemyTimers::AttackAnimation,
+        ));
     }
 
     pub fn shoot_projectile(&mut self) {
-        if let Some(player_pos) = self.ctx.sensors.player_detection.player_position() {
+        if let Some(player_pos) = self.sensors.player_detection.player_position() {
             let mut inst = self.projectile_scene.instantiate_as::<Projectile>();
             let target = self
                 .base()
