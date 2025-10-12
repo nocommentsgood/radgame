@@ -25,8 +25,6 @@ pub struct NewProjectileEnemy {
     #[init(val = OnReady::manual())]
     projectile_scene: OnReady<Gd<PackedScene>>,
     #[init(val = OnReady::manual())]
-    inst: OnReady<Gd<Projectile>>,
-    #[init(val = OnReady::manual())]
     movement: OnReady<physics::Movement>,
     #[init(val = OnReady::manual())]
     graphics: OnReady<EntGraphics>,
@@ -45,8 +43,6 @@ impl INode2D for NewProjectileEnemy {
     fn ready(&mut self) {
         self.projectile_scene
             .init(load("res://world/projectile.tscn"));
-        self.inst
-            .init(self.projectile_scene.instantiate_as::<Projectile>());
         self.movement.init(physics::Movement::new(
             self.base().get_global_position(),
             physics::Speeds::new(150.0, 175.0),
