@@ -6,15 +6,12 @@ use godot::{
 };
 use statig::prelude::StateMachine;
 
-use super::enemy_state_machine::{EnemyEvent, State};
+use super::enemy_state_machine as esm;
 use crate::entities::{
     damage::{AttackData, Damage, DamageType},
-    enemies::{
-        enemy_context::{EnemyContext, Raycasts},
-        enemy_state_machine::EnemySMType,
-        physics::Speeds,
-        time::{EnemyTimers, Timers},
-    },
+    enemies::{enemy_context as ctx, physics, time},
+    ent_graphics::EntGraphics,
+    movements::Direction,
 };
 
 /// Basic enemy type with a base of type CharacterBody2D.
@@ -27,7 +24,15 @@ pub struct EnemyBodyActor {
     right_target: Vector2,
 
     #[init(val = OnReady::manual())]
-    ctx: OnReady<EnemyContext>,
+    movement: OnReady<physics::Movement>,
+    #[init(val = OnReady::manual())]
+    graphics: OnReady<EntGraphics>,
+    #[init(val = OnReady::manual())]
+    sensors: OnReady<ctx::EnemySensors>,
+    #[init(val = OnReady::manual())]
+    timers: OnReady<time::Timers>,
+    #[init(val = OnReady::manual())]
+    sm: OnReady<esm::EnemySMType>,
     body: Base<CharacterBody2D>,
 }
 
@@ -35,17 +40,21 @@ pub struct EnemyBodyActor {
 impl ICharacterBody2D for EnemyBodyActor {
     fn ready(&mut self) {
         let this = self.to_gd();
-        let ctx = EnemyContext::default_new(
-            &this.clone().upcast(),
-            Speeds::new(100.0, 150.0),
+        self.movement.init(physics::Movement::new(
+            self.base().get_global_position(),
+            physics::Speeds::new(150.0, 175.0),
             self.left_target,
             self.right_target,
-            Timers::default_new(&self.to_gd().upcast()),
-            EnemySMType::Basic(StateMachine::default()),
-        );
-        self.ctx.init(ctx);
+        ));
+        self.graphics.init(EntGraphics::new(&self.to_gd().upcast()));
+        self.sensors
+            .init(ctx::EnemySensors::default_new(&self.to_gd().upcast()));
+        self.timers
+            .init(time::Timers::default_new(&self.to_gd().upcast()));
+        self.sm
+            .init(esm::EnemySMType::Basic(StateMachine::default()));
 
-        self.ctx.timers.connect_signals(
+        self.timers.connect_signals(
             {
                 let mut this = this.clone();
                 move || this.bind_mut().on_attack_timeout()
@@ -62,7 +71,7 @@ impl ICharacterBody2D for EnemyBodyActor {
             || (),
         );
 
-        self.ctx.sensors.connect_signals(
+        self.sensors.connect_signals(
             |_| (),
             |_| (),
             |_| (),
@@ -81,9 +90,9 @@ impl ICharacterBody2D for EnemyBodyActor {
             },
             |_| (),
         );
-        self.ctx.timers.idle.start();
+        self.timers.idle.start();
 
-        self.ctx.sensors.hit_reg.hurtbox.bind_mut().data = Some(AttackData {
+        self.sensors.hit_reg.hurtbox.bind_mut().data = Some(AttackData {
             parryable: false,
             damage: Damage {
                 raw: 10,
@@ -94,78 +103,82 @@ impl ICharacterBody2D for EnemyBodyActor {
 
     fn physics_process(&mut self, delta: f32) {
         if !self.base().is_on_floor() {
-            self.ctx.sm.handle(&EnemyEvent::FailedFloorCheck);
+            self.sm.handle(&esm::EnemyEvent::FailedFloorCheck);
         }
-        if let &State::Falling {} = self.ctx.sm.state()
+        if let &esm::State::Falling {} = self.sm.state()
             && self.base().is_on_floor()
         {
-            self.ctx.sm.handle(&EnemyEvent::OnFloor);
+            self.sm.handle(&esm::EnemyEvent::OnFloor);
         }
 
-        match self.ctx.sm.state() {
-            State::Patrol {} | State::ChasePlayer {} if self.ctx.sensors.are_raycasts_failing() => {
-                match self.ctx.sensors.which() {
-                    Raycasts::Ground(dir) => {
-                        self.ctx.sm.handle(&EnemyEvent::RayCastFailed(dir));
+        match self.sm.state() {
+            esm::State::Patrol {} | esm::State::ChasePlayer {}
+                if self.sensors.are_raycasts_failing() =>
+            {
+                match self.sensors.which() {
+                    ctx::Raycasts::Ground(dir) => {
+                        self.sm.handle(&esm::EnemyEvent::RayCastFailed(dir));
                     }
-                    Raycasts::Wall(dir) => {
-                        self.ctx.sm.handle(&EnemyEvent::RayCastFailed(dir));
+                    ctx::Raycasts::Wall(dir) => {
+                        self.sm.handle(&esm::EnemyEvent::RayCastFailed(dir));
                     }
                 }
             }
-            State::RecoverLeft {} | State::RecoverRight {}
-                if !self.ctx.sensors.is_wall_cast_colliding() =>
+            esm::State::RecoverLeft {} | esm::State::RecoverRight {}
+                if !self.sensors.is_wall_cast_colliding() =>
             {
-                self.ctx.sm.handle(&EnemyEvent::WallCastRecovered);
+                self.sm.handle(&esm::EnemyEvent::WallCastRecovered);
             }
             _ => (),
         }
         let this = self.to_gd();
-        self.ctx.update_movement(
-            &mut super::physics::MovementStrategy::MoveAndSlide(this.upcast()),
+        self.movement.update(
+            &mut physics::MovementStrategy::MoveAndSlide(this.upcast()),
+            self.sm.state(),
+            self.sensors.player_detection.player_position(),
             delta,
         );
-        self.ctx.update_graphics();
+        self.graphics.update(
+            self.sm.state(),
+            &Direction::from_vel(&self.movement.velocity()),
+        );
     }
 }
 
 impl EnemyBodyActor {
     pub fn on_aggro_area_entered(&mut self, _area: Gd<Area2D>) {
-        self.ctx.sm.handle(&EnemyEvent::FoundPlayer);
+        self.sm.handle(&esm::EnemyEvent::FoundPlayer);
     }
 
     pub fn on_aggro_area_exited(&mut self, _area: Gd<Area2D>) {
-        self.ctx.sm.handle(&EnemyEvent::LostPlayer);
-        self.ctx.timers.idle.start();
+        self.sm.handle(&esm::EnemyEvent::LostPlayer);
+        self.timers.idle.start();
     }
 
     pub fn on_attack_area_entered(&mut self, _area: Gd<Area2D>) {
-        self.ctx.sm.handle(&EnemyEvent::InAttackRange);
+        self.sm.handle(&esm::EnemyEvent::InAttackRange);
     }
 
     pub fn on_idle_timeout(&mut self) {
-        if self.ctx.sm.state() == (&State::Idle {}) {
-            self.ctx.movement.patrol();
+        if self.sm.state() == (&esm::State::Idle {}) {
+            self.movement.patrol();
 
-            self.ctx
-                .sm
-                .handle(&EnemyEvent::TimerElapsed(EnemyTimers::Idle));
-            self.ctx.timers.patrol.start();
+            self.sm
+                .handle(&esm::EnemyEvent::TimerElapsed(time::EnemyTimers::Idle));
+            self.timers.patrol.start();
         }
     }
 
     pub fn on_patrol_timeout(&mut self) {
-        if self.ctx.sm.state() == (&State::Patrol {}) {
-            self.ctx
-                .sm
-                .handle(&EnemyEvent::TimerElapsed(EnemyTimers::Patrol));
-            self.ctx.timers.idle.start();
+        if self.sm.state() == (&esm::State::Patrol {}) {
+            self.sm
+                .handle(&esm::EnemyEvent::TimerElapsed(time::EnemyTimers::Patrol));
+            self.timers.idle.start();
         }
     }
 
     fn on_attack_timeout(&mut self) {
-        self.ctx
-            .sm
-            .handle(&EnemyEvent::TimerElapsed(EnemyTimers::Attack));
+        self.sm
+            .handle(&esm::EnemyEvent::TimerElapsed(time::EnemyTimers::Attack));
     }
 }
