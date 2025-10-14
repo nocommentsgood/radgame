@@ -10,7 +10,7 @@ use super::enemy_state_machine as esm;
 use crate::entities::{
     damage::{AttackData, Damage, DamageType},
     enemies::{enemy_context as ctx, physics, time},
-    entity::Graphics,
+    entity,
     movements::Direction,
 };
 
@@ -26,13 +26,13 @@ pub struct EnemyBodyActor {
     #[init(val = OnReady::manual())]
     movement: OnReady<physics::Movement>,
     #[init(val = OnReady::manual())]
-    graphics: OnReady<Graphics>,
-    #[init(val = OnReady::manual())]
     sensors: OnReady<ctx::EnemySensors>,
     #[init(val = OnReady::manual())]
     timers: OnReady<time::Timers>,
     #[init(val = OnReady::manual())]
     sm: OnReady<esm::EnemySMType>,
+    #[init(val = OnReady::manual())]
+    entity: OnReady<entity::Entity>,
     body: Base<CharacterBody2D>,
 }
 
@@ -40,13 +40,14 @@ pub struct EnemyBodyActor {
 impl ICharacterBody2D for EnemyBodyActor {
     fn ready(&mut self) {
         let this = self.to_gd();
+        self.entity
+            .init(entity::Entity::new(&self.to_gd().upcast()));
         self.movement.init(physics::Movement::new(
             self.base().get_global_position(),
             physics::Speeds::new(150.0, 175.0),
             self.left_target,
             self.right_target,
         ));
-        self.graphics.init(Graphics::new(&self.to_gd().upcast()));
         self.sensors
             .init(ctx::EnemySensors::default_new(&self.to_gd().upcast()));
         self.timers
@@ -138,7 +139,7 @@ impl ICharacterBody2D for EnemyBodyActor {
             self.sensors.player_detection.player_position(),
             delta,
         );
-        self.graphics.update(
+        self.entity.graphics.update(
             self.sm.state(),
             &Direction::from_vel(&self.movement.velocity()),
         );
