@@ -8,6 +8,7 @@ use std::fmt::Display;
 use crate::entities::movements::Direction;
 use std::sync::atomic;
 
+#[derive(PartialEq, Eq, Hash)]
 pub struct ID(i64);
 
 impl ID {
