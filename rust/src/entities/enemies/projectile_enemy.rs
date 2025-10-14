@@ -2,7 +2,7 @@ use super::{enemy_state_machine::State, projectile::Projectile};
 use crate::entities::{
     damage::{AttackData, Damage, DamageType},
     enemies::{enemy_context as ctx, enemy_state_machine as esm, physics, time},
-    entity::Graphics,
+    entity,
     movements::Direction,
 };
 use godot::{
@@ -27,13 +27,13 @@ pub struct NewProjectileEnemy {
     #[init(val = OnReady::manual())]
     movement: OnReady<physics::Movement>,
     #[init(val = OnReady::manual())]
-    graphics: OnReady<Graphics>,
-    #[init(val = OnReady::manual())]
     sensors: OnReady<ctx::EnemySensors>,
     #[init(val = OnReady::manual())]
     timers: OnReady<time::Timers>,
     #[init(val = OnReady::manual())]
     sm: OnReady<esm::EnemySMType>,
+    #[init(val = OnReady::manual())]
+    entity: OnReady<entity::Entity>,
 
     node: Base<Node2D>,
 }
@@ -41,6 +41,8 @@ pub struct NewProjectileEnemy {
 #[godot_api]
 impl INode2D for NewProjectileEnemy {
     fn ready(&mut self) {
+        self.entity
+            .init(entity::Entity::new(&self.to_gd().upcast()));
         self.projectile_scene
             .init(load("res://world/projectile.tscn"));
         self.movement.init(physics::Movement::new(
@@ -49,7 +51,6 @@ impl INode2D for NewProjectileEnemy {
             self.left_target,
             self.right_target,
         ));
-        self.graphics.init(Graphics::new(&self.to_gd().upcast()));
         self.sensors
             .init(ctx::EnemySensors::default_new(&self.to_gd().upcast()));
         self.timers
@@ -139,7 +140,7 @@ impl INode2D for NewProjectileEnemy {
             self.sensors.player_detection.player_position(),
             delta,
         );
-        self.graphics.update(
+        self.entity.graphics.update(
             self.sm.state(),
             &Direction::from_vel(&self.movement.velocity()),
         );
