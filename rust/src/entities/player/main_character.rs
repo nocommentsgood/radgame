@@ -271,18 +271,18 @@ impl MainCharacter {
         self.state.handle_with_context(event, &mut self.timers);
         let new = *self.state.state();
         if prev != new {
-            let dir = self.get_direction();
-            self.entity.graphics.update(self.state.state(), &dir);
-            // self.update_animation();
+            // TODO: Temporary solution. The direction isn't updated in time, so defer getting the
+            // direction unti the velocity updates.
+            self.run_deferred(|this| {
+                this.entity
+                    .graphics
+                    .update(this.state.state(), &this.movements.get_direction())
+            });
         }
     }
 
     /// Sets timer lengths, timer callbacks, and adds timers as children of the player.
     fn init_timers(&mut self) {
-        // Animations, independent of cardinal direction, are all of the same length.
-        // Therefore, it is acceptable to use the length of any dodging animation.
-        // East was arbitrarily chosen.
-
         let this = &self.to_gd();
 
         // Dodge animation

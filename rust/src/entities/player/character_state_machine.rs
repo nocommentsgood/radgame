@@ -19,34 +19,34 @@ impl std::fmt::Display for State {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             // Right variants
-            State::HurtRight {} => write!(f, "hurt_right"),
-            State::AttackingRight {} => write!(f, "attack_right"),
-            State::AttackRight2 {} => write!(f, "chainattack_right"),
-            State::DodgingRight {} => write!(f, "dodge_right"),
-            State::IdleRight {} | State::ForcedDisabledRight {} => write!(f, "idle_right"),
-            State::MoveRight {} => write!(f, "run_right"),
-            State::FallingRight {} | State::MoveFallingRight {} => write!(f, "falling_right"),
-            State::JumpingRight {} | State::MoveJumpingRight {} => write!(f, "jumping_right"),
-            State::HealingRight {} => write!(f, "heal_right"),
-            State::ParryRight {} => write!(f, "parry_right"),
-            State::AirAttackRight {} | State::MoveRightAirAttack {} => write!(f, "airattack_right"),
-            State::WallGrabRight {} => write!(f, "idle_right"),
+            State::HurtRight {} => write!(f, "hurt"),
+            State::AttackingRight {} => write!(f, "attack"),
+            State::AttackRight2 {} => write!(f, "chainattack"),
+            State::DodgingRight {} => write!(f, "dodge"),
+            State::IdleRight {} | State::ForcedDisabledRight {} => write!(f, "idle"),
+            State::MoveRight {} => write!(f, "run"),
+            State::FallingRight {} | State::MoveFallingRight {} => write!(f, "falling"),
+            State::JumpingRight {} | State::MoveJumpingRight {} => write!(f, "jumping"),
+            State::HealingRight {} => write!(f, "heal"),
+            State::ParryRight {} => write!(f, "parry"),
+            State::AirAttackRight {} | State::MoveRightAirAttack {} => write!(f, "airattack"),
+            State::WallGrabRight {} => write!(f, "idle"),
 
             // Left variants
-            State::HurtLeft {} => write!(f, "hurt_left"),
-            State::AttackingLeft {} => write!(f, "attack_left"),
-            State::AttackLeft2 {} => write!(f, "chainattack_left"),
-            State::DodgingLeft {} => write!(f, "dodge_left"),
-            State::IdleLeft {} | State::ForcedDisabledLeft {} => write!(f, "idle_left"),
-            State::MoveLeft {} => write!(f, "run_left"),
-            State::FallingLeft {} | State::MoveFallingLeft {} => write!(f, "falling_left"),
+            State::HurtLeft {} => write!(f, "hurt"),
+            State::AttackingLeft {} => write!(f, "attack"),
+            State::AttackLeft2 {} => write!(f, "chainattack"),
+            State::DodgingLeft {} => write!(f, "dodge"),
+            State::IdleLeft {} | State::ForcedDisabledLeft {} => write!(f, "idle"),
+            State::MoveLeft {} => write!(f, "run"),
+            State::FallingLeft {} | State::MoveFallingLeft {} => write!(f, "falling"),
             State::JumpingLeft {} | State::MoveJumpingLeft {} => {
-                write!(f, "jumping_left")
+                write!(f, "jumping")
             }
-            State::WallGrabLeft {} => write!(f, "idle_left"),
-            State::HealingLeft {} => write!(f, "heal_left"),
-            State::ParryLeft {} => write!(f, "parry_left"),
-            State::AirAttackLeft {} | State::MoveLeftAirAttack {} => write!(f, "airattack_left"),
+            State::WallGrabLeft {} => write!(f, "idle"),
+            State::HealingLeft {} => write!(f, "heal"),
+            State::ParryLeft {} => write!(f, "parry"),
+            State::AirAttackLeft {} | State::MoveLeftAirAttack {} => write!(f, "airattack"),
         }
     }
 }

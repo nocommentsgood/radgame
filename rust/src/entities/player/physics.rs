@@ -4,7 +4,10 @@ use godot::{
     obj::{Gd, Inherits},
 };
 
-use crate::{entities::player::character_state_machine::State, utils::input_hanlder::Inputs};
+use crate::{
+    entities::{movements::Direction, player::character_state_machine::State},
+    utils::input_hanlder::Inputs,
+};
 
 /// Ceiling collision handling and response.
 pub fn hit_ceiling(ent: &mut Gd<impl Inherits<CharacterBody2D>>, movement: &mut Movement) -> bool {
@@ -52,6 +55,7 @@ pub struct Speeds {
 pub struct Movement {
     pub velocity: Vector2,
     early_gravity: f32,
+    direction: Direction,
     pub speeds: Speeds,
 }
 
@@ -99,6 +103,14 @@ impl Movement {
             }
             _ => self.velocity.x = 0.0,
         }
+        if self.velocity.x != 0.0 {
+            self.direction = Direction::from_vel(&self.velocity);
+        }
+    }
+
+    pub fn get_direction(&self) -> Direction {
+        dbg!(&self.velocity);
+        self.direction
     }
 
     pub fn bounce_off_ceiling(&mut self, collision: Gd<KinematicCollision2D>) {
