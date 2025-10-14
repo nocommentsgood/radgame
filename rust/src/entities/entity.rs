@@ -20,11 +20,11 @@ static BUMP: atomic::AtomicI64 = atomic::AtomicI64::new(4);
 
 pub struct Entity {
     id: ID,
-    graphics: Graphics,
+    pub graphics: Graphics,
 }
 
 impl Entity {
-    fn new(node: &Gd<Node>) -> Self {
+    pub fn new(node: &Gd<Node>) -> Self {
         Self {
             id: ID::new(),
             graphics: Graphics::new(node),
@@ -57,5 +57,13 @@ impl Graphics {
     ) {
         let anim = format!("{}_{}", state, dir);
         self.animation_player.play_ex().name(&anim).done();
+    }
+
+    pub fn get_animation_length(&self, name: &str) -> f64 {
+        let Some(anim) = self.animation_player.get_animation(name) else {
+            println!("Couldn't get animation: {name}");
+            return 0.0;
+        };
+        anim.get_length() as f64
     }
 }

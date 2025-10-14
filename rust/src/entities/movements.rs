@@ -18,8 +18,8 @@ pub enum Direction {
 impl std::fmt::Display for Direction {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Direction::Right => write!(f, "east"),
-            Direction::Left => write!(f, "west"),
+            Direction::Right => write!(f, "right"),
+            Direction::Left => write!(f, "left"),
         }
     }
 }

@@ -15,6 +15,7 @@ use crate::{
     entities::{
         damage::{AttackData, Damage, DamageType, Damageable, HasHealth},
         enemies::projectile::Projectile,
+        entity::Entity,
         entity_stats::{EntityStats, Stat, StatModifier, StatVal},
         hit_reg::{self, Hitbox, Hurtbox},
         movements::Direction,
@@ -66,8 +67,8 @@ pub struct MainCharacter {
     #[init(node = "ItemComponent")]
     pub item_comp: OnReady<Gd<ItemComponent>>,
 
-    #[init(node = "AnimationPlayer")]
-    animation_player: OnReady<Gd<AnimationPlayer>>,
+    #[init(val = OnReady::from_base_fn(Entity::new))]
+    entity: OnReady<Entity>,
 
     #[init(node = "ShakyPlayerCamera")]
     pub camera: OnReady<Gd<PlayerCamera>>,
@@ -270,16 +271,10 @@ impl MainCharacter {
         self.state.handle_with_context(event, &mut self.timers);
         let new = *self.state.state();
         if prev != new {
-            self.update_animation();
+            let dir = self.get_direction();
+            self.entity.graphics.update(self.state.state(), &dir);
+            // self.update_animation();
         }
-    }
-
-    fn update_animation(&mut self) {
-        self.animation_player
-            .play_ex()
-            .name(&format!("{}", self.state.state()))
-            .done();
-        self.animation_player.advance(0.0);
     }
 
     /// Sets timer lengths, timer callbacks, and adds timers as children of the player.
@@ -287,48 +282,12 @@ impl MainCharacter {
         // Animations, independent of cardinal direction, are all of the same length.
         // Therefore, it is acceptable to use the length of any dodging animation.
         // East was arbitrarily chosen.
-        let dodge_animation_length = (self
-            .animation_player
-            .get_animation("dodge_right")
-            .unwrap()
-            .get_length()
-            / 1.5) as f64;
-
-        let attack_animation_length = self
-            .animation_player
-            .get_animation("attack_right")
-            .unwrap()
-            .get_length() as f64;
-
-        let attack_2_animation_length = self
-            .animation_player
-            .get_animation("chainattack_right")
-            .unwrap()
-            .get_length() as f64;
-
-        let healing_animation_length = self
-            .animation_player
-            .get_animation("heal_right")
-            .unwrap()
-            .get_length() as f64;
-
-        let parry_animation_length = self
-            .animation_player
-            .get_animation("parry_right")
-            .unwrap()
-            .get_length() as f64;
-
-        let hurt_animation_length = self
-            .animation_player
-            .get_animation("hurt_right")
-            .unwrap()
-            .get_length() as f64;
 
         let this = &self.to_gd();
 
         // Dodge animation
         let mut timer = Timer::new_alloc();
-        timer.set_wait_time(dodge_animation_length);
+        timer.set_wait_time(self.entity.graphics.get_animation_length("dodge_right"));
         timer.set_one_shot(true);
         timer
             .signals()
@@ -344,7 +303,7 @@ impl MainCharacter {
 
         // Attack anim
         let mut timer = Timer::new_alloc();
-        timer.set_wait_time(attack_animation_length);
+        timer.set_wait_time(self.entity.graphics.get_animation_length("attack_right"));
         timer.set_one_shot(true);
         timer
             .signals()
@@ -354,7 +313,11 @@ impl MainCharacter {
 
         // Attack 2 animation
         let mut timer = Timer::new_alloc();
-        timer.set_wait_time(attack_2_animation_length);
+        timer.set_wait_time(
+            self.entity
+                .graphics
+                .get_animation_length("chainattack_right"),
+        );
         timer.set_one_shot(true);
         timer
             .signals()
@@ -364,7 +327,7 @@ impl MainCharacter {
 
         // Healing animation
         let mut timer = Timer::new_alloc();
-        timer.set_wait_time(healing_animation_length);
+        timer.set_wait_time(self.entity.graphics.get_animation_length("heal_right"));
         timer.set_one_shot(true);
         timer
             .signals()
@@ -380,7 +343,7 @@ impl MainCharacter {
 
         // Parry animation
         let mut timer = Timer::new_alloc();
-        timer.set_wait_time(parry_animation_length);
+        timer.set_wait_time(self.entity.graphics.get_animation_length("parry_right"));
         timer.set_one_shot(true);
         timer
             .signals()
@@ -404,7 +367,7 @@ impl MainCharacter {
 
         // Hurt animation
         let mut timer = Timer::new_alloc();
-        timer.set_wait_time(hurt_animation_length);
+        timer.set_wait_time(self.entity.graphics.get_animation_length("hurt_right"));
         timer.set_one_shot(true);
         timer
             .signals()
@@ -463,12 +426,7 @@ impl MainCharacter {
     }
 
     pub fn get_direction(&self) -> Direction {
-        let state = self.state.state().to_string();
-        if state.contains("right") {
-            Direction::Right
-        } else {
-            Direction::Left
-        }
+        Direction::from_vel(&self.movements.velocity)
     }
 
     /// Transitions state machine from it's current state to `disabled`.
