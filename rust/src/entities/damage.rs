@@ -44,6 +44,11 @@ pub struct AttackData {
     pub damage: Damage,
 }
 
+pub enum AttackResult {
+    Hit,
+    Killed,
+}
+
 // TODO: Add resistance calculations to Damageable entities.
 //
 /// Implement on entities that can take damage. Requires the entity to have a Hitbox.
@@ -59,49 +64,4 @@ pub trait Damageable: HasHealth {
     /// Handles the `AttackData` given by a `Hurtbox`. This should handle attack damage,
     /// resistances of the defender, attack types, etc.
     fn handle_attack(&mut self, attack: AttackData);
-}
-
-#[derive(GodotClass)]
-#[class(base = Node2D, init)]
-struct MockEnemy {
-    #[init(node = "AnimationPlayer")]
-    anim_player: OnReady<Gd<AnimationPlayer>>,
-
-    #[init(val = 10)]
-    health: u32,
-
-    #[init(val = OnReady::manual())]
-    hitbox: OnReady<Gd<Hitbox>>,
-
-    base: Base<Node2D>,
-}
-
-#[godot_api]
-impl INode2D for MockEnemy {
-    fn ready(&mut self) {
-        let mut hitbox = self.base().get_node_as::<Hitbox>("EntityHitbox");
-        let this = self.to_gd();
-        hitbox.bind_mut().damageable_parent = Some(Box::new(this));
-        self.hitbox.init(hitbox);
-    }
-}
-
-impl HasHealth for Gd<MockEnemy> {
-    fn get_health(&self) -> u32 {
-        self.bind().health
-    }
-
-    fn set_health(&mut self, amount: u32) {
-        self.bind_mut().health = amount;
-    }
-
-    fn on_death(&mut self) {
-        self.queue_free();
-    }
-}
-
-impl Damageable for Gd<MockEnemy> {
-    fn handle_attack(&mut self, attack: AttackData) {
-        self.take_damage(attack.damage.raw);
-    }
 }
