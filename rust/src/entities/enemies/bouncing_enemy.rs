@@ -9,7 +9,7 @@ use godot::{
 
 use crate::{
     entities::{
-        damage::{AttackData, Damage, DamageType, Damageable, ElementType, HasHealth},
+        damage::{AttackData, Damage, DamageType, Damageable, Element, HasHealth},
         enemies::projectile::Projectile,
         hit_reg::{Hitbox, Hurtbox},
         movements::{self},
@@ -70,7 +70,7 @@ impl BounceEnemy {
                 parryable: true,
                 damage: Damage {
                     raw: 5,
-                    d_type: DamageType::Elemental(ElementType::Poison),
+                    d_type: DamageType::Elemental(Element::Poison),
                 },
             });
         }

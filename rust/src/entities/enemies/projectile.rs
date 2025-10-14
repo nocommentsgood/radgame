@@ -5,7 +5,7 @@ use godot::{
 
 use crate::{
     entities::{
-        damage::{AttackData, Damage, DamageType, ElementType},
+        damage::{AttackData, Damage, DamageType, Element},
         hit_reg::Hurtbox,
     },
     utils::collision_layers,
@@ -33,7 +33,7 @@ impl INode2D for Projectile {
             parryable: true,
             damage: Damage {
                 raw: 10,
-                d_type: DamageType::Elemental(ElementType::Fire),
+                d_type: DamageType::Elemental(Element::Fire),
             },
         });
 

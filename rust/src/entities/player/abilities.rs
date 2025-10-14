@@ -9,7 +9,7 @@ use godot::{
 };
 
 use crate::entities::{
-    damage::{self, AttackData, Damage, DamageType, ElementType},
+    damage::{self, AttackData, Damage, DamageType, Element},
     hit_reg::Hurtbox,
     player::main_character::MainCharacter,
 };
@@ -56,7 +56,7 @@ impl Ability {
                     parryable: false,
                     damage: Damage {
                         raw: 10,
-                        d_type: DamageType::Elemental(ElementType::Magic),
+                        d_type: DamageType::Elemental(Element::Magic),
                     },
                 });
                 let mut left_pillar = ability.get_node_as::<Hurtbox>("LeftPillar");
@@ -64,7 +64,7 @@ impl Ability {
                     parryable: false,
                     damage: Damage {
                         raw: 10,
-                        d_type: DamageType::Elemental(ElementType::Magic),
+                        d_type: DamageType::Elemental(Element::Magic),
                     },
                 });
 

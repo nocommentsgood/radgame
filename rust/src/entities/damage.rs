@@ -20,12 +20,12 @@ pub struct Damage {
 
 #[derive(Clone, Copy)]
 pub enum DamageType {
-    Elemental(ElementType),
+    Elemental(Element),
     Physical,
 }
 
 #[derive(Clone, Copy)]
-pub enum ElementType {
+pub enum Element {
     Magic,
     Poison,
     Lightning,
@@ -35,7 +35,7 @@ pub enum ElementType {
 #[derive(Clone, Copy)]
 pub enum Resistance {
     Physical(ModifierKind),
-    Elemental(ElementType, ModifierKind),
+    Elemental(Element, ModifierKind),
 }
 
 #[derive(Clone)]
