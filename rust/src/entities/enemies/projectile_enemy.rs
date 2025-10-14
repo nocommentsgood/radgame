@@ -2,7 +2,7 @@ use super::{enemy_state_machine::State, projectile::Projectile};
 use crate::entities::{
     damage::{AttackData, Damage, DamageType},
     enemies::{enemy_context as ctx, enemy_state_machine as esm, physics, time},
-    ent_graphics::EntGraphics,
+    entity::Graphics,
     movements::Direction,
 };
 use godot::{
@@ -27,7 +27,7 @@ pub struct NewProjectileEnemy {
     #[init(val = OnReady::manual())]
     movement: OnReady<physics::Movement>,
     #[init(val = OnReady::manual())]
-    graphics: OnReady<EntGraphics>,
+    graphics: OnReady<Graphics>,
     #[init(val = OnReady::manual())]
     sensors: OnReady<ctx::EnemySensors>,
     #[init(val = OnReady::manual())]
@@ -49,7 +49,7 @@ impl INode2D for NewProjectileEnemy {
             self.left_target,
             self.right_target,
         ));
-        self.graphics.init(EntGraphics::new(&self.to_gd().upcast()));
+        self.graphics.init(Graphics::new(&self.to_gd().upcast()));
         self.sensors
             .init(ctx::EnemySensors::default_new(&self.to_gd().upcast()));
         self.timers

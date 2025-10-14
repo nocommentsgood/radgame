@@ -10,7 +10,7 @@ use super::enemy_state_machine as esm;
 use crate::entities::{
     damage::{AttackData, Damage, DamageType},
     enemies::{enemy_context as ctx, physics, time},
-    ent_graphics::EntGraphics,
+    entity::Graphics,
     movements::Direction,
 };
 
@@ -26,7 +26,7 @@ pub struct EnemyBodyActor {
     #[init(val = OnReady::manual())]
     movement: OnReady<physics::Movement>,
     #[init(val = OnReady::manual())]
-    graphics: OnReady<EntGraphics>,
+    graphics: OnReady<Graphics>,
     #[init(val = OnReady::manual())]
     sensors: OnReady<ctx::EnemySensors>,
     #[init(val = OnReady::manual())]
@@ -46,7 +46,7 @@ impl ICharacterBody2D for EnemyBodyActor {
             self.left_target,
             self.right_target,
         ));
-        self.graphics.init(EntGraphics::new(&self.to_gd().upcast()));
+        self.graphics.init(Graphics::new(&self.to_gd().upcast()));
         self.sensors
             .init(ctx::EnemySensors::default_new(&self.to_gd().upcast()));
         self.timers
