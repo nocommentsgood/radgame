@@ -12,6 +12,23 @@ pub trait HasHealth {
     fn on_death(&mut self);
 }
 
+// TODO: Add resistance calculations to Damageable entities.
+//
+/// Implement on entities that can take damage. Requires the entity to have a Hitbox.
+pub trait Damageable: HasHealth {
+    /// Decreases a Damageable's health and checks if the Damageable's health is zero.
+    fn take_damage(&mut self, amount: u32) {
+        self.set_health(self.get_health().saturating_sub(amount));
+        if self.get_health() == 0 {
+            self.on_death();
+        }
+    }
+
+    /// Handles the `AttackData` given by a `Hurtbox`. This should handle attack damage,
+    /// resistances of the defender, attack types, etc.
+    fn handle_attack(&mut self, attack: AttackData);
+}
+
 #[derive(Clone, Copy)]
 pub struct Damage {
     pub raw: u32,
@@ -44,24 +61,18 @@ pub struct AttackData {
     pub damage: Damage,
 }
 
-pub enum AttackResult {
-    Hit,
-    Killed,
+struct Health {
+    amount: i64,
+    max: i64,
 }
 
-// TODO: Add resistance calculations to Damageable entities.
-//
-/// Implement on entities that can take damage. Requires the entity to have a Hitbox.
-pub trait Damageable: HasHealth {
-    /// Decreases a Damageable's health and checks if the Damageable's health is zero.
-    fn take_damage(&mut self, amount: u32) {
-        self.set_health(self.get_health().saturating_sub(amount));
-        if self.get_health() == 0 {
-            self.on_death();
-        }
+impl Health {
+    pub fn amount(&self) -> &i64 {
+        &self.amount
     }
 
-    /// Handles the `AttackData` given by a `Hurtbox`. This should handle attack damage,
-    /// resistances of the defender, attack types, etc.
-    fn handle_attack(&mut self, attack: AttackData);
+    pub fn heal(&mut self, amount: i64) {
+        let a = self.amount.saturating_add(amount);
+        self.amount = a.clamp(0, self.max);
+    }
 }
