@@ -61,12 +61,15 @@ pub struct AttackData {
     pub damage: Damage,
 }
 
-struct Health {
+pub struct Health {
     amount: i64,
     max: i64,
 }
 
 impl Health {
+    pub fn new(amount: i64, max: i64) -> Self {
+        Self { amount, max }
+    }
     pub fn amount(&self) -> &i64 {
         &self.amount
     }
@@ -74,5 +77,35 @@ impl Health {
     pub fn heal(&mut self, amount: i64) {
         let a = self.amount.saturating_add(amount);
         self.amount = a.clamp(0, self.max);
+    }
+
+    pub fn damage(&mut self, amount: i64) {
+        let a = self.amount.saturating_sub(amount);
+        self.amount = a.clamp(0, self.max);
+    }
+
+    pub fn increase_max(&mut self, max: i64) {
+        self.max = max;
+    }
+}
+
+#[cfg(test)]
+mod test {
+    #[test]
+    fn health_math() {
+        use super::Health;
+        let mut health = Health::new(20, 30);
+        health.heal(11);
+        assert!(health.amount == 30);
+
+        health.damage(10);
+        assert_eq!(20, health.amount);
+
+        health.damage(21);
+        assert_eq!(0, health.amount);
+
+        health.increase_max(31);
+        health.heal(32);
+        assert_eq!(31, health.amount);
     }
 }
