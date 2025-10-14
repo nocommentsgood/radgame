@@ -109,7 +109,7 @@ tracks/7/keys = {
 }
 
 [sub_resource type="Animation" id="Animation_lwf3y"]
-resource_name = "attack_east"
+resource_name = "attack_right"
 length = 1.8
 step = 0.1
 tracks/0/type = "value"
@@ -210,7 +210,7 @@ tracks/7/keys = {
 }
 
 [sub_resource type="Animation" id="Animation_2q423"]
-resource_name = "attack_west"
+resource_name = "attack_left"
 length = 1.8
 step = 0.1
 tracks/0/type = "value"
@@ -311,7 +311,7 @@ tracks/7/keys = {
 }
 
 [sub_resource type="Animation" id="Animation_8yqgs"]
-resource_name = "chain_attack_east"
+resource_name = "chain_attack_right"
 length = 2.7
 step = 0.1
 tracks/0/type = "value"
@@ -412,7 +412,7 @@ tracks/7/keys = {
 }
 
 [sub_resource type="Animation" id="Animation_jw0ju"]
-resource_name = "chain_attack_west"
+resource_name = "chain_attack_left"
 length = 2.7
 step = 0.1
 tracks/0/type = "value"
@@ -513,7 +513,7 @@ tracks/7/keys = {
 }
 
 [sub_resource type="Animation" id="Animation_2v62t"]
-resource_name = "fall_east"
+resource_name = "fall_right"
 loop_mode = 1
 step = 0.1
 tracks/0/type = "value"
@@ -590,7 +590,7 @@ tracks/5/keys = {
 }
 
 [sub_resource type="Animation" id="Animation_wcpx6"]
-resource_name = "fall_west"
+resource_name = "fall_left"
 loop_mode = 1
 step = 0.1
 tracks/0/type = "value"
@@ -667,7 +667,7 @@ tracks/5/keys = {
 }
 
 [sub_resource type="Animation" id="Animation_5rtrm"]
-resource_name = "idle_east"
+resource_name = "idle_right"
 length = 0.8
 loop_mode = 1
 step = 0.1
@@ -757,7 +757,7 @@ tracks/6/keys = {
 }
 
 [sub_resource type="Animation" id="Animation_crsdf"]
-resource_name = "idle_west"
+resource_name = "idle_left"
 length = 0.8
 loop_mode = 1
 step = 0.1
@@ -847,7 +847,7 @@ tracks/6/keys = {
 }
 
 [sub_resource type="Animation" id="Animation_5mfpx"]
-resource_name = "patrol_east"
+resource_name = "patrol_right"
 length = 0.8
 loop_mode = 1
 step = 0.1
@@ -937,7 +937,7 @@ tracks/6/keys = {
 }
 
 [sub_resource type="Animation" id="Animation_8huyo"]
-resource_name = "patrol_west"
+resource_name = "patrol_left"
 length = 0.8
 loop_mode = 1
 step = 0.1
@@ -1029,16 +1029,16 @@ tracks/6/keys = {
 [sub_resource type="AnimationLibrary" id="AnimationLibrary_o5fgf"]
 _data = {
 &"RESET": SubResource("Animation_wk0bb"),
-&"attack_east": SubResource("Animation_lwf3y"),
-&"attack_west": SubResource("Animation_2q423"),
-&"chain_attack_east": SubResource("Animation_8yqgs"),
-&"chain_attack_west": SubResource("Animation_jw0ju"),
-&"fall_east": SubResource("Animation_2v62t"),
-&"fall_west": SubResource("Animation_wcpx6"),
-&"idle_east": SubResource("Animation_5rtrm"),
-&"idle_west": SubResource("Animation_crsdf"),
-&"patrol_east": SubResource("Animation_5mfpx"),
-&"patrol_west": SubResource("Animation_8huyo")
+&"attack_right": SubResource("Animation_lwf3y"),
+&"attack_left": SubResource("Animation_2q423"),
+&"chain_attack_right": SubResource("Animation_8yqgs"),
+&"chain_attack_left": SubResource("Animation_jw0ju"),
+&"fall_right": SubResource("Animation_2v62t"),
+&"fall_left": SubResource("Animation_wcpx6"),
+&"idle_right": SubResource("Animation_5rtrm"),
+&"idle_left": SubResource("Animation_crsdf"),
+&"patrol_right": SubResource("Animation_5mfpx"),
+&"patrol_left": SubResource("Animation_8huyo")
 }
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_1p0qd"]
@@ -1086,14 +1086,23 @@ shape = SubResource("RectangleShape2D_1p0qd")
 [node name="WestHurtbox" parent="EnemySensors/Hurtboxes" index="1"]
 shape = SubResource("RectangleShape2D_1p0qd")
 
+[node name="AttackArea" parent="EnemySensors" index="1"]
+visible = false
+
 [node name="AttackShapeEast" parent="EnemySensors/AttackArea" index="0"]
 shape = SubResource("RectangleShape2D_l7ghs")
 
 [node name="AttackShapeWest" parent="EnemySensors/AttackArea" index="1"]
 shape = SubResource("RectangleShape2D_l7ghs")
 
+[node name="AggroArea" parent="EnemySensors" index="2"]
+visible = false
+
 [node name="AggroShape" parent="EnemySensors/AggroArea" index="0"]
 shape = SubResource("RectangleShape2D_j0yqt")
+
+[node name="Hitbox" parent="EnemySensors" index="3"]
+visible = false
 
 [node name="CollisionShape2D" parent="EnemySensors/Hitbox" index="0"]
 shape = SubResource("RectangleShape2D_0n8mu")

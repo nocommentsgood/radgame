@@ -68,7 +68,7 @@ tracks/4/keys = {
 }
 
 [sub_resource type="Animation" id="Animation_1dkjp"]
-resource_name = "attack_east"
+resource_name = "attack_right"
 length = 0.7
 loop_mode = 1
 step = 0.1
@@ -134,7 +134,7 @@ tracks/4/keys = {
 }
 
 [sub_resource type="Animation" id="Animation_2skm1"]
-resource_name = "attack_west"
+resource_name = "attack_left"
 length = 0.7
 loop_mode = 1
 step = 0.1
@@ -200,7 +200,7 @@ tracks/4/keys = {
 }
 
 [sub_resource type="Animation" id="Animation_0hcks"]
-resource_name = "chain_attack_east"
+resource_name = "chain_attack_right"
 length = 0.7
 loop_mode = 1
 step = 0.1
@@ -266,7 +266,7 @@ tracks/4/keys = {
 }
 
 [sub_resource type="Animation" id="Animation_p0ckh"]
-resource_name = "chain_attack_west"
+resource_name = "chain_attack_left"
 length = 0.7
 loop_mode = 1
 step = 0.1
@@ -332,7 +332,7 @@ tracks/4/keys = {
 }
 
 [sub_resource type="Animation" id="Animation_wkbwq"]
-resource_name = "idle_east"
+resource_name = "idle_right"
 length = 0.5
 loop_mode = 1
 step = 0.1
@@ -398,7 +398,7 @@ tracks/4/keys = {
 }
 
 [sub_resource type="Animation" id="Animation_nthab"]
-resource_name = "idle_west"
+resource_name = "idle_left"
 length = 0.5
 loop_mode = 1
 step = 0.1
@@ -464,7 +464,7 @@ tracks/4/keys = {
 }
 
 [sub_resource type="Animation" id="Animation_sk66u"]
-resource_name = "patrol_east"
+resource_name = "patrol_right"
 length = 1.5
 loop_mode = 1
 step = 0.1
@@ -530,7 +530,7 @@ tracks/4/keys = {
 }
 
 [sub_resource type="Animation" id="Animation_0ki2n"]
-resource_name = "patrol_west"
+resource_name = "patrol_left"
 length = 1.5
 loop_mode = 1
 step = 0.1
@@ -598,14 +598,14 @@ tracks/4/keys = {
 [sub_resource type="AnimationLibrary" id="AnimationLibrary_nthab"]
 _data = {
 &"RESET": SubResource("Animation_ws556"),
-&"attack_east": SubResource("Animation_1dkjp"),
-&"attack_west": SubResource("Animation_2skm1"),
-&"chain_attack_east": SubResource("Animation_0hcks"),
-&"chain_attack_west": SubResource("Animation_p0ckh"),
-&"idle_east": SubResource("Animation_wkbwq"),
-&"idle_west": SubResource("Animation_nthab"),
-&"patrol_east": SubResource("Animation_sk66u"),
-&"patrol_west": SubResource("Animation_0ki2n")
+&"attack_right": SubResource("Animation_1dkjp"),
+&"attack_left": SubResource("Animation_2skm1"),
+&"chain_attack_right": SubResource("Animation_0hcks"),
+&"chain_attack_left": SubResource("Animation_p0ckh"),
+&"idle_right": SubResource("Animation_wkbwq"),
+&"idle_left": SubResource("Animation_nthab"),
+&"patrol_right": SubResource("Animation_sk66u"),
+&"patrol_left": SubResource("Animation_0ki2n")
 }
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_1p0qd"]
