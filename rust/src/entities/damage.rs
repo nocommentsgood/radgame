@@ -96,7 +96,7 @@ pub enum DamageType {
     Physical,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Element {
     Magic,
     Poison,
@@ -106,8 +106,8 @@ pub enum Element {
 
 #[derive(Clone, Copy)]
 pub enum Resistance {
-    Physical(ModifierKind),
-    Elemental(Element, ModifierKind),
+    Physical(i64),
+    Elemental(Element, i64),
 }
 
 #[derive(Clone)]
@@ -120,6 +120,33 @@ struct Attack {
     damage_amount: i64,
     kind: AttackKind,
     resource_cost: AttackResourceCost,
+enum PlayerAttacks {
+    SimpleMelee,
+    ChargedMelee,
+    FireSpell,
+}
+
+impl PlayerAttacks {
+    // TODO: Refactor player_level
+    pub fn build(&self, player_level: i64) -> Attack {
+        match self {
+            PlayerAttacks::SimpleMelee => Attack {
+                damage: Damage(player_level * 10),
+                kind: AttackKind::Melee,
+                resource_cost: AttackResourceCost::Stamina(5),
+                parryable: true,
+            },
+
+            PlayerAttacks::ChargedMelee => Attack {
+                damage: Damage(player_level * 15),
+                kind: AttackKind::Melee,
+                resource_cost: AttackResourceCost::Stamina(10),
+                parryable: true,
+            },
+
+            _ => todo!(),
+        }
+    }
 }
 
 enum AttackResourceCost {
