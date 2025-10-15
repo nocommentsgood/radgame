@@ -75,6 +75,10 @@ impl Health {
     pub fn new(amount: i64, max: i64) -> Self {
         Self(Resource::new(amount, max))
     }
+
+    pub fn take_damage(&mut self, damage: Damage) {
+        self.0.decrease(damage.0);
+    }
 }
 
 pub struct Mana(Resource);
@@ -85,10 +89,7 @@ impl Mana {
 }
 
 #[derive(Clone, Copy)]
-pub struct Damage {
-    pub raw: u32,
-    pub d_type: DamageType,
-}
+pub struct Damage(i64);
 
 #[derive(Clone, Copy)]
 pub enum DamageType {
@@ -117,7 +118,7 @@ pub struct AttackData {
 }
 
 struct Attack {
-    damage_amount: i64,
+    damage: Damage,
     kind: AttackKind,
     resource_cost: AttackResourceCost,
     parryable: bool,
@@ -175,7 +176,7 @@ enum EntityTypes {
 }
 
 struct Defense {
-    resistances: HashMap<ID, Resistance>,
+    resistances: Vec<Resistance>,
 }
 
 struct CombatSystem {
