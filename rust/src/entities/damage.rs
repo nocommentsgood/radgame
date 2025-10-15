@@ -120,6 +120,9 @@ struct Attack {
     damage_amount: i64,
     kind: AttackKind,
     resource_cost: AttackResourceCost,
+    parryable: bool,
+}
+
 enum PlayerAttacks {
     SimpleMelee,
     ChargedMelee,
@@ -155,9 +158,9 @@ enum AttackResourceCost {
 }
 
 enum AttackKind {
-    Melee { parryable: bool },
-    ElementalMelee { parryable: bool, element: Element },
-    OffensiveSpell,
+    Melee,
+    ElementalMelee(Element),
+    OffensiveSpell(Element),
 }
 
 enum AttackResult {
