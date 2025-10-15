@@ -179,52 +179,56 @@ struct Defense {
     resistances: Vec<Resistance>,
 }
 
+impl Defense {
+    pub fn apply_resistances(&self, attack: Attack) -> Damage {
+        let mut amount = attack.damage.0;
+
+        for resistance in &self.resistances {
+            match (&attack.kind, resistance) {
+                (AttackKind::Melee, Resistance::Physical(val)) => {
+                    amount -= val;
+                }
+                (AttackKind::ElementalMelee(_), Resistance::Physical(val)) => {
+                    amount -= val;
+                }
+                (
+                    AttackKind::ElementalMelee(attack_element),
+                    Resistance::Elemental(resist_element, val),
+                ) => {
+                    if attack_element == resist_element {
+                        amount -= val;
+                    }
+                }
+                _ => (),
+            }
+        }
+        Damage(amount)
+    }
+}
+
 struct CombatSystem {
     attackers: HashMap<ID, EntityTypes>,
 }
 impl CombatSystem {
-    pub fn calc_attack_result(attack: Attack, defense: Defense) {
-        for def in defense.resistances.values() {
-            match (attack.kind, def) {
-                (AttackKind::Melee { .. }, Resistance::Physical(modifier_kind)) => {
-                    match modifier_kind {
-                        ModifierKind::Flat(val) => todo!(),
-                        ModifierKind::Percent(val) => todo!(),
-                    }
-                }
-                (
-                    AttackKind::Melee { parryable },
-                    Resistance::Elemental(element, modifier_kind),
-                ) => todo!(),
-                (
-                    AttackKind::ElementalMelee { parryable, element },
-                    Resistance::Physical(modifier_kind),
-                ) => todo!(),
-                (
-                    AttackKind::ElementalMelee { parryable, element },
-                    Resistance::Elemental(def_element, modifier_kind),
-                ) => todo!(),
-                (AttackKind::OffensiveSpell, Resistance::Physical(modifier_kind)) => todo!(),
-                (AttackKind::OffensiveSpell, Resistance::Elemental(element, modifier_kind)) => {
-                    todo!()
-                }
-            }
-        }
-    }
-
-    pub fn handle_attack(&self, attacker_id: &super::entity::ID, attack: Attack) {
-        let defender = self.get_defender();
+    pub fn handle_attack(&self, attacker_id: &super::entity::ID, attack: Attack, defense: Defense) {
+        let raw_amount = defense.apply_resistances(attack);
         let Some(attacker) = self.attackers.get(attacker_id) else {
             return println!("Couldn't find attacker");
         };
 
-        if let Ok(()) = attacker.can_attack(attack.resource_cost) {
-            match attack.kind {
-                AttackKind::Melee { parryable } => {
-                    let resistances = defender.get_melee_resistances();
-                    // calculate resistances and damage.
-                    let damage = CalculateResistancesAndDamage;
-                    defender.handle(AttackResult);
+        // if let Ok(()) = attacker.can_attack(attack.resource_cost) {
+        //     match attack.kind {
+        //         AttackKind::Melee { parryable } => {
+        //             let resistances = defender.get_melee_resistances();
+        //             let raw_damage = defender.defense.apply_resistances();
+        //             defender.handle(AttackResult);
+        //         }
+        //         AttackKind::ElementalMelee { parryable, element } => todo!(),
+        //         AttackKind::OffensiveSpell => todo!(),
+        //     }
+        // }
+    }
+}
                 }
                 AttackKind::ElementalMelee { parryable, element } => todo!(),
                 AttackKind::OffensiveSpell => todo!(),
