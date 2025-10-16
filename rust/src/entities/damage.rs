@@ -234,6 +234,39 @@ impl CombatSystem {
     }
 }
 
+struct CombatResources {
+    stam: Stamina,
+    mana: Mana,
+}
+
+impl CombatResources {
+    pub fn new(stam: Stamina, mana: Mana) -> Self {
+        Self { stam, mana }
+    }
+    pub fn handle_attack_cost(&mut self, costs: &[AttackResourceCost]) -> Result<(), ()> {
+        for cost in costs {
+            match cost {
+                AttackResourceCost::Stamina(val) => {
+                    if val > self.stam.0.amount() {
+                        self.stam.0.decrease(*val);
+                    } else {
+                        return Err(());
+                    }
+                }
+
+                AttackResourceCost::Mana(val) => {
+                    if val > self.mana.0.amount() {
+                        self.mana.0.decrease(*val);
+                    } else {
+                        return Err(());
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::{
@@ -242,7 +275,7 @@ mod test {
     struct Dummy {
         health: Health,
         defense: Defense,
-        stam: Stamina,
+        resource: CombatResources,
     }
 
     impl Dummy {
@@ -255,29 +288,16 @@ mod test {
                         Resistance::Elemental(Element::Magic, 5),
                     ],
                 },
-                stam: Stamina::new(30, 30),
             }
         }
 
-        fn try_attack(&mut self, attack: &PlayerAttacks) -> Result<Attack, ()> {
-            let attack = attack.build(1);
-            match attack.resource_cost {
-                AttackResourceCost::Stamina(val) => {
-                    // TODO: This check can be moved to the Stamina type
-                    if self.stam.0.amount > val {
-                        self.stam.0.decrease(val);
-                        Ok(attack)
-                    } else {
-                        Err(())
-                    }
-                }
-                AttackResourceCost::Mana(val) => todo!(),
+                resource: CombatResources::new(Stamina::new(30, 30), Mana::new(15, 15)),
             }
         }
     }
 
     #[test]
-    fn resouce_math() {
+    fn test_resouce_math() {
         use super::Resource;
         let mut resource = Resource::new(20, 30);
         resource.increase(11);
