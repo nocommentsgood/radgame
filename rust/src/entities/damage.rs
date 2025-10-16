@@ -111,6 +111,12 @@ pub enum Resistance {
     Elemental(Element, i64),
 }
 
+#[derive(Clone, Copy)]
+pub enum Buff {
+    Physical(i64),
+    Elemental(Element, i64),
+}
+
 #[derive(Clone)]
 pub struct AttackData {
     pub parryable: bool,
@@ -121,7 +127,7 @@ pub struct AttackData {
 struct Attack {
     damage: Damage,
     kind: AttackKind,
-    resource_cost: AttackResourceCost,
+    resource_cost: Vec<AttackResourceCost>,
     parryable: bool,
 }
 
@@ -130,6 +136,7 @@ enum PlayerAttacks {
     SimpleMelee,
     ChargedMelee,
     FireSpell,
+    FireMelee,
 }
 
 impl PlayerAttacks {
@@ -139,14 +146,21 @@ impl PlayerAttacks {
             PlayerAttacks::SimpleMelee => Attack {
                 damage: Damage(player_level * 10),
                 kind: AttackKind::Melee,
-                resource_cost: AttackResourceCost::Stamina(5),
+                resource_cost: vec![AttackResourceCost::Stamina(5)],
                 parryable: true,
             },
 
             PlayerAttacks::ChargedMelee => Attack {
                 damage: Damage(player_level * 15),
                 kind: AttackKind::Melee,
-                resource_cost: AttackResourceCost::Stamina(10),
+                resource_cost: vec![AttackResourceCost::Stamina(10)],
+                parryable: true,
+            },
+
+            PlayerAttacks::FireMelee => Attack {
+                damage: Damage(player_level * 10),
+                kind: AttackKind::ElementalMelee(Element::Fire),
+                resource_cost: vec![AttackResourceCost::Stamina(5), AttackResourceCost::Mana(5)],
                 parryable: true,
             },
 
@@ -210,6 +224,50 @@ impl Defense {
     }
 }
 
+struct Offense {
+    buffs: Vec<Buff>,
+}
+impl Offense {
+    pub fn apply_buffs(&self, attack: Attack) -> Damage {
+        let mut amount = attack.damage.0;
+
+        for buff in &self.buffs {
+            match (&attack.kind, buff) {
+                (AttackKind::Melee, Buff::Physical(val)) => {
+                    amount += val;
+                }
+
+                (AttackKind::ElementalMelee(ele), Buff::Elemental(buff_ele, val)) => {
+                    if ele == buff_ele {
+                        amount += val;
+                    }
+                }
+                (AttackKind::ElementalMelee(_ele), Buff::Physical(val)) => {
+                    amount += val;
+                }
+
+                // TODO: Offense spell currently applies straight damage.
+                _ => (),
+            }
+        }
+
+        Damage(amount)
+    }
+
+    pub fn try_attack(
+        attack: PlayerAttacks,
+        resources: &mut CombatResources,
+        level: i64,
+    ) -> Result<Attack, ()> {
+        let attack = attack.build(level);
+        if resources.handle_attack_cost(&attack.resource_cost).is_ok() {
+            Ok(attack)
+        } else {
+            Err(())
+        }
+    }
+}
+
 struct CombatSystem {
     attackers: HashMap<ID, EntityTypes>,
 }
@@ -270,10 +328,13 @@ impl CombatResources {
 #[cfg(test)]
 mod test {
     use super::{
-        Attack, AttackResourceCost, Defense, Element, Health, PlayerAttacks, Resistance, Stamina,
+        Attack, Buff, CombatResources, Defense, Element, Health, Mana, Offense, PlayerAttacks,
+        Resistance, Stamina,
     };
+
     struct Dummy {
         health: Health,
+        offense: Offense,
         defense: Defense,
         resource: CombatResources,
     }
@@ -282,15 +343,15 @@ mod test {
         fn new() -> Self {
             Self {
                 health: Health::new(10, 20),
+                offense: Offense {
+                    buffs: vec![Buff::Physical(5), Buff::Elemental(Element::Fire, 5)],
+                },
                 defense: Defense {
                     resistances: vec![
                         Resistance::Physical(10),
                         Resistance::Elemental(Element::Magic, 5),
                     ],
                 },
-            }
-        }
-
                 resource: CombatResources::new(Stamina::new(30, 30), Mana::new(15, 15)),
             }
         }
@@ -315,6 +376,31 @@ mod test {
     }
 
     #[test]
+    fn test_offense_handling() {
+        let mut dummy = Dummy::new();
+        if let Ok(attack) = Offense::try_attack(PlayerAttacks::SimpleMelee, &mut dummy.resource, 1)
+        {
+            let damage = dummy.offense.apply_buffs(attack);
+            assert_eq!(damage.0, 15);
+        }
+
+        dummy.offense.buffs.push(Buff::Physical(1));
+        if let Ok(attack) = Offense::try_attack(PlayerAttacks::SimpleMelee, &mut dummy.resource, 1)
+        {
+            let damage = dummy.offense.apply_buffs(attack);
+            assert_eq!(damage.0, 16);
+        }
+
+        if let Ok(attack) = Offense::try_attack(PlayerAttacks::FireMelee, &mut dummy.resource, 1) {
+            // damage = 10
+            // kind = ElementalMelee(Element::Fire)
+            // buffs = Physical(1), Physical(5), Elemental::Fire(3)
+            let damage = dummy.offense.apply_buffs(attack);
+            assert_eq!(damage.0, 18);
+        }
+    }
+
+    #[test]
     fn test_damage_handling() {
         use super::PlayerAttacks;
 
@@ -335,11 +421,18 @@ mod test {
         use super::PlayerAttacks;
 
         let mut attacker = Dummy::new();
-        if attacker.try_attack(&PlayerAttacks::SimpleMelee).is_ok() {
-            assert_eq!(attacker.stam.0.amount(), &25);
+        if Offense::try_attack(PlayerAttacks::SimpleMelee, &mut attacker.resource, 1).is_ok() {
+            assert_eq!(attacker.resource.stam.0.amount(), &25);
         }
-        if attacker.try_attack(&PlayerAttacks::ChargedMelee).is_ok() {
-            assert_eq!(attacker.stam.0.amount(), &15)
+        // if attacker
+        //     .offense
+        //     .try_attack(&PlayerAttacks::SimpleMelee)
+        //     .is_ok()
+        // {
+        //     assert_eq!(attacker.resource.stam.0.amount(), &25);
+        // }
+        if Offense::try_attack(PlayerAttacks::ChargedMelee, &mut attacker.resource, 1).is_ok() {
+            assert_eq!(attacker.resource.stam.0.amount(), &15)
         }
     }
 }
