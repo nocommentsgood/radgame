@@ -233,19 +233,52 @@ impl CombatSystem {
         // }
     }
 }
-                }
-                AttackKind::ElementalMelee { parryable, element } => todo!(),
-                AttackKind::OffensiveSpell => todo!(),
-            }
-        }
-    }
-}
 
 #[cfg(test)]
 mod test {
-    use super::Resource;
+    use super::{
+        Attack, AttackResourceCost, Defense, Element, Health, PlayerAttacks, Resistance, Stamina,
+    };
+    struct Dummy {
+        health: Health,
+        defense: Defense,
+        stam: Stamina,
+    }
+
+    impl Dummy {
+        fn new() -> Self {
+            Self {
+                health: Health::new(10, 20),
+                defense: Defense {
+                    resistances: vec![
+                        Resistance::Physical(10),
+                        Resistance::Elemental(Element::Magic, 5),
+                    ],
+                },
+                stam: Stamina::new(30, 30),
+            }
+        }
+
+        fn try_attack(&mut self, attack: &PlayerAttacks) -> Result<Attack, ()> {
+            let attack = attack.build(1);
+            match attack.resource_cost {
+                AttackResourceCost::Stamina(val) => {
+                    // TODO: This check can be moved to the Stamina type
+                    if self.stam.0.amount > val {
+                        self.stam.0.decrease(val);
+                        Ok(attack)
+                    } else {
+                        Err(())
+                    }
+                }
+                AttackResourceCost::Mana(val) => todo!(),
+            }
+        }
+    }
+
     #[test]
     fn resouce_math() {
+        use super::Resource;
         let mut resource = Resource::new(20, 30);
         resource.increase(11);
         assert!(resource.amount == 30);
@@ -259,5 +292,34 @@ mod test {
         resource.increase_max(31);
         resource.increase(32);
         assert_eq!(31, resource.amount);
+    }
+
+    #[test]
+    fn test_damage_handling() {
+        use super::PlayerAttacks;
+
+        let mut dummy = Dummy::new(); // health is 10
+        let attack = PlayerAttacks::SimpleMelee.build(1); // 10
+        let damage = dummy.defense.apply_resistances(attack); // dummy resistance is 10
+        dummy.health.take_damage(damage);
+        assert_eq!(*dummy.health.0.amount(), 10);
+
+        let attack = PlayerAttacks::SimpleMelee.build(2); // 20
+        let damage = dummy.defense.apply_resistances(attack);
+        dummy.health.take_damage(damage);
+        assert_eq!(*dummy.health.0.amount(), 0);
+    }
+
+    #[test]
+    fn test_resource_consumption() {
+        use super::PlayerAttacks;
+
+        let mut attacker = Dummy::new();
+        if attacker.try_attack(&PlayerAttacks::SimpleMelee).is_ok() {
+            assert_eq!(attacker.stam.0.amount(), &25);
+        }
+        if attacker.try_attack(&PlayerAttacks::ChargedMelee).is_ok() {
+            assert_eq!(attacker.stam.0.amount(), &15)
+        }
     }
 }
