@@ -271,26 +271,7 @@ impl Offense {
 struct CombatSystem {
     attackers: HashMap<ID, EntityTypes>,
 }
-impl CombatSystem {
-    pub fn handle_attack(&self, attacker_id: &super::entity::ID, attack: Attack, defense: Defense) {
-        let raw_amount = defense.apply_resistances(attack);
-        let Some(attacker) = self.attackers.get(attacker_id) else {
-            return println!("Couldn't find attacker");
-        };
-
-        // if let Ok(()) = attacker.can_attack(attack.resource_cost) {
-        //     match attack.kind {
-        //         AttackKind::Melee { parryable } => {
-        //             let resistances = defender.get_melee_resistances();
-        //             let raw_damage = defender.defense.apply_resistances();
-        //             defender.handle(AttackResult);
-        //         }
-        //         AttackKind::ElementalMelee { parryable, element } => todo!(),
-        //         AttackKind::OffensiveSpell => todo!(),
-        //     }
-        // }
-    }
-}
+impl CombatSystem {}
 
 struct CombatResources {
     stam: Stamina,
@@ -328,8 +309,8 @@ impl CombatResources {
 #[cfg(test)]
 mod test {
     use super::{
-        Attack, Buff, CombatResources, Defense, Element, Health, Mana, Offense, PlayerAttacks,
-        Resistance, Stamina,
+        Buff, CombatResources, Defense, Element, Health, Mana, Offense, PlayerAttacks, Resistance,
+        Stamina,
     };
 
     struct Dummy {
@@ -392,7 +373,7 @@ mod test {
         }
 
         if let Ok(attack) = Offense::try_attack(PlayerAttacks::FireMelee, &mut dummy.resource, 1) {
-            // damage = 10
+            // base attack damage = 10
             // kind = ElementalMelee(Element::Fire)
             // buffs = Physical(1), Physical(5), Elemental::Fire(3)
             let damage = dummy.offense.apply_buffs(attack);
@@ -424,15 +405,12 @@ mod test {
         if Offense::try_attack(PlayerAttacks::SimpleMelee, &mut attacker.resource, 1).is_ok() {
             assert_eq!(attacker.resource.stam.0.amount(), &25);
         }
-        // if attacker
-        //     .offense
-        //     .try_attack(&PlayerAttacks::SimpleMelee)
-        //     .is_ok()
-        // {
-        //     assert_eq!(attacker.resource.stam.0.amount(), &25);
-        // }
         if Offense::try_attack(PlayerAttacks::ChargedMelee, &mut attacker.resource, 1).is_ok() {
             assert_eq!(attacker.resource.stam.0.amount(), &15)
+        }
+        if Offense::try_attack(PlayerAttacks::FireMelee, &mut attacker.resource, 1).is_ok() {
+            assert_eq!(attacker.resource.stam.0.amount(), &10);
+            assert_eq!(attacker.resource.mana.0.amount(), &10);
         }
     }
 }
