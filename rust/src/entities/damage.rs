@@ -124,7 +124,7 @@ pub struct AttackData {
 }
 
 #[derive(Debug)]
-struct Attack {
+pub struct Attack {
     damage: Damage,
     kind: AttackKind,
     resource_cost: Vec<AttackResourceCost>,
@@ -193,11 +193,15 @@ enum EntityTypes {
     Player(Gd<super::player::main_character::MainCharacter>),
 }
 
-struct Defense {
+pub struct Defense {
     resistances: Vec<Resistance>,
 }
 
 impl Defense {
+    pub fn new(resistances: Vec<Resistance>) -> Self {
+        Self { resistances }
+    }
+
     pub fn apply_resistances(&self, attack: Attack) -> Damage {
         let mut amount = attack.damage.0;
 
@@ -224,10 +228,13 @@ impl Defense {
     }
 }
 
-struct Offense {
+pub struct Offense {
     buffs: Vec<Buff>,
 }
 impl Offense {
+    pub fn new(buffs: Vec<Buff>) -> Self {
+        Self { buffs }
+    }
     pub fn apply_buffs(&self, attack: Attack) -> Damage {
         let mut amount = attack.damage.0;
 
@@ -273,7 +280,7 @@ struct CombatSystem {
 }
 impl CombatSystem {}
 
-struct CombatResources {
+pub struct CombatResources {
     stam: Stamina,
     mana: Mana,
 }
