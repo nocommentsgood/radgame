@@ -88,7 +88,7 @@ impl Mana {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct Damage(i64);
 
 #[derive(Clone, Copy)]
@@ -97,7 +97,7 @@ pub enum DamageType {
     Physical,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Element {
     Magic,
     Poison,
@@ -117,6 +117,7 @@ pub struct AttackData {
     pub damage: Damage,
 }
 
+#[derive(Debug)]
 struct Attack {
     damage: Damage,
     kind: AttackKind,
@@ -124,6 +125,7 @@ struct Attack {
     parryable: bool,
 }
 
+#[derive(Debug)]
 enum PlayerAttacks {
     SimpleMelee,
     ChargedMelee,
@@ -153,11 +155,13 @@ impl PlayerAttacks {
     }
 }
 
+#[derive(Debug)]
 enum AttackResourceCost {
     Stamina(i64),
     Mana(i64),
 }
 
+#[derive(Debug)]
 enum AttackKind {
     Melee,
     ElementalMelee(Element),
