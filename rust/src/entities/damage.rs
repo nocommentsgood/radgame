@@ -164,7 +164,12 @@ impl PlayerAttacks {
                 parryable: true,
             },
 
-            _ => todo!(),
+            PlayerAttacks::FireSpell => Attack {
+                damage: Damage(player_level * 20),
+                kind: AttackKind::OffensiveSpell(Element::Fire),
+                resource_cost: vec![AttackResourceCost::Mana(20)],
+                parryable: false,
+            },
         }
     }
 }
@@ -235,7 +240,8 @@ impl Offense {
     pub fn new(buffs: Vec<Buff>) -> Self {
         Self { buffs }
     }
-    pub fn apply_buffs(&self, attack: Attack) -> Damage {
+
+    pub fn apply_buffs(&self, attack: &mut Attack) -> Damage {
         let mut amount = attack.damage.0;
 
         for buff in &self.buffs {
@@ -270,6 +276,7 @@ impl Offense {
         if resources.handle_attack_cost(&attack.resource_cost).is_ok() {
             Ok(attack)
         } else {
+            println!("Entity didn't have enough resources");
             Err(())
         }
     }
@@ -278,6 +285,7 @@ impl Offense {
 struct CombatSystem {
     attackers: HashMap<ID, EntityTypes>,
 }
+
 impl CombatSystem {}
 
 pub struct CombatResources {
@@ -293,7 +301,7 @@ impl CombatResources {
         for cost in costs {
             match cost {
                 AttackResourceCost::Stamina(val) => {
-                    if val > self.stam.0.amount() {
+                    if self.stam.0.amount() >= val {
                         self.stam.0.decrease(*val);
                     } else {
                         return Err(());
@@ -301,7 +309,7 @@ impl CombatResources {
                 }
 
                 AttackResourceCost::Mana(val) => {
-                    if val > self.mana.0.amount() {
+                    if self.mana.0.amount() >= val {
                         self.mana.0.decrease(*val);
                     } else {
                         return Err(());
@@ -366,25 +374,30 @@ mod test {
     #[test]
     fn test_offense_handling() {
         let mut dummy = Dummy::new();
-        if let Ok(attack) = Offense::try_attack(PlayerAttacks::SimpleMelee, &mut dummy.resource, 1)
+        if let Ok(mut attack) =
+            Offense::try_attack(PlayerAttacks::SimpleMelee, &mut dummy.resource, 1)
         {
-            let damage = dummy.offense.apply_buffs(attack);
+            let damage = dummy.offense.apply_buffs(&mut attack);
             assert_eq!(damage.0, 15);
         }
 
         dummy.offense.buffs.push(Buff::Physical(1));
-        if let Ok(attack) = Offense::try_attack(PlayerAttacks::SimpleMelee, &mut dummy.resource, 1)
+
+        if let Ok(mut attack) =
+            Offense::try_attack(PlayerAttacks::SimpleMelee, &mut dummy.resource, 1)
         {
-            let damage = dummy.offense.apply_buffs(attack);
+            let damage = dummy.offense.apply_buffs(&mut attack);
             assert_eq!(damage.0, 16);
         }
 
-        if let Ok(attack) = Offense::try_attack(PlayerAttacks::FireMelee, &mut dummy.resource, 1) {
+        if let Ok(mut attack) =
+            Offense::try_attack(PlayerAttacks::FireMelee, &mut dummy.resource, 1)
+        {
             // base attack damage = 10
             // kind = ElementalMelee(Element::Fire)
             // buffs = Physical(1), Physical(5), Elemental::Fire(3)
-            let damage = dummy.offense.apply_buffs(attack);
-            assert_eq!(damage.0, 18);
+            let damage = dummy.offense.apply_buffs(&mut attack);
+            assert_eq!(damage.0, 21);
         }
     }
 
@@ -419,5 +432,7 @@ mod test {
             assert_eq!(attacker.resource.stam.0.amount(), &10);
             assert_eq!(attacker.resource.mana.0.amount(), &10);
         }
+
+        assert!(Offense::try_attack(PlayerAttacks::FireSpell, &mut attacker.resource, 1).is_err());
     }
 }
