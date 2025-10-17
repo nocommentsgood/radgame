@@ -35,6 +35,7 @@ pub trait Damageable: HasHealth {
     fn handle_attack(&mut self, attack: AttackData);
 }
 
+#[derive(Clone, Copy, Debug)]
 struct Resource {
     amount: i64,
     max: i64,
@@ -63,6 +64,7 @@ impl Resource {
     }
 }
 
+#[derive(Clone, Copy)]
 pub struct Stamina(Resource);
 impl Stamina {
     pub fn new(amount: i64, max: i64) -> Self {
@@ -70,6 +72,7 @@ impl Stamina {
     }
 }
 
+#[derive(Clone, Copy, Debug)]
 pub struct Health(Resource);
 impl Health {
     pub fn new(amount: i64, max: i64) -> Self {
@@ -81,6 +84,7 @@ impl Health {
     }
 }
 
+#[derive(Clone, Copy, Debug)]
 pub struct Mana(Resource);
 impl Mana {
     pub fn new(amount: i64, max: i64) -> Self {
@@ -89,7 +93,7 @@ impl Mana {
 }
 
 #[derive(Clone, Copy, Debug)]
-pub struct Damage(i64);
+pub struct Damage(pub i64);
 
 #[derive(Clone, Copy)]
 pub enum DamageType {
@@ -117,13 +121,13 @@ pub enum Buff {
     Elemental(Element, i64),
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct AttackData {
     pub parryable: bool,
     pub damage: Damage,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Attack {
     damage: Damage,
     kind: AttackKind,
@@ -131,8 +135,14 @@ pub struct Attack {
     parryable: bool,
 }
 
+impl Attack {
+    pub fn is_parryable(&self) -> bool {
+        self.parryable
+    }
+}
+
 #[derive(Debug)]
-enum PlayerAttacks {
+pub enum PlayerAttacks {
     SimpleMelee,
     ChargedMelee,
     FireSpell,
@@ -166,7 +176,7 @@ impl PlayerAttacks {
 
             PlayerAttacks::FireSpell => Attack {
                 damage: Damage(player_level * 20),
-                kind: AttackKind::OffensiveSpell(Element::Fire),
+                kind: AttackKind::ProjectileSpell(Element::Fire),
                 resource_cost: vec![AttackResourceCost::Mana(20)],
                 parryable: false,
             },
@@ -174,17 +184,17 @@ impl PlayerAttacks {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 enum AttackResourceCost {
     Stamina(i64),
     Mana(i64),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 enum AttackKind {
     Melee,
     ElementalMelee(Element),
-    OffensiveSpell(Element),
+    ProjectileSpell(Element),
 }
 
 enum AttackResult {
@@ -223,6 +233,11 @@ impl Defense {
                     Resistance::Elemental(resist_element, val),
                 ) => {
                     if attack_element == resist_element {
+                        amount -= val;
+                    }
+                }
+                (AttackKind::ProjectileSpell(ele), Resistance::Elemental(res_ele, val)) => {
+                    if ele == res_ele {
                         amount -= val;
                     }
                 }
@@ -288,6 +303,7 @@ struct CombatSystem {
 
 impl CombatSystem {}
 
+#[derive(Clone, Copy)]
 pub struct CombatResources {
     stam: Stamina,
     mana: Mana,
@@ -297,6 +313,10 @@ impl CombatResources {
     pub fn new(stam: Stamina, mana: Mana) -> Self {
         Self { stam, mana }
     }
+    pub fn mana(&self) -> &Mana {
+        &self.mana
+    }
+
     pub fn handle_attack_cost(&mut self, costs: &[AttackResourceCost]) -> Result<(), ()> {
         for cost in costs {
             match cost {
