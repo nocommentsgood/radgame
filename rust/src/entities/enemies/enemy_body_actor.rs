@@ -93,13 +93,13 @@ impl ICharacterBody2D for EnemyBodyActor {
         );
         self.timers.idle.start();
 
-        self.sensors.hit_reg.hurtbox.bind_mut().data = Some(AttackData {
-            parryable: false,
-            damage: Damage {
-                raw: 10,
-                d_type: DamageType::Physical,
-            },
-        });
+        // self.sensors.hit_reg.hurtbox.bind_mut().data = Some(AttackData {
+        //     parryable: false,
+        //     damage: Damage {
+        //         raw: 10,
+        //         d_type: DamageType::Physical,
+        //     },
+        // });
     }
 
     fn physics_process(&mut self, delta: f32) {

@@ -55,6 +55,12 @@ impl INode for Main {
             let mut item_comp = player.get_node_as::<ItemComponent>("ItemComponent");
             Self::connect_map_items(&mut self.map.bind_mut().items, &mut item_comp);
         }
+
+        let mut tree = self.base().get_tree().unwrap();
+        for node in tree.get_nodes_in_group("Hurtbox").iter_shared() {
+            let hurtbox = node.cast::<crate::entities::hit_reg::Hurtbox>();
+            dbg!(&hurtbox);
+        }
     }
 
     fn enter_tree(&mut self) {

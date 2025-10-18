@@ -1,16 +1,4 @@
-use std::collections::HashMap;
-
-use godot::{
-    classes::{AnimationPlayer, Node2D},
-    obj::{Gd, WithBaseField},
-    prelude::*,
-};
-
-use crate::entities::{
-    entity::{Entity, ID},
-    entity_stats::ModifierKind,
-    hit_reg::Hitbox,
-};
+use godot::obj::Gd;
 
 pub trait HasHealth {
     fn get_health(&self) -> u32;
@@ -251,6 +239,7 @@ impl Defense {
 pub struct Offense {
     buffs: Vec<Buff>,
 }
+
 impl Offense {
     pub fn new(buffs: Vec<Buff>) -> Self {
         Self { buffs }
@@ -297,9 +286,7 @@ impl Offense {
     }
 }
 
-struct CombatSystem {
-    attackers: HashMap<ID, EntityTypes>,
-}
+struct CombatSystem {}
 
 impl CombatSystem {}
 
@@ -313,6 +300,7 @@ impl CombatResources {
     pub fn new(stam: Stamina, mana: Mana) -> Self {
         Self { stam, mana }
     }
+
     pub fn mana(&self) -> &Mana {
         &self.mana
     }

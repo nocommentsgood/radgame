@@ -5,7 +5,7 @@ use godot::{
 
 use crate::{
     entities::{
-        damage::{AttackData, Damage, DamageType, Element},
+        damage::{Attack, AttackData, Damage, DamageType, Element},
         hit_reg::Hurtbox,
     },
     utils::collision_layers,
@@ -21,6 +21,7 @@ pub struct Projectile {
     pub speed: real,
     #[init(node = "Timer")]
     timer: OnReady<Gd<Timer>>,
+    pub attack: Option<Attack>,
     base: Base<Node2D>,
 }
 
@@ -29,13 +30,6 @@ impl INode2D for Projectile {
     fn ready(&mut self) {
         self.speed = 500.0;
         self.start_pos = self.base().get_position();
-        self.hurtbox.bind_mut().data = Some(AttackData {
-            parryable: true,
-            damage: Damage {
-                raw: 10,
-                d_type: DamageType::Elemental(Element::Fire),
-            },
-        });
 
         self.timer
             .signals()

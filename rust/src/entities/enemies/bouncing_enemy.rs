@@ -66,13 +66,13 @@ impl BounceEnemy {
             let mut hurtbox = projectile.get_node_as::<Hurtbox>("Hurtbox");
             hurtbox.set_collision_layer_value(CollisionLayers::EnemyHurtbox as i32, true);
             hurtbox.set_collision_mask_value(CollisionLayers::PlayerHitbox as i32, true);
-            hurtbox.bind_mut().data = Some(AttackData {
-                parryable: true,
-                damage: Damage {
-                    raw: 5,
-                    d_type: DamageType::Elemental(Element::Poison),
-                },
-            });
+            // hurtbox.bind_mut().data = Some(AttackData {
+            //     parryable: true,
+            //     damage: Damage {
+            //         raw: 5,
+            //         d_type: DamageType::Elemental(Element::Poison),
+            //     },
+            // });
         }
 
         for projectile in projectiles {
@@ -97,6 +97,6 @@ impl HasHealth for Gd<BounceEnemy> {
 
 impl Damageable for Gd<BounceEnemy> {
     fn handle_attack(&mut self, attack: crate::entities::damage::AttackData) {
-        self.take_damage(attack.damage.raw);
+        // self.take_damage(attack.damage.raw);
     }
 }
