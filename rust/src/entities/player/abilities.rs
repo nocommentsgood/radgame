@@ -51,22 +51,22 @@ impl Ability {
                 let mut timer = Timer::new_alloc();
 
                 // Set ability's damage amount.
-                let mut right_pillar = ability.get_node_as::<Hurtbox>("RightPillar");
-                right_pillar.bind_mut().data = Some(AttackData {
-                    parryable: false,
-                    damage: Damage {
-                        raw: 10,
-                        d_type: DamageType::Elemental(Element::Magic),
-                    },
-                });
-                let mut left_pillar = ability.get_node_as::<Hurtbox>("LeftPillar");
-                left_pillar.bind_mut().data = Some(AttackData {
-                    parryable: false,
-                    damage: Damage {
-                        raw: 10,
-                        d_type: DamageType::Elemental(Element::Magic),
-                    },
-                });
+                // let mut right_pillar = ability.get_node_as::<Hurtbox>("RightPillar");
+                // right_pillar.bind_mut().data = Some(AttackData {
+                //     parryable: false,
+                //     damage: Damage {
+                //         raw: 10,
+                //         d_type: DamageType::Elemental(Element::Magic),
+                //     },
+                // });
+                // let mut left_pillar = ability.get_node_as::<Hurtbox>("LeftPillar");
+                // left_pillar.bind_mut().data = Some(AttackData {
+                //     parryable: false,
+                //     damage: Damage {
+                //         raw: 10,
+                //         d_type: DamageType::Elemental(Element::Magic),
+                //     },
+                // });
 
                 timer.set_wait_time(1.5);
                 ability.set_position(player.base().get_global_position());

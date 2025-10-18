@@ -5,7 +5,10 @@ use godot::{
     prelude::{GodotClass, godot_api},
 };
 
-use crate::entities::damage::{AttackData, Damageable};
+use crate::entities::{
+    damage::{Attack, AttackData, Damageable},
+    entity::ID,
+};
 
 // TODO: Add resistances here.
 #[derive(GodotClass)]
@@ -25,6 +28,7 @@ impl Hitbox {
 #[derive(GodotClass)]
 #[class(init, base=Area2D)]
 pub struct Hurtbox {
+    pub attack: Option<super::damage::Attack>,
     pub data: Option<AttackData>,
     base: Base<Area2D>,
 }
@@ -33,25 +37,14 @@ pub struct Hurtbox {
 impl IArea2D for Hurtbox {
     fn ready(&mut self) {
         self.base_mut().set_deferred("disabled", &true.to_variant());
-
-        let mut this = self.to_gd();
-        self.base_mut()
-            .signals()
-            .area_entered()
-            .connect(move |area| this.bind_mut().on_hit(area));
+        self.base_mut().add_to_group("Hurtbox");
     }
 }
 
 #[godot_api]
 impl Hurtbox {
-    fn on_hit(&mut self, area: Gd<Area2D>) {
-        let mut hitbox = area.cast::<Hitbox>();
-        hitbox
-            .bind_mut()
-            .damageable_parent
-            .as_mut()
-            .unwrap()
-            .handle_attack(self.data.clone().unwrap());
+    pub fn set_attack(&mut self, attack: Attack) {
+        self.attack.replace(attack);
     }
 }
 

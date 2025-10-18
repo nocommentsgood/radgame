@@ -1,8 +1,12 @@
 use super::{enemy_state_machine::State, projectile::Projectile};
 use crate::entities::{
-    damage::{AttackData, Damage, DamageType},
+    damage::{
+        Attack, AttackData, Buff, CombatResources, Damage, DamageType, Defense, Element, Health,
+        Mana, Offense, PlayerAttacks, Resistance, Stamina,
+    },
     enemies::{enemy_context as ctx, enemy_state_machine as esm, physics, time},
     entity,
+    hit_reg::Hurtbox,
     movements::Direction,
 };
 use godot::{
@@ -34,6 +38,22 @@ pub struct NewProjectileEnemy {
     sm: OnReady<esm::EnemySMType>,
     #[init(val = OnReady::manual())]
     entity: OnReady<entity::Entity>,
+
+    #[init(val = OnReady::new(|| Health::new(10, 10)))]
+    health: OnReady<Health>,
+
+    #[init(val = OnReady::new(|| CombatResources::new(
+        Stamina::new(20, 20), Mana::new(20, 20)
+    )))]
+    pub resources: OnReady<CombatResources>,
+
+    #[init(val = OnReady::new(|| Defense::new(vec![Resistance::Physical(5)])))]
+    def: OnReady<Defense>,
+
+    #[init(val = OnReady::new(|| Offense::new(vec![Buff::Elemental(Element::Magic, 2)])))]
+    pub off: OnReady<Offense>,
+
+    pub attack: Option<Attack>,
 
     node: Base<Node2D>,
 }
@@ -102,13 +122,6 @@ impl INode2D for NewProjectileEnemy {
             |_| (),
         );
 
-        self.sensors.hit_reg.hurtbox.bind_mut().data = Some(AttackData {
-            parryable: true,
-            damage: Damage {
-                raw: 10,
-                d_type: DamageType::Physical,
-            },
-        });
         self.timers.idle.start();
     }
 
@@ -207,9 +220,17 @@ impl NewProjectileEnemy {
                 .normalized_or_zero();
             let pos = self.base().get_global_position();
 
-            inst.set_global_position(pos);
-            inst.bind_mut().velocity = target * 500.0;
-            self.base_mut().add_sibling(&inst);
+            if let Ok(mut attack) =
+                Offense::try_attack(PlayerAttacks::FireSpell, &mut self.resources, 1)
+            {
+                self.off.apply_buffs(&mut attack);
+                self.attack = Some(attack.clone());
+                let mut hurtbox = inst.get_node_as::<Hurtbox>("Hurtbox");
+                hurtbox.bind_mut().set_attack(attack);
+                inst.set_global_position(pos);
+                inst.bind_mut().velocity = target * 500.0;
+                self.base_mut().add_sibling(&inst);
+            }
         }
     }
 }

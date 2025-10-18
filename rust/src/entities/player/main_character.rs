@@ -13,7 +13,10 @@ use statig::prelude::StateMachine;
 use super::physics;
 use crate::{
     entities::{
-        damage::{AttackData, Damage, DamageType, Damageable, HasHealth},
+        damage::{
+            AttackData, Damage, DamageType, Damageable, Defense, Element, HasHealth, Health,
+            Offense, Resistance,
+        },
         enemies::projectile::Projectile,
         entity::Entity,
         entity_stats::{EntityStats, Stat, StatModifier, StatVal},
@@ -72,6 +75,12 @@ pub struct MainCharacter {
 
     #[init(node = "ShakyPlayerCamera")]
     pub camera: OnReady<Gd<PlayerCamera>>,
+
+    #[init(val = Health::new(50, 50))]
+    pub health: Health,
+
+    #[init(val = Defense::new(vec![Resistance::Physical(5), Resistance::Elemental(Element::Fire, 10)]))]
+    pub def: Defense,
 }
 
 #[godot_api]
@@ -82,6 +91,12 @@ impl ICharacterBody2D for MainCharacter {
             jumping: 300.0,
             dodging: 250.0,
         };
+
+        let hitbox = self.base().get_node_as::<Hitbox>("Hitbox");
+        hitbox
+            .signals()
+            .area_entered()
+            .connect_other(&self.to_gd(), Self::on_area_entered_hitbox);
 
         let this = self.to_gd();
         GlobalData::singleton()
@@ -107,15 +122,6 @@ impl ICharacterBody2D for MainCharacter {
         self.init_timers();
 
         self.previous_state = State::IdleRight {};
-
-        self.hit_reg.hitbox.bind_mut().damageable_parent = Some(Box::new(self.to_gd()));
-        self.hit_reg.hurtbox.bind_mut().data = Some(AttackData {
-            parryable: false,
-            damage: Damage {
-                raw: self.stats.get_raw(Stat::AttackDamage),
-                d_type: DamageType::Physical,
-            },
-        });
     }
 
     fn physics_process(&mut self, delta: f32) {
@@ -172,9 +178,21 @@ impl MainCharacter {
 
     // TODO: Finish this and remove parried signal.
     fn on_area_entered_hitbox(&mut self, area: Gd<Area2D>) {
+        println!("Player Hitbox entered");
         let hurtbox = area.cast::<Hurtbox>();
+        let attack = hurtbox.bind().attack.clone().unwrap();
+        if attack.is_parryable() {
+            // try parry
+        } else {
+            dbg!(&self.health);
+            let damage = self.def.apply_resistances(attack);
+            self.health.take_damage(damage);
+            dbg!(&self.health);
+        }
+
+        // let hurtbox = area.cast::<Hurtbox>();
         // let data = hurtbox.bind().data.unwrap();
-        if hurtbox.bind().data.as_ref().unwrap().parryable && self.parried_attack(&hurtbox) {}
+        // if hurtbox.bind().data.as_ref().unwrap().parryable && self.parried_attack(&hurtbox) {}
         // if let Ok(h_box) = &area.try_cast::<Hurtbox>()
         //     && !self.parried_attack(h_box)
         // {
@@ -453,30 +471,5 @@ impl HasHealth for Gd<MainCharacter> {
     fn on_death(&mut self) {
         println!("Player died");
         self.queue_free();
-    }
-}
-
-impl Damageable for Gd<MainCharacter> {
-    fn handle_attack(&mut self, attack: AttackData) {
-        todo!("Remove Damageable trait from player");
-        if attack.parryable {
-            let parried = true;
-            if !parried {
-                let mut guard = self.bind_mut();
-                guard.timers.get_mut(&PT::HurtAnimation).unwrap().start();
-                guard
-                    .camera
-                    .bind_mut()
-                    .add_trauma(TraumaLevel::from(attack.damage.raw));
-                drop(guard);
-                let cur = self.get_health();
-                self.take_damage(attack.damage.raw);
-                let new = self.get_health();
-                self.signals()
-                    .player_health_changed()
-                    .emit(cur, new, attack.damage.raw);
-                self.bind_mut().transition_sm(&Event::Hurt);
-            }
-        }
     }
 }
