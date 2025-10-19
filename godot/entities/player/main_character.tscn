@@ -1,4 +1,4 @@
-[gd_scene load_steps=39 format=3 uid="uid://5fcrp4sc1aqy"]
+[gd_scene load_steps=40 format=3 uid="uid://5fcrp4sc1aqy"]
 
 [ext_resource type="Texture2D" uid="uid://jajkhxvbqumn" path="res://assets/entities/knight/Run.png" id="1_0xcww"]
 [ext_resource type="Texture2D" uid="uid://c0yvk1ca22cd" path="res://assets/entities/knight/Idle.png" id="2_7jfy0"]
@@ -10,7 +10,7 @@
 [ext_resource type="Texture2D" uid="uid://mehv746pb6hf" path="res://assets/entities/knight/Hurt.png" id="8_th6kt"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_wj53o"]
-size = Vector2(16, 46.25)
+size = Vector2(16, 46)
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_wj53o"]
 radius = 8.0
@@ -3609,6 +3609,9 @@ _data = {
 &"w": SubResource("Animation_lnf2a")
 }
 
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_62fq1"]
+size = Vector2(16, 46)
+
 [node name="MainCharacter" type="MainCharacter"]
 physics_interpolation_mode = 1
 collision_layer = 128
@@ -3624,7 +3627,7 @@ shape = SubResource("RectangleShape2D_wj53o")
 [node name="Hitbox" type="Hitbox" parent="." groups=["player"]]
 position = Vector2(0, -7)
 collision_layer = 4
-collision_mask = 800
+collision_mask = 32
 
 [node name="HitboxShape" type="CollisionShape2D" parent="Hitbox"]
 position = Vector2(0, 6)
@@ -3674,3 +3677,10 @@ collision_mask = 2
 position = Vector2(5, 0)
 target_position = Vector2(15, 0)
 collision_mask = 2
+
+[node name="EnvironmentBox" type="Area2D" parent="."]
+collision_layer = 4
+collision_mask = 768
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="EnvironmentBox"]
+shape = SubResource("RectangleShape2D_62fq1")
