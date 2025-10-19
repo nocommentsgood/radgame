@@ -11,10 +11,10 @@ pub enum TraumaLevel {
     High,
 }
 
-impl From<u32> for TraumaLevel {
-    fn from(value: u32) -> Self {
+impl From<i64> for TraumaLevel {
+    fn from(value: i64) -> Self {
         match value {
-            30..=u32::MAX => Self::High,
+            30..=i64::MAX => Self::High,
             10..=29 => Self::Med,
             _ => Self::Low,
         }

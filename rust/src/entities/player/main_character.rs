@@ -13,10 +13,7 @@ use statig::prelude::StateMachine;
 use super::physics;
 use crate::{
     entities::{
-        damage::{
-            AttackData, Damage, DamageType, Damageable, Defense, Element, HasHealth, Health,
-            Offense, Resistance,
-        },
+        damage::{Attack, Damage, DamageType, Defense, Element, Health, Offense, Resistance},
         enemies::projectile::Projectile,
         entity::Entity,
         entity_stats::{EntityStats, Stat, StatModifier, StatVal},
@@ -176,18 +173,25 @@ impl MainCharacter {
     #[signal]
     fn parried_attack();
 
-    // TODO: Finish this and remove parried signal.
     fn on_area_entered_hitbox(&mut self, area: Gd<Area2D>) {
         println!("Player Hitbox entered");
         let hurtbox = area.cast::<Hurtbox>();
         let attack = hurtbox.bind().attack.clone().unwrap();
-        if attack.is_parryable() {
-            // try parry
+        if attack.is_parryable() && self.parried() {
+            if let Some(node) = hurtbox.get_parent()
+                && let Ok(mut proj) = node.try_cast::<Projectile>()
+            {
+                proj.bind_mut().on_parried();
+            }
         } else {
             dbg!(&self.health);
             let damage = self.def.apply_resistances(attack);
             self.health.take_damage(damage);
             dbg!(&self.health);
+            self.camera
+                .bind_mut()
+                .add_trauma(TraumaLevel::from(damage.0));
+            self.transition_sm(&Event::Hurt);
         }
 
         // let hurtbox = area.cast::<Hurtbox>();
@@ -250,35 +254,19 @@ impl MainCharacter {
         self.transition_sm(&Event::TimerElapsed(input));
     }
 
-    fn parried_attack(&mut self, area: &Gd<Hurtbox>) -> bool {
-        todo!("Refactor parrying");
-        match self.state.state() {
-            State::ParryLeft {} | State::ParryRight {} => {
-                if self.timers.get(&PT::PerfectParry).unwrap().get_time_left() > 0.0 {
-                    println!("\nPERFECT PARRY\n");
-                    if area.is_in_group("enemy_projectile")
-                        && let Some(parent) = area.get_parent()
-                        && let Ok(mut projectile) = parent.try_cast::<Projectile>()
-                    {
-                        projectile.bind_mut().on_parried();
-                    }
-                    self.signals().parried_attack().emit();
-                    true
-                } else if self.timers.get(&PT::Parry).unwrap().get_time_left() > 0.0 {
-                    println!("\nNORMAL PARRY\n");
-                    if area.is_in_group("enemy_projectile")
-                        && let Some(parent) = area.get_parent()
-                        && let Ok(mut projectile) = parent.try_cast::<Projectile>()
-                    {
-                        projectile.bind_mut().on_parried();
-                    }
-                    self.signals().parried_attack().emit();
-                    true
-                } else {
-                    false
-                }
+    fn parried(&mut self) -> bool {
+        if let State::ParryRight {} | State::ParryLeft {} = self.state.state() {
+            if self.timers.get(&PT::PerfectParry).unwrap().get_time_left() > 0.0 {
+                println!("Perfect parry");
+                true
+            } else if self.timers.get(&PT::Parry).unwrap().get_time_left() > 0.0 {
+                println!("Normal parry");
+                true
+            } else {
+                false
             }
-            _ => false,
+        } else {
+            false
         }
     }
 
@@ -456,20 +444,5 @@ impl MainCharacter {
     /// Transitions state machine from `disabled` to `idle`.
     pub fn force_enabled(&mut self) {
         self.transition_sm(&csm::Event::ForceEnabled);
-    }
-}
-
-impl HasHealth for Gd<MainCharacter> {
-    fn get_health(&self) -> u32 {
-        self.bind().stats.get_raw(Stat::Health)
-    }
-
-    fn set_health(&mut self, amount: u32) {
-        self.bind_mut().stats.get_mut(Stat::Health).0 = amount;
-    }
-
-    fn on_death(&mut self) {
-        println!("Player died");
-        self.queue_free();
     }
 }

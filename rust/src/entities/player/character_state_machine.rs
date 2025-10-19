@@ -160,7 +160,13 @@ impl CharacterStateMachine {
             },
 
             // Hurt
-            Event::Hurt => Response::Transition(State::hurt_right()),
+            Event::Hurt => {
+                context
+                    .get_mut(&PlayerTimer::HurtAnimation)
+                    .unwrap()
+                    .start();
+                Response::Transition(State::hurt_right())
+            }
             Event::ForceDisabled => Response::Transition(State::forced_disabled_right()),
             _ => Handled,
         }
@@ -244,7 +250,13 @@ impl CharacterStateMachine {
             },
 
             // Hurt
-            Event::Hurt => Response::Transition(State::hurt_left()),
+            Event::Hurt => {
+                context
+                    .get_mut(&PlayerTimer::HurtAnimation)
+                    .unwrap()
+                    .start();
+                Response::Transition(State::hurt_left())
+            }
             Event::ForceDisabled => Response::Transition(State::forced_disabled_left()),
             _ => Handled,
         }
