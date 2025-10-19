@@ -13,10 +13,10 @@ use statig::prelude::StateMachine;
 use super::physics;
 use crate::{
     entities::{
-        damage::{Attack, Damage, DamageType, Defense, Element, Health, Offense, Resistance},
+        damage::{Defense, Element, Health, Resistance},
         enemies::projectile::Projectile,
-        entity::Entity,
         entity_stats::{EntityStats, Stat, StatModifier, StatVal},
+        graphics::Graphics,
         hit_reg::{self, Hitbox, Hurtbox},
         movements::Direction,
         player::{
@@ -67,8 +67,8 @@ pub struct MainCharacter {
     #[init(node = "ItemComponent")]
     pub item_comp: OnReady<Gd<ItemComponent>>,
 
-    #[init(val = OnReady::from_base_fn(Entity::new))]
-    entity: OnReady<Entity>,
+    #[init(val = OnReady::from_base_fn(|this|{ Graphics::new(this)}))]
+    graphics: OnReady<Graphics>,
 
     #[init(node = "ShakyPlayerCamera")]
     pub camera: OnReady<Gd<PlayerCamera>>,
@@ -170,9 +170,6 @@ impl MainCharacter {
     #[signal]
     pub fn player_health_changed(previous_health: u32, new_health: u32, damage_amount: u32);
 
-    #[signal]
-    fn parried_attack();
-
     fn on_area_entered_hitbox(&mut self, area: Gd<Area2D>) {
         println!("Player Hitbox entered");
         let hurtbox = area.cast::<Hurtbox>();
@@ -193,27 +190,6 @@ impl MainCharacter {
                 .add_trauma(TraumaLevel::from(damage.0));
             self.transition_sm(&Event::Hurt);
         }
-
-        // let hurtbox = area.cast::<Hurtbox>();
-        // let data = hurtbox.bind().data.unwrap();
-        // if hurtbox.bind().data.as_ref().unwrap().parryable && self.parried_attack(&hurtbox) {}
-        // if let Ok(h_box) = &area.try_cast::<Hurtbox>()
-        //     && !self.parried_attack(h_box)
-        // {
-        //     self.timers.get_mut(&PT::HurtAnimation).unwrap().start();
-        //     let damaging =
-        //         DynGd::<Area2D, dyn Damaging>::from_godot(h_box.clone().upcast::<Area2D>());
-        //     let target = self.to_gd().upcast::<Node2D>();
-        //     let guard = self.base_mut();
-        //     let damageable = DynGd::<Node2D, dyn Damageable>::from_godot(target);
-        //     damaging.dyn_bind().do_damage(damageable);
-        //     drop(guard);
-        //     let mut camera = self.base().get_node_as::<PlayerCamera>("ShakyPlayerCamera");
-        //     camera
-        //         .bind_mut()
-        //         .add_trauma(TraumaLevel::from(damaging.dyn_bind().damage_amount()));
-        //     self.transition_sm(&Event::Hurt);
-        // }
     }
 
     fn on_parry_timeout(&mut self) {
@@ -280,8 +256,7 @@ impl MainCharacter {
             // TODO: Temporary solution. The direction isn't updated in time, so defer getting the
             // direction unti the velocity updates.
             self.run_deferred(|this| {
-                this.entity
-                    .graphics
+                this.graphics
                     .update(this.state.state(), &this.movements.get_direction())
             });
         }
@@ -293,7 +268,7 @@ impl MainCharacter {
 
         // Dodge animation
         let mut timer = Timer::new_alloc();
-        timer.set_wait_time(self.entity.graphics.get_animation_length("dodge_right"));
+        timer.set_wait_time(self.graphics.get_animation_length("dodge_right"));
         timer.set_one_shot(true);
         timer
             .signals()
@@ -309,7 +284,7 @@ impl MainCharacter {
 
         // Attack anim
         let mut timer = Timer::new_alloc();
-        timer.set_wait_time(self.entity.graphics.get_animation_length("attack_right"));
+        timer.set_wait_time(self.graphics.get_animation_length("attack_right"));
         timer.set_one_shot(true);
         timer
             .signals()
@@ -319,11 +294,7 @@ impl MainCharacter {
 
         // Attack 2 animation
         let mut timer = Timer::new_alloc();
-        timer.set_wait_time(
-            self.entity
-                .graphics
-                .get_animation_length("chainattack_right"),
-        );
+        timer.set_wait_time(self.graphics.get_animation_length("chainattack_right"));
         timer.set_one_shot(true);
         timer
             .signals()
@@ -333,7 +304,7 @@ impl MainCharacter {
 
         // Healing animation
         let mut timer = Timer::new_alloc();
-        timer.set_wait_time(self.entity.graphics.get_animation_length("heal_right"));
+        timer.set_wait_time(self.graphics.get_animation_length("heal_right"));
         timer.set_one_shot(true);
         timer
             .signals()
@@ -349,7 +320,7 @@ impl MainCharacter {
 
         // Parry animation
         let mut timer = Timer::new_alloc();
-        timer.set_wait_time(self.entity.graphics.get_animation_length("parry_right"));
+        timer.set_wait_time(self.graphics.get_animation_length("parry_right"));
         timer.set_one_shot(true);
         timer
             .signals()
@@ -373,7 +344,7 @@ impl MainCharacter {
 
         // Hurt animation
         let mut timer = Timer::new_alloc();
-        timer.set_wait_time(self.entity.graphics.get_animation_length("hurt_right"));
+        timer.set_wait_time(self.graphics.get_animation_length("hurt_right"));
         timer.set_one_shot(true);
         timer
             .signals()

@@ -9,7 +9,7 @@ use statig::prelude::StateMachine;
 use super::enemy_state_machine as esm;
 use crate::entities::{
     enemies::{enemy_context as ctx, physics, time},
-    entity,
+    graphics::Graphics,
     movements::Direction,
 };
 
@@ -30,8 +30,8 @@ pub struct EnemyBodyActor {
     timers: OnReady<time::Timers>,
     #[init(val = OnReady::manual())]
     sm: OnReady<esm::EnemySMType>,
-    #[init(val = OnReady::manual())]
-    entity: OnReady<entity::Entity>,
+    #[init(val = OnReady::from_base_fn(|this|{ Graphics::new(this)}))]
+    graphics: OnReady<Graphics>,
     body: Base<CharacterBody2D>,
 }
 
@@ -39,8 +39,6 @@ pub struct EnemyBodyActor {
 impl ICharacterBody2D for EnemyBodyActor {
     fn ready(&mut self) {
         let this = self.to_gd();
-        self.entity
-            .init(entity::Entity::new(&self.to_gd().upcast()));
         self.movement.init(physics::Movement::new(
             self.base().get_global_position(),
             physics::Speeds::new(150.0, 175.0),
@@ -138,7 +136,7 @@ impl ICharacterBody2D for EnemyBodyActor {
             self.sensors.player_detection.player_position(),
             delta,
         );
-        self.entity.graphics.update(
+        self.graphics.update(
             self.sm.state(),
             &Direction::from_vel(&self.movement.velocity()),
         );

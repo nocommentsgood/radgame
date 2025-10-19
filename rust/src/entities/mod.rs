@@ -1,7 +1,7 @@
 mod damage;
 mod enemies;
-pub mod entity;
 pub mod entity_stats;
+pub mod graphics;
 pub mod hit_reg;
 mod movements;
 pub mod player;

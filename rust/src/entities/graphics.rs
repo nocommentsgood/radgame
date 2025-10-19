@@ -6,36 +6,6 @@ use statig::{IntoStateMachine, blocking::State};
 use std::fmt::Display;
 
 use crate::entities::movements::Direction;
-use std::sync::atomic;
-
-#[derive(PartialEq, Eq, Hash)]
-pub struct ID(i64);
-
-impl ID {
-    pub fn new() -> Self {
-        Self(BUMP.fetch_add(1, atomic::Ordering::Relaxed))
-    }
-}
-
-static BUMP: atomic::AtomicI64 = atomic::AtomicI64::new(4);
-
-pub struct Entity {
-    id: ID,
-    pub graphics: Graphics,
-}
-
-impl Entity {
-    pub fn new(node: &Gd<Node>) -> Self {
-        Self {
-            id: ID::new(),
-            graphics: Graphics::new(node),
-        }
-    }
-
-    pub fn id(&self) -> &ID {
-        &self.id
-    }
-}
 
 #[derive(Clone)]
 pub struct Graphics {

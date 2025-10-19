@@ -5,7 +5,7 @@ use crate::entities::{
         PlayerAttacks, Resistance, Stamina,
     },
     enemies::{enemy_context as ctx, enemy_state_machine as esm, physics, time},
-    entity,
+    graphics::Graphics,
     hit_reg::Hurtbox,
     movements::Direction,
 };
@@ -36,8 +36,8 @@ pub struct NewProjectileEnemy {
     timers: OnReady<time::Timers>,
     #[init(val = OnReady::manual())]
     sm: OnReady<esm::EnemySMType>,
-    #[init(val = OnReady::manual())]
-    entity: OnReady<entity::Entity>,
+    #[init(val = OnReady::from_base_fn(|this|{ Graphics::new(this)}))]
+    graphics: OnReady<Graphics>,
 
     #[init(val = OnReady::new(|| Health::new(10, 10)))]
     health: OnReady<Health>,
@@ -59,8 +59,6 @@ pub struct NewProjectileEnemy {
 #[godot_api]
 impl INode2D for NewProjectileEnemy {
     fn ready(&mut self) {
-        self.entity
-            .init(entity::Entity::new(&self.to_gd().upcast()));
         self.projectile_scene
             .init(load("res://world/projectile.tscn"));
         self.movement.init(physics::Movement::new(
@@ -151,7 +149,7 @@ impl INode2D for NewProjectileEnemy {
             self.sensors.player_detection.player_position(),
             delta,
         );
-        self.entity.graphics.update(
+        self.graphics.update(
             self.sm.state(),
             &Direction::from_vel(&self.movement.velocity()),
         );
