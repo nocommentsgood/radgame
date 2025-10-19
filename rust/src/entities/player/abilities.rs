@@ -8,11 +8,7 @@ use godot::{
     tools::load,
 };
 
-use crate::entities::{
-    damage::{self, AttackData, Damage, DamageType, Element},
-    hit_reg::Hurtbox,
-    player::main_character::MainCharacter,
-};
+use crate::entities::{hit_reg::Hurtbox, player::main_character::MainCharacter};
 
 #[derive(Clone, Copy, Debug)]
 pub enum Ability {

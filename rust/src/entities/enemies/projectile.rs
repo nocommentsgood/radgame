@@ -3,13 +3,7 @@ use godot::{
     prelude::*,
 };
 
-use crate::{
-    entities::{
-        damage::{Attack, AttackData, Damage, DamageType, Element},
-        hit_reg::Hurtbox,
-    },
-    utils::collision_layers,
-};
+use crate::{entities::hit_reg::Hurtbox, utils::collision_layers};
 
 #[derive(GodotClass)]
 #[class(init, base=Node2D)]
@@ -21,7 +15,6 @@ pub struct Projectile {
     pub speed: real,
     #[init(node = "Timer")]
     timer: OnReady<Gd<Timer>>,
-    pub attack: Option<Attack>,
     base: Base<Node2D>,
 }
 
@@ -52,13 +45,6 @@ impl Projectile {
 
     fn on_timer_timeout(&mut self) {
         self.base_mut().queue_free();
-    }
-
-    pub fn set_damage(&mut self, damage: Damage) {
-        self.hurtbox.bind_mut().data = Some(AttackData {
-            damage,
-            parryable: true,
-        });
     }
 
     pub fn on_parried(&mut self) {

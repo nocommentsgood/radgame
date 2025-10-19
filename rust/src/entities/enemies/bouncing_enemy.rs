@@ -9,7 +9,6 @@ use godot::{
 
 use crate::{
     entities::{
-        damage::{AttackData, Damage, DamageType, Damageable, Element, HasHealth},
         enemies::projectile::Projectile,
         hit_reg::{Hitbox, Hurtbox},
         movements::{self},
@@ -37,7 +36,6 @@ pub struct BounceEnemy {
 impl IStaticBody2D for BounceEnemy {
     fn ready(&mut self) {
         self.velocity = Vector2::UP;
-        self.hitbox.bind_mut().damageable_parent = Some(Box::new(self.to_gd()));
 
         self.timer
             .signals()
@@ -78,25 +76,5 @@ impl BounceEnemy {
         for projectile in projectiles {
             self.base_mut().add_sibling(&projectile);
         }
-    }
-}
-
-impl HasHealth for Gd<BounceEnemy> {
-    fn get_health(&self) -> u32 {
-        self.bind().health
-    }
-
-    fn set_health(&mut self, amount: u32) {
-        self.bind_mut().health = amount;
-    }
-
-    fn on_death(&mut self) {
-        self.queue_free();
-    }
-}
-
-impl Damageable for Gd<BounceEnemy> {
-    fn handle_attack(&mut self, attack: crate::entities::damage::AttackData) {
-        // self.take_damage(attack.damage.raw);
     }
 }

@@ -5,17 +5,12 @@ use godot::{
     prelude::{GodotClass, godot_api},
 };
 
-use crate::entities::{
-    damage::{Attack, AttackData, Damageable},
-    entity::ID,
-};
+use crate::entities::damage::Attack;
 
 // TODO: Add resistances here.
 #[derive(GodotClass)]
 #[class(init, base = Area2D)]
 pub struct Hitbox {
-    /// The Damageable entity which owns the Hitbox.
-    pub damageable_parent: Option<Box<dyn Damageable>>,
     base: Base<Area2D>,
 }
 
@@ -29,7 +24,6 @@ impl Hitbox {
 #[class(init, base=Area2D)]
 pub struct Hurtbox {
     pub attack: Option<super::damage::Attack>,
-    pub data: Option<AttackData>,
     base: Base<Area2D>,
 }
 

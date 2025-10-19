@@ -8,7 +8,6 @@ use statig::prelude::StateMachine;
 
 use super::enemy_state_machine as esm;
 use crate::entities::{
-    damage::{AttackData, Damage, DamageType},
     enemies::{enemy_context as ctx, physics, time},
     entity,
     movements::Direction,

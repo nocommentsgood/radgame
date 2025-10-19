@@ -1,28 +1,3 @@
-use godot::obj::Gd;
-
-pub trait HasHealth {
-    fn get_health(&self) -> u32;
-    fn set_health(&mut self, amount: u32);
-    fn on_death(&mut self);
-}
-
-// TODO: Add resistance calculations to Damageable entities.
-//
-/// Implement on entities that can take damage. Requires the entity to have a Hitbox.
-pub trait Damageable: HasHealth {
-    /// Decreases a Damageable's health and checks if the Damageable's health is zero.
-    fn take_damage(&mut self, amount: u32) {
-        self.set_health(self.get_health().saturating_sub(amount));
-        if self.get_health() == 0 {
-            self.on_death();
-        }
-    }
-
-    /// Handles the `AttackData` given by a `Hurtbox`. This should handle attack damage,
-    /// resistances of the defender, attack types, etc.
-    fn handle_attack(&mut self, attack: AttackData);
-}
-
 #[derive(Clone, Copy, Debug)]
 struct Resource {
     amount: i64,
@@ -109,12 +84,6 @@ pub enum Buff {
     Elemental(Element, i64),
 }
 
-#[derive(Clone, Debug)]
-pub struct AttackData {
-    pub parryable: bool,
-    pub damage: Damage,
-}
-
 #[derive(Debug, Clone)]
 pub struct Attack {
     damage: Damage,
@@ -183,17 +152,6 @@ enum AttackKind {
     Melee,
     ElementalMelee(Element),
     ProjectileSpell(Element),
-}
-
-enum AttackResult {
-    AppliedDamage { amount: i64, killed: bool },
-
-    // Due to resistances and/or defense, the defender took no damage.
-    Absorbed,
-}
-
-enum EntityTypes {
-    Player(Gd<super::player::main_character::MainCharacter>),
 }
 
 pub struct Defense {
@@ -285,10 +243,6 @@ impl Offense {
         }
     }
 }
-
-struct CombatSystem {}
-
-impl CombatSystem {}
 
 #[derive(Clone, Copy)]
 pub struct CombatResources {

@@ -1,8 +1,8 @@
 use super::{enemy_state_machine::State, projectile::Projectile};
 use crate::entities::{
     damage::{
-        Attack, AttackData, Buff, CombatResources, Damage, DamageType, Defense, Element, Health,
-        Mana, Offense, PlayerAttacks, Resistance, Stamina,
+        Attack, Buff, CombatResources, Damage, DamageType, Defense, Element, Health, Mana, Offense,
+        PlayerAttacks, Resistance, Stamina,
     },
     enemies::{enemy_context as ctx, enemy_state_machine as esm, physics, time},
     entity,
@@ -52,8 +52,6 @@ pub struct NewProjectileEnemy {
 
     #[init(val = OnReady::new(|| Offense::new(vec![Buff::Elemental(Element::Magic, 2)])))]
     pub off: OnReady<Offense>,
-
-    pub attack: Option<Attack>,
 
     node: Base<Node2D>,
 }
@@ -224,7 +222,6 @@ impl NewProjectileEnemy {
                 Offense::try_attack(PlayerAttacks::FireSpell, &mut self.resources, 1)
             {
                 self.off.apply_buffs(&mut attack);
-                self.attack = Some(attack.clone());
                 let mut hurtbox = inst.get_node_as::<Hurtbox>("Hurtbox");
                 hurtbox.bind_mut().set_attack(attack);
                 inst.set_global_position(pos);
