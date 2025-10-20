@@ -45,6 +45,10 @@ impl Health {
     pub fn take_damage(&mut self, damage: Damage) {
         self.0.decrease(damage.0);
     }
+
+    pub fn is_dead(&self) -> bool {
+        self.0.amount <= 0
+    }
 }
 
 #[derive(Clone, Copy, Debug)]

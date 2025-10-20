@@ -11,8 +11,9 @@ pub struct Projectile {
     pub velocity: Vector2,
     #[init(node = "Hurtbox")]
     pub hurtbox: OnReady<Gd<Hurtbox>>,
+    pub target: Vector2,
     start_pos: Vector2,
-    pub speed: real,
+    speed: real,
     #[init(node = "Timer")]
     timer: OnReady<Gd<Timer>>,
     base: Base<Node2D>,
@@ -31,8 +32,8 @@ impl INode2D for Projectile {
     }
 
     fn process(&mut self, delta: f64) {
-        let velocity = self.velocity;
         let position = self.base().get_position();
+        let velocity = position.direction_to(self.target) * self.speed;
         self.base_mut()
             .set_position(position + velocity * delta as f32);
     }
@@ -52,19 +53,19 @@ impl Projectile {
         let cur_pos = self.base().get_position();
         self.velocity = cur_pos.direction_to(self.start_pos) * self.speed;
 
-        let mut area = self.base().get_node_as::<Hurtbox>("Hurtbox");
-        area.set_collision_layer_value(
+        self.hurtbox.set_collision_layer_value(
             collision_layers::CollisionLayers::EnemyHurtbox as i32,
             false,
         );
-        area.set_collision_mask_value(
+        self.hurtbox.set_collision_mask_value(
             collision_layers::CollisionLayers::PlayerHitbox as i32,
             false,
         );
-        area.set_collision_layer_value(
+        self.hurtbox.set_collision_layer_value(
             collision_layers::CollisionLayers::PlayerHurtbox as i32,
             true,
         );
-        area.set_collision_mask_value(collision_layers::CollisionLayers::EnemyHitbox as i32, true);
+        self.hurtbox
+            .set_collision_mask_value(collision_layers::CollisionLayers::EnemyHitbox as i32, true);
     }
 }

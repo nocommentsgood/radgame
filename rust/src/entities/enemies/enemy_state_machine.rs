@@ -42,6 +42,7 @@ pub enum EnemyEvent {
     RayCastFailed(Direction),
     WallCastRecovered,
     TimerElapsed(EnemyTimers),
+    Death,
     #[default]
     None,
 }
@@ -57,6 +58,7 @@ impl Display for State {
             State::Attack { .. } => write!(f, "attack"),
             State::Attack2 { .. } => write!(f, "chain_attack"),
             State::Falling { .. } => write!(f, "fall"),
+            State::Dead {} => write!(f, "dead"),
         }
     }
 }
@@ -69,6 +71,7 @@ impl EnemyStateMachine {
             EnemyEvent::TimerElapsed(EnemyTimers::Idle) => Response::Transition(State::patrol()),
             EnemyEvent::FoundPlayer => Response::Transition(State::chase_player()),
             EnemyEvent::FailedFloorCheck => Response::Transition(State::falling()),
+            EnemyEvent::Death => Response::Transition(State::dead()),
             _ => Response::Handled,
         }
     }
@@ -86,6 +89,7 @@ impl EnemyStateMachine {
             EnemyEvent::TimerElapsed(EnemyTimers::Patrol) => Response::Transition(State::idle()),
             EnemyEvent::FoundPlayer => Response::Transition(State::chase_player()),
             EnemyEvent::FailedFloorCheck => Response::Transition(State::falling()),
+            EnemyEvent::Death => Response::Transition(State::dead()),
             _ => Handled,
         }
     }
@@ -111,6 +115,7 @@ impl EnemyStateMachine {
                     Response::Transition(State::attack_2())
                 }
             }
+            EnemyEvent::Death => Response::Transition(State::dead()),
             _ => Handled,
         }
     }
@@ -123,6 +128,7 @@ impl EnemyStateMachine {
             EnemyEvent::TimerElapsed(EnemyTimers::AttackAnimation) => {
                 Response::Transition(State::chase_player())
             }
+            EnemyEvent::Death => Response::Transition(State::dead()),
             _ => Handled,
         }
     }
@@ -135,6 +141,7 @@ impl EnemyStateMachine {
             EnemyEvent::TimerElapsed(EnemyTimers::AttackChain) => {
                 Response::Transition(State::chase_player())
             }
+            EnemyEvent::Death => Response::Transition(State::dead()),
             _ => Handled,
         }
     }
@@ -143,6 +150,7 @@ impl EnemyStateMachine {
     fn falling(event: &EnemyEvent) -> Response<State> {
         match event {
             EnemyEvent::OnFloor => Response::Transition(State::idle()),
+            EnemyEvent::Death => Response::Transition(State::dead()),
             _ => Handled,
         }
     }
@@ -151,6 +159,7 @@ impl EnemyStateMachine {
     fn recover_left(event: &EnemyEvent) -> Response<State> {
         match event {
             EnemyEvent::WallCastRecovered => Response::Transition(State::idle()),
+            EnemyEvent::Death => Response::Transition(State::dead()),
             _ => Handled,
         }
     }
@@ -159,7 +168,13 @@ impl EnemyStateMachine {
     fn recover_right(event: &EnemyEvent) -> Response<State> {
         match event {
             EnemyEvent::WallCastRecovered => Response::Transition(State::idle()),
+            EnemyEvent::Death => Response::Transition(State::dead()),
             _ => Handled,
         }
+    }
+
+    #[state]
+    fn dead() -> Response<State> {
+        Handled
     }
 }

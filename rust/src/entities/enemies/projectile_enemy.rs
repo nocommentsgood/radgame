@@ -99,7 +99,10 @@ impl INode2D for NewProjectileEnemy {
         );
 
         self.sensors.connect_signals(
-            |_| (),
+            {
+                let mut this = this.clone();
+                move |area| this.bind_mut().on_hitbox_entered(area)
+            },
             |_| (),
             |_| (),
             |_| (),
@@ -158,6 +161,20 @@ impl INode2D for NewProjectileEnemy {
 
 #[godot_api]
 impl NewProjectileEnemy {
+    fn on_hitbox_entered(&mut self, area: Gd<Area2D>) {
+        println!("Projectile enemy hitbox entered");
+        let hurtbox = area.cast::<Hurtbox>();
+        let attack = hurtbox.bind().attack.clone().unwrap();
+        let damage = self.def.apply_resistances(attack);
+        dbg!(&self.health);
+        self.health.take_damage(damage);
+        if self.health.is_dead() {
+            self.sm.handle(&esm::EnemyEvent::Death);
+            self.run_deferred(|this| this.base_mut().queue_free());
+        }
+        dbg!(&self.health);
+    }
+
     pub fn on_aggro_area_entered(&mut self, _area: Gd<Area2D>) {
         self.sm.handle(&esm::EnemyEvent::FoundPlayer);
     }
@@ -223,7 +240,8 @@ impl NewProjectileEnemy {
                 let mut hurtbox = inst.get_node_as::<Hurtbox>("Hurtbox");
                 hurtbox.bind_mut().set_attack(attack);
                 inst.set_global_position(pos);
-                inst.bind_mut().velocity = target * 500.0;
+                inst.bind_mut().target = target;
+                // inst.bind_mut().velocity = target;
                 self.base_mut().add_sibling(&inst);
             }
         }
