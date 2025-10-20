@@ -13,7 +13,10 @@ use statig::prelude::StateMachine;
 use super::physics;
 use crate::{
     entities::{
-        damage::{Defense, Element, Health, Resistance},
+        damage::{
+            CombatResources, Defense, Element, Health, Mana, Offense, PlayerAttacks, Resistance,
+            Stamina,
+        },
         enemies::projectile::Projectile,
         entity_stats::{EntityStats, Stat, StatModifier, StatVal},
         graphics::Graphics,
@@ -78,6 +81,9 @@ pub struct MainCharacter {
 
     #[init(val = Defense::new(vec![Resistance::Physical(5), Resistance::Elemental(Element::Fire, 10)]))]
     pub def: Defense,
+
+    #[init(val = CombatResources::new(Stamina::new(30, 30), Mana::new(50, 50)))]
+    resources: CombatResources,
 }
 
 #[godot_api]
@@ -250,7 +256,14 @@ impl MainCharacter {
     /// current state.
     pub fn transition_sm(&mut self, event: &Event) {
         let prev = *self.state.state();
-        self.state.handle_with_context(event, &mut self.timers);
+        self.state.handle_with_context(
+            event,
+            &mut (
+                &mut self.timers,
+                &mut self.resources,
+                &mut self.hit_reg.hurtbox,
+            ),
+        );
         let new = *self.state.state();
         if prev != new {
             // TODO: Temporary solution. The direction isn't updated in time, so defer getting the

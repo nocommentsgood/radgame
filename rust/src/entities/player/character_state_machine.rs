@@ -4,7 +4,11 @@ use godot::{classes::Timer, obj::Gd};
 use statig::blocking::*;
 
 use crate::{
-    entities::time::PlayerTimer,
+    entities::{
+        damage::{CombatResources, Offense, PlayerAttacks},
+        hit_reg::Hurtbox,
+        time::PlayerTimer,
+    },
     utils::input_hanlder::{Inputs, ModifierButton, MoveButton},
 };
 
@@ -81,7 +85,11 @@ impl CharacterStateMachine {
     fn idle_right(
         &mut self,
         event: &Event,
-        context: &mut HashMap<PlayerTimer, Gd<Timer>>,
+        context: &mut (
+            &mut HashMap<PlayerTimer, Gd<Timer>>,
+            &mut CombatResources,
+            &mut Gd<Hurtbox>,
+        ),
     ) -> Response<State> {
         match event {
             Event::InputChanged(inputs) => {
@@ -126,13 +134,29 @@ impl CharacterStateMachine {
 
                     // Attacking
                     (Some(MoveButton::Right), Some(ModifierButton::Attack)) => {
+                        if let Ok(attack) =
+                            Offense::try_attack(PlayerAttacks::SimpleMelee, context.1, 1)
+                        {
+                            context.2.bind_mut().set_attack(attack);
+                        }
                         Response::Transition(State::attacking_right())
                     }
                     (Some(MoveButton::Left), Some(ModifierButton::Attack)) => {
+                        if let Ok(attack) =
+                            Offense::try_attack(PlayerAttacks::SimpleMelee, context.1, 1)
+                        {
+                            context.2.bind_mut().set_attack(attack);
+                        }
                         Response::Transition(State::attacking_left())
                     }
                     (None, Some(ModifierButton::Attack)) => {
-                        Response::Transition(State::attacking_right())
+                            Offense::try_attack(PlayerAttacks::SimpleMelee, context.1, 1).map_or
+                        if let Ok(attack) =
+                            Offense::try_attack(PlayerAttacks::SimpleMelee, context.1, 1)
+                        {
+                            context.2.bind_mut().set_attack(attack);
+                            Response::Transition(State::attacking_right())
+                        }
                     }
 
                     // Parry
@@ -162,6 +186,7 @@ impl CharacterStateMachine {
             // Hurt
             Event::Hurt => {
                 context
+                    .0
                     .get_mut(&PlayerTimer::HurtAnimation)
                     .unwrap()
                     .start();
@@ -176,7 +201,11 @@ impl CharacterStateMachine {
     fn idle_left(
         &mut self,
         event: &Event,
-        context: &mut HashMap<PlayerTimer, Gd<Timer>>,
+        context: &mut (
+            &mut HashMap<PlayerTimer, Gd<Timer>>,
+            &mut CombatResources,
+            &mut Gd<Hurtbox>,
+        ),
     ) -> Response<State> {
         match event {
             Event::InputChanged(inputs) => match (&inputs.0, &inputs.1) {
@@ -218,12 +247,27 @@ impl CharacterStateMachine {
 
                 // Attacking
                 (Some(MoveButton::Right), Some(ModifierButton::Attack)) => {
+                    if let Ok(attack) =
+                        Offense::try_attack(PlayerAttacks::SimpleMelee, context.1, 1)
+                    {
+                        context.2.bind_mut().set_attack(attack);
+                    }
                     Response::Transition(State::attacking_right())
                 }
                 (Some(MoveButton::Left), Some(ModifierButton::Attack)) => {
+                    if let Ok(attack) =
+                        Offense::try_attack(PlayerAttacks::SimpleMelee, context.1, 1)
+                    {
+                        context.2.bind_mut().set_attack(attack);
+                    }
                     Response::Transition(State::attacking_left())
                 }
                 (None, Some(ModifierButton::Attack)) => {
+                    if let Ok(attack) =
+                        Offense::try_attack(PlayerAttacks::SimpleMelee, context.1, 1)
+                    {
+                        context.2.bind_mut().set_attack(attack);
+                    }
                     Response::Transition(State::attacking_left())
                 }
 
@@ -252,6 +296,7 @@ impl CharacterStateMachine {
             // Hurt
             Event::Hurt => {
                 context
+                    .0
                     .get_mut(&PlayerTimer::HurtAnimation)
                     .unwrap()
                     .start();
@@ -266,7 +311,11 @@ impl CharacterStateMachine {
     fn move_right(
         &mut self,
         event: &Event,
-        context: &mut HashMap<PlayerTimer, Gd<Timer>>,
+        context: &mut (
+            &mut HashMap<PlayerTimer, Gd<Timer>>,
+            &mut CombatResources,
+            &mut Gd<Hurtbox>,
+        ),
     ) -> Response<State> {
         match event {
             Event::InputChanged(input) => {
@@ -310,12 +359,27 @@ impl CharacterStateMachine {
 
                     // Attacking
                     (Some(MoveButton::Right), Some(ModifierButton::Attack)) => {
+                        if let Ok(attack) =
+                            Offense::try_attack(PlayerAttacks::SimpleMelee, context.1, 1)
+                        {
+                            context.2.bind_mut().set_attack(attack);
+                        }
                         Response::Transition(State::attacking_right())
                     }
                     (Some(MoveButton::Left), Some(ModifierButton::Attack)) => {
+                        if let Ok(attack) =
+                            Offense::try_attack(PlayerAttacks::SimpleMelee, context.1, 1)
+                        {
+                            context.2.bind_mut().set_attack(attack);
+                        }
                         Response::Transition(State::attacking_left())
                     }
                     (None, Some(ModifierButton::Attack)) => {
+                        if let Ok(attack) =
+                            Offense::try_attack(PlayerAttacks::SimpleMelee, context.1, 1)
+                        {
+                            context.2.bind_mut().set_attack(attack);
+                        }
                         Response::Transition(State::attacking_right())
                     }
 
@@ -356,7 +420,11 @@ impl CharacterStateMachine {
     fn move_left(
         &mut self,
         event: &Event,
-        context: &mut HashMap<PlayerTimer, Gd<Timer>>,
+        context: &mut (
+            &mut HashMap<PlayerTimer, Gd<Timer>>,
+            &mut CombatResources,
+            &mut Gd<Hurtbox>,
+        ),
     ) -> Response<State> {
         match event {
             Event::InputChanged(input) => match (&input.0, &input.1) {
@@ -396,12 +464,27 @@ impl CharacterStateMachine {
 
                 // Attacking
                 (Some(MoveButton::Right), Some(ModifierButton::Attack)) => {
+                    if let Ok(attack) =
+                        Offense::try_attack(PlayerAttacks::SimpleMelee, context.1, 1)
+                    {
+                        context.2.bind_mut().set_attack(attack);
+                    }
                     Response::Transition(State::attacking_right())
                 }
                 (Some(MoveButton::Left), Some(ModifierButton::Attack)) => {
+                    if let Ok(attack) =
+                        Offense::try_attack(PlayerAttacks::SimpleMelee, context.1, 1)
+                    {
+                        context.2.bind_mut().set_attack(attack);
+                    }
                     Response::Transition(State::attacking_left())
                 }
                 (None, Some(ModifierButton::Attack)) => {
+                    if let Ok(attack) =
+                        Offense::try_attack(PlayerAttacks::SimpleMelee, context.1, 1)
+                    {
+                        context.2.bind_mut().set_attack(attack);
+                    }
                     Response::Transition(State::attacking_left())
                 }
 
@@ -859,7 +942,15 @@ impl CharacterStateMachine {
 
     // TODO: Chain attacking.
     #[state]
-    fn attacking_right(&mut self, event: &Event) -> Response<State> {
+    fn attacking_right(
+        &mut self,
+        event: &Event,
+        context: &mut (
+            &mut HashMap<PlayerTimer, Gd<Timer>>,
+            &mut CombatResources,
+            &mut Gd<Hurtbox>,
+        ),
+    ) -> Response<State> {
         match event {
             Event::TimerElapsed(inputs) => match (&inputs.0, &inputs.1) {
                 // Chain attacking
@@ -1179,13 +1270,17 @@ impl CharacterStateMachine {
     #[state]
     fn wall_grab_left(
         event: &Event,
-        context: &mut HashMap<PlayerTimer, Gd<Timer>>,
+        context: &mut (
+            &mut HashMap<PlayerTimer, Gd<Timer>>,
+            &mut CombatResources,
+            &mut Gd<Hurtbox>,
+        ),
     ) -> Response<State> {
         match event {
             Event::InputChanged(inputs) => match (&inputs.0, inputs.1) {
                 // Jumping
                 (Some(MoveButton::Left), Some(ModifierButton::Jump)) => {
-                    if let Some(timer) = context.get_mut(&PlayerTimer::WallJumpLimit)
+                    if let Some(timer) = context.0.get_mut(&PlayerTimer::WallJumpLimit)
                         && timer.get_time_left() == 0.0
                     {
                         timer.start();
@@ -1216,13 +1311,17 @@ impl CharacterStateMachine {
     #[state]
     fn wall_grab_right(
         event: &Event,
-        context: &mut HashMap<PlayerTimer, Gd<Timer>>,
+        context: &mut (
+            &mut HashMap<PlayerTimer, Gd<Timer>>,
+            &mut CombatResources,
+            &mut Gd<Hurtbox>,
+        ),
     ) -> Response<State> {
         match event {
             Event::InputChanged(inputs) => match (&inputs.0, inputs.1) {
                 // Jumping
                 (Some(MoveButton::Right), Some(ModifierButton::Jump)) => {
-                    if let Some(timer) = context.get_mut(&PlayerTimer::WallJumpLimit)
+                    if let Some(timer) = context.0.get_mut(&PlayerTimer::WallJumpLimit)
                         && timer.get_time_left() == 0.0
                     {
                         timer.start();
@@ -1251,11 +1350,18 @@ impl CharacterStateMachine {
     }
 }
 
-fn try_jump<F>(context: &mut HashMap<PlayerTimer, Gd<Timer>>, completed: F) -> Response<State>
+fn try_jump<F>(
+    context: &mut (
+        &mut HashMap<PlayerTimer, Gd<Timer>>,
+        &mut CombatResources,
+        &mut Gd<Hurtbox>,
+    ),
+    completed: F,
+) -> Response<State>
 where
     F: FnOnce() -> Response<State>,
 {
-    if let Some(timer) = context.get_mut(&PlayerTimer::JumpTimeLimit)
+    if let Some(timer) = context.0.get_mut(&PlayerTimer::JumpTimeLimit)
         && timer.get_time_left() == 0.0
     {
         timer.start();
