@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use godot::{classes::Timer, obj::Gd};
 use statig::blocking::*;
@@ -11,6 +11,26 @@ use crate::{
     },
     utils::input_hanlder::{Inputs, ModifierButton, MoveButton},
 };
+
+pub struct SMContext {
+    timers: Rc<RefCell<HashMap<PlayerTimer, Gd<Timer>>>>,
+    resources: Rc<RefCell<CombatResources>>,
+    hurtbox: Gd<Hurtbox>,
+}
+
+impl SMContext {
+    pub fn new(
+        timers: Rc<RefCell<HashMap<PlayerTimer, Gd<Timer>>>>,
+        resources: Rc<RefCell<CombatResources>>,
+        hurtbox: Gd<Hurtbox>,
+    ) -> Self {
+        Self {
+            timers,
+            resources,
+            hurtbox,
+        }
+    }
+}
 
 #[derive(Default, Debug, Clone)]
 pub struct CharacterStateMachine {
@@ -138,24 +158,29 @@ impl CharacterStateMachine {
                             Offense::try_attack(PlayerAttacks::SimpleMelee, context.1, 1)
                         {
                             context.2.bind_mut().set_attack(attack);
+                            Response::Transition(State::attacking_right())
+                        } else {
+                            Handled
                         }
-                        Response::Transition(State::attacking_right())
                     }
                     (Some(MoveButton::Left), Some(ModifierButton::Attack)) => {
                         if let Ok(attack) =
                             Offense::try_attack(PlayerAttacks::SimpleMelee, context.1, 1)
                         {
                             context.2.bind_mut().set_attack(attack);
+                            Response::Transition(State::attacking_left())
+                        } else {
+                            Handled
                         }
-                        Response::Transition(State::attacking_left())
                     }
                     (None, Some(ModifierButton::Attack)) => {
-                            Offense::try_attack(PlayerAttacks::SimpleMelee, context.1, 1).map_or
                         if let Ok(attack) =
                             Offense::try_attack(PlayerAttacks::SimpleMelee, context.1, 1)
                         {
                             context.2.bind_mut().set_attack(attack);
                             Response::Transition(State::attacking_right())
+                        } else {
+                            Handled
                         }
                     }
 
@@ -251,24 +276,30 @@ impl CharacterStateMachine {
                         Offense::try_attack(PlayerAttacks::SimpleMelee, context.1, 1)
                     {
                         context.2.bind_mut().set_attack(attack);
+                        Response::Transition(State::attacking_right())
+                    } else {
+                        Handled
                     }
-                    Response::Transition(State::attacking_right())
                 }
                 (Some(MoveButton::Left), Some(ModifierButton::Attack)) => {
                     if let Ok(attack) =
                         Offense::try_attack(PlayerAttacks::SimpleMelee, context.1, 1)
                     {
                         context.2.bind_mut().set_attack(attack);
+                        Response::Transition(State::attacking_left())
+                    } else {
+                        Handled
                     }
-                    Response::Transition(State::attacking_left())
                 }
                 (None, Some(ModifierButton::Attack)) => {
                     if let Ok(attack) =
                         Offense::try_attack(PlayerAttacks::SimpleMelee, context.1, 1)
                     {
                         context.2.bind_mut().set_attack(attack);
+                        Response::Transition(State::attacking_left())
+                    } else {
+                        Handled
                     }
-                    Response::Transition(State::attacking_left())
                 }
 
                 // Parry
@@ -363,24 +394,30 @@ impl CharacterStateMachine {
                             Offense::try_attack(PlayerAttacks::SimpleMelee, context.1, 1)
                         {
                             context.2.bind_mut().set_attack(attack);
+                            Response::Transition(State::attacking_right())
+                        } else {
+                            Handled
                         }
-                        Response::Transition(State::attacking_right())
                     }
                     (Some(MoveButton::Left), Some(ModifierButton::Attack)) => {
                         if let Ok(attack) =
                             Offense::try_attack(PlayerAttacks::SimpleMelee, context.1, 1)
                         {
                             context.2.bind_mut().set_attack(attack);
+                            Response::Transition(State::attacking_left())
+                        } else {
+                            Handled
                         }
-                        Response::Transition(State::attacking_left())
                     }
                     (None, Some(ModifierButton::Attack)) => {
                         if let Ok(attack) =
                             Offense::try_attack(PlayerAttacks::SimpleMelee, context.1, 1)
                         {
                             context.2.bind_mut().set_attack(attack);
+                            Response::Transition(State::attacking_right())
+                        } else {
+                            Handled
                         }
-                        Response::Transition(State::attacking_right())
                     }
 
                     // Parry
@@ -468,24 +505,30 @@ impl CharacterStateMachine {
                         Offense::try_attack(PlayerAttacks::SimpleMelee, context.1, 1)
                     {
                         context.2.bind_mut().set_attack(attack);
+                        Response::Transition(State::attacking_right())
+                    } else {
+                        Handled
                     }
-                    Response::Transition(State::attacking_right())
                 }
                 (Some(MoveButton::Left), Some(ModifierButton::Attack)) => {
                     if let Ok(attack) =
                         Offense::try_attack(PlayerAttacks::SimpleMelee, context.1, 1)
                     {
                         context.2.bind_mut().set_attack(attack);
+                        Response::Transition(State::attacking_left())
+                    } else {
+                        Handled
                     }
-                    Response::Transition(State::attacking_left())
                 }
                 (None, Some(ModifierButton::Attack)) => {
                     if let Ok(attack) =
                         Offense::try_attack(PlayerAttacks::SimpleMelee, context.1, 1)
                     {
                         context.2.bind_mut().set_attack(attack);
+                        Response::Transition(State::attacking_left())
+                    } else {
+                        Handled
                     }
-                    Response::Transition(State::attacking_left())
                 }
 
                 // Parry
