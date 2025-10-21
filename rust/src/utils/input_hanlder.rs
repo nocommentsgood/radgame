@@ -33,13 +33,9 @@ impl InputHandler {
 
     // TODO: Move timer handling to state machine.
     pub fn handle(input: &Gd<Input>, entity: &mut MainCharacter) -> Inputs {
-        let timer_ok = |timer: Option<&Gd<Timer>>| {
-            timer.is_some_and(|t| t.get_time_left() == 0.0 && t.is_stopped())
-        };
         let mut inputs = Self::get_movement(input);
 
-        if input.is_action_pressed("attack") && timer_ok(entity.timers.get(&PT::AttackAnimation)) {
-            entity.timers.get_mut(&PT::AttackAnimation).unwrap().start();
+        if input.is_action_pressed("attack") {
             inputs.1 = Some(ModifierButton::Attack);
         }
         if input.is_action_pressed("jump") {
@@ -50,22 +46,10 @@ impl InputHandler {
             }
         }
 
-        if input.is_action_pressed("dodge")
-            && timer_ok(entity.timers.get(&PT::DodgeAnimation))
-            && timer_ok(entity.timers.get(&PT::DodgeCooldown))
-        {
-            entity.timers.get_mut(&PT::DodgeAnimation).unwrap().start();
+        if input.is_action_pressed("dodge") {
             inputs.1 = Some(ModifierButton::Dodge);
         }
-        if input.is_action_pressed("heal")
-            && timer_ok(entity.timers.get(&PT::HealingAnimation))
-            && timer_ok(entity.timers.get(&PT::HealingCooldown))
-        {
-            entity
-                .timers
-                .get_mut(&PT::HealingAnimation)
-                .unwrap()
-                .start();
+        if input.is_action_pressed("heal") {
             inputs.1 = Some(ModifierButton::Heal);
             entity.transition_sm(&Event::InputChanged(inputs));
 
@@ -89,10 +73,8 @@ impl InputHandler {
                 }
             }
         }
-        if input.is_action_pressed("parry") && timer_ok(entity.timers.get(&PT::ParryAnimation)) {
+        if input.is_action_pressed("parry") {
             {
-                entity.timers.get_mut(&PT::ParryAnimation).unwrap().start();
-                entity.timers.get_mut(&PT::PerfectParry).unwrap().start();
                 inputs.1 = Some(ModifierButton::Parry);
             }
         }

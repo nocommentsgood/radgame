@@ -22,20 +22,21 @@ pub enum PlayerTimer {
     JumpTimeLimit,
 }
 
+#[derive(Clone)]
 pub struct PlayerTimers {
-    wall_jump: Gd<Timer>,
-    dodge_anim: Gd<Timer>,
-    attack_anim: Gd<Timer>,
-    attack_2_anim: Gd<Timer>,
-    healing_anim: Gd<Timer>,
-    healing_cooldown: Gd<Timer>,
-    hurt_anim: Gd<Timer>,
-    parry_anim: Gd<Timer>,
-    parry: Gd<Timer>,
-    perfect_parry: Gd<Timer>,
-    coyote: Gd<Timer>,
-    dodge_cooldown: Gd<Timer>,
-    jump_limit: Gd<Timer>,
+    pub wall_jump: Gd<Timer>,
+    pub dodge_anim: Gd<Timer>,
+    pub attack_anim: Gd<Timer>,
+    pub attack_2_anim: Gd<Timer>,
+    pub healing_anim: Gd<Timer>,
+    pub healing_cooldown: Gd<Timer>,
+    pub hurt_anim: Gd<Timer>,
+    pub parry_anim: Gd<Timer>,
+    pub parry: Gd<Timer>,
+    pub perfect_parry: Gd<Timer>,
+    pub coyote: Gd<Timer>,
+    pub dodge_cooldown: Gd<Timer>,
+    pub jump_limit: Gd<Timer>,
 }
 
 impl PlayerTimers {
