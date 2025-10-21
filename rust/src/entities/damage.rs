@@ -236,7 +236,6 @@ impl Offense {
         if resources.handle_attack_cost(&attack.resource_cost).is_ok() {
             Ok(attack)
         } else {
-            println!("Entity didn't have enough resources");
             Err(())
         }
     }
@@ -246,11 +245,18 @@ impl Offense {
 pub struct CombatResources {
     stam: Stamina,
     mana: Mana,
+    stam_counter: f32,
+    mana_counter: f32,
 }
 
 impl CombatResources {
     pub fn new(stam: Stamina, mana: Mana) -> Self {
-        Self { stam, mana }
+        Self {
+            stam,
+            mana,
+            stam_counter: 0.0,
+            mana_counter: 0.0,
+        }
     }
 
     pub fn mana(&self) -> &Mana {
@@ -259,6 +265,24 @@ impl CombatResources {
 
     pub fn stamina(&self) -> &Stamina {
         &self.stam
+    }
+
+    pub fn tick_resources(&mut self, delta: f32) {
+        if self.mana.0.amount < self.mana.0.max {
+            self.mana_counter += delta;
+            if self.mana_counter >= 8.0 {
+                self.mana_counter = 0.0;
+                self.mana.0.increase(2);
+            }
+        }
+
+        if self.stam.0.amount < self.stam.0.max {
+            self.stam_counter += delta;
+            if self.stam_counter > 3.0 {
+                self.stam_counter = 0.0;
+                self.stam.0.increase(1);
+            }
+        }
     }
 
     fn handle_attack_cost(&mut self, costs: &[AttackResourceCost]) -> Result<(), ()> {

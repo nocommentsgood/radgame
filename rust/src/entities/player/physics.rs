@@ -109,7 +109,6 @@ impl Movement {
     }
 
     pub fn get_direction(&self) -> Direction {
-        dbg!(&self.velocity);
         self.direction
     }
 

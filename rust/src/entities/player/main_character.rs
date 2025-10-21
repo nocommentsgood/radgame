@@ -128,6 +128,10 @@ impl ICharacterBody2D for MainCharacter {
     }
 
     fn physics_process(&mut self, delta: f32) {
+        if let Ok(mut borrow) = self.resources.try_borrow_mut() {
+            borrow.tick_resources(delta);
+        }
+
         let frame = physics::PhysicsFrame::new(
             *self.state.state(),
             self.previous_state,
@@ -187,10 +191,8 @@ impl MainCharacter {
                 proj.bind_mut().on_parried();
             }
         } else {
-            dbg!(&self.health);
             let damage = self.def.apply_resistances(attack);
             self.health.take_damage(damage);
-            dbg!(&self.health);
             self.camera
                 .bind_mut()
                 .add_trauma(TraumaLevel::from(damage.0));
@@ -262,7 +264,6 @@ impl MainCharacter {
             self.hit_reg.hurtbox.clone(),
         );
         self.state.handle_with_context(event, &mut context);
-        dbg!(&self.resources.borrow().stamina());
         let new = *self.state.state();
         if prev != new {
             // TODO: Temporary solution. The direction isn't updated in time, so defer getting the
