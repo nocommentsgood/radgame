@@ -24,8 +24,8 @@ use crate::{
             character_state_machine::{self as csm},
             item_component::ItemComponent,
             shaky_player_camera::{PlayerCamera, TraumaLevel},
+            time::{PlayerTimer, PlayerTimers},
         },
-        time::PlayerTimer,
     },
     utils::{
         global_data_singleton::GlobalData,
@@ -43,6 +43,10 @@ pub struct MainCharacter {
     inputs: Inputs,
     previous_state: State,
     pub timers: collections::HashMap<PlayerTimer, Gd<Timer>>,
+
+    #[init(val = OnReady::from_base_fn(|this| PlayerTimers::new(this)))]
+    pub timer: OnReady<PlayerTimers>,
+
     pub state: StateMachine<csm::CharacterStateMachine>,
 
     pub stats: EntityStats,

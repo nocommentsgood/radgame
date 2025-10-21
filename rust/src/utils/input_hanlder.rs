@@ -4,13 +4,13 @@ use godot::{
     obj::{Gd, WithBaseField, WithUserSignals},
 };
 
+use crate::entities::player::time::PlayerTimer;
 use crate::entities::{
     entity_stats::Stat,
     player::{
         character_state_machine::{Event, State},
         main_character::MainCharacter,
     },
-    time::PlayerTimer,
 };
 
 type PT = PlayerTimer;

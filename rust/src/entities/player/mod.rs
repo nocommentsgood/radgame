@@ -4,6 +4,7 @@ pub mod item_component;
 pub mod main_character;
 mod physics;
 pub mod shaky_player_camera;
+pub mod time;
 
 // TODO: Actually write tests.
 #[cfg(test)]

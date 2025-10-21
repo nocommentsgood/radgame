@@ -7,7 +7,7 @@ use crate::{
     entities::{
         damage::{CombatResources, Offense, PlayerAttacks},
         hit_reg::Hurtbox,
-        time::PlayerTimer,
+        player::time::PlayerTimer,
     },
     utils::input_hanlder::{Inputs, ModifierButton, MoveButton},
 };

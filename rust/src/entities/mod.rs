@@ -5,4 +5,3 @@ pub mod graphics;
 pub mod hit_reg;
 mod movements;
 pub mod player;
-pub mod time;
