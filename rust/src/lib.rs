@@ -1,4 +1,5 @@
 #![feature(map_try_insert)]
+#![feature(if_let_guard)]
 
 use godot::{classes::Engine, prelude::*};
 use utils::global_data_singleton::GlobalData;

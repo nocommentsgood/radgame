@@ -42,10 +42,9 @@ type Event = csm::Event;
 pub struct MainCharacter {
     inputs: Inputs,
     previous_state: State,
-    pub timers: collections::HashMap<PlayerTimer, Gd<Timer>>,
 
-    #[init(val = OnReady::from_base_fn(|this| PlayerTimers::new(this)))]
-    pub timer: OnReady<PlayerTimers>,
+    #[init(val = OnReady::from_base_fn(|this| rc::Rc::new(cell::RefCell::new(PlayerTimers::new(this)))))]
+    pub timer: OnReady<rc::Rc<cell::RefCell<PlayerTimers>>>,
 
     pub state: StateMachine<csm::CharacterStateMachine>,
 
@@ -221,13 +220,13 @@ impl MainCharacter {
     }
 
     fn on_healing_timeout(&mut self) {
-        self.timers.get_mut(&PT::HealingCooldown).unwrap().start();
+        self.timer.borrow_mut().healing_cooldown.start();
         let input = InputHandler::handle(&Input::singleton(), self);
         self.transition_sm(&Event::TimerElapsed(input));
     }
 
     fn on_dodge_animation_timeout(&mut self) {
-        self.timers.get_mut(&PT::DodgeCooldown).unwrap().start();
+        self.timer.borrow_mut().dodge_cooldown.start();
         let input = InputHandler::handle(&Input::singleton(), self);
         self.transition_sm(&Event::TimerElapsed(input));
     }
@@ -244,10 +243,10 @@ impl MainCharacter {
 
     fn parried(&mut self) -> bool {
         if let State::ParryRight {} | State::ParryLeft {} = self.state.state() {
-            if self.timers.get(&PT::PerfectParry).unwrap().get_time_left() > 0.0 {
+            if self.timer.borrow_mut().perfect_parry.get_time_left() > 0.0 {
                 println!("Perfect parry");
                 true
-            } else if self.timers.get(&PT::Parry).unwrap().get_time_left() > 0.0 {
+            } else if self.timer.borrow_mut().parry.get_time_left() > 0.0 {
                 println!("Normal parry");
                 true
             } else {
@@ -263,7 +262,7 @@ impl MainCharacter {
     pub fn transition_sm(&mut self, event: &Event) {
         let prev = *self.state.state();
         let mut context = csm::SMContext::new(
-            self.timers.clone(),
+            self.timer.clone(),
             self.resources.clone(),
             self.hit_reg.hurtbox.clone(),
         );
@@ -282,119 +281,48 @@ impl MainCharacter {
     /// Sets timer lengths, timer callbacks, and adds timers as children of the player.
     fn init_timers(&mut self) {
         let this = &self.to_gd();
-
-        // Dodge animation
-        let mut timer = Timer::new_alloc();
-        timer.set_wait_time(self.graphics.get_animation_length("dodge_right"));
-        timer.set_one_shot(true);
-        timer
-            .signals()
-            .timeout()
-            .connect_other(this, Self::on_dodge_animation_timeout);
-        self.timers.insert(PlayerTimer::DodgeAnimation, timer);
-
-        // Dodge cooldown
-        let mut timer = Timer::new_alloc();
-        timer.set_wait_time(2.5);
-        timer.set_one_shot(true);
-        self.timers.insert(PT::DodgeCooldown, timer);
-
-        // Attack anim
-        let mut timer = Timer::new_alloc();
-        timer.set_wait_time(self.graphics.get_animation_length("attack_right"));
-        timer.set_one_shot(true);
-        timer
-            .signals()
-            .timeout()
-            .connect_other(this, Self::on_attack_timeout);
-        self.timers.insert(PlayerTimer::AttackAnimation, timer);
-
-        // Attack 2 animation
-        let mut timer = Timer::new_alloc();
-        timer.set_wait_time(self.graphics.get_animation_length("chainattack_right"));
-        timer.set_one_shot(true);
-        timer
-            .signals()
-            .timeout()
-            .connect_other(this, Self::on_attack_2_timeout);
-        self.timers.insert(PlayerTimer::Attack2Animation, timer);
-
-        // Healing animation
-        let mut timer = Timer::new_alloc();
-        timer.set_wait_time(self.graphics.get_animation_length("heal_right"));
-        timer.set_one_shot(true);
-        timer
-            .signals()
-            .timeout()
-            .connect_other(&self.to_gd(), Self::on_healing_timeout);
-        self.timers.insert(PlayerTimer::HealingAnimation, timer);
-
-        // Healing cooldown
-        let mut timer = Timer::new_alloc();
-        timer.set_wait_time(1.5);
-        timer.set_one_shot(true);
-        self.timers.insert(PlayerTimer::HealingCooldown, timer);
-
-        // Parry animation
-        let mut timer = Timer::new_alloc();
-        timer.set_wait_time(self.graphics.get_animation_length("parry_right"));
-        timer.set_one_shot(true);
-        timer
-            .signals()
-            .timeout()
-            .connect_other(this, Self::on_parry_timeout);
-        self.timers.insert(PlayerTimer::ParryAnimation, timer);
-
-        // Successful parry
-        let mut timer = Timer::new_alloc();
-        timer.set_wait_time(0.3);
-        timer.set_one_shot(true);
-        self.timers.insert(PlayerTimer::Parry, Timer::new_alloc());
-
-        // Perfect parry
-        let mut timer = Timer::new_alloc();
-        timer.set_wait_time(0.15);
-        timer.set_one_shot(true);
-        self.timers.insert(PlayerTimer::PerfectParry, timer);
-
-        self.timers.insert(PlayerTimer::Coyote, Timer::new_alloc());
-
-        // Hurt animation
-        let mut timer = Timer::new_alloc();
-        timer.set_wait_time(self.graphics.get_animation_length("hurt_right"));
-        timer.set_one_shot(true);
-        timer
-            .signals()
-            .timeout()
-            .connect_other(this, Self::on_hurt_animation_timeout);
-        self.timers.insert(PlayerTimer::HurtAnimation, timer);
-
-        // Jump time limit
-        let mut timer = Timer::new_alloc();
-        timer.set_wait_time(0.4);
-        timer.set_one_shot(true);
-        timer
-            .signals()
-            .timeout()
-            .connect_other(this, Self::on_jump_limit_timeout);
-        self.timers.insert(PlayerTimer::JumpTimeLimit, timer);
-
-        // Wall jump limit
-        let mut timer = Timer::new_alloc();
-        timer.set_wait_time(0.1);
-        timer.set_one_shot(true);
-        timer.set_timer_process_callback(TimerProcessCallback::PHYSICS);
-        timer
-            .signals()
-            .timeout()
-            .connect_other(this, Self::on_jump_limit_timeout);
-        self.timers.insert(PlayerTimer::WallJumpLimit, timer);
-
-        let mut pt = self.timers.clone();
-        pt.values_mut().for_each(|timer| {
-            timer.set_one_shot(true);
-            self.base_mut().add_child(&timer.clone());
-        });
+        self.timer.borrow_mut().connect_signals(
+            {
+                let mut this = this.clone();
+                move || this.bind_mut().on_jump_limit_timeout()
+            },
+            {
+                let mut this = this.clone();
+                move || this.bind_mut().on_dodge_animation_timeout()
+            },
+            {
+                let mut this = this.clone();
+                move || this.bind_mut().on_attack_timeout()
+            },
+            {
+                let mut this = this.clone();
+                move || this.bind_mut().on_attack_2_timeout()
+            },
+            {
+                let mut this = this.clone();
+                move || this.bind_mut().on_healing_timeout()
+            },
+            {
+                let mut this = this.clone();
+                move || this.bind_mut().on_hurt_animation_timeout()
+            },
+            {
+                let mut this = this.clone();
+                move || this.bind_mut().on_parry_timeout()
+            },
+            {
+                || ()
+                // let this = this.clone();
+                // this.bind_mut().
+            },
+            || (),
+            || (),
+            || (),
+            {
+                let mut this = this.clone();
+                move || this.bind_mut().on_jump_limit_timeout()
+            },
+        );
     }
 
     fn update_camera(&mut self, previous_velocity: Vector2) {

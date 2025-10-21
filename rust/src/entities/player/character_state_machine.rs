@@ -7,20 +7,20 @@ use crate::{
     entities::{
         damage::{CombatResources, Offense, PlayerAttacks},
         hit_reg::Hurtbox,
-        player::time::PlayerTimer,
+        player::time::{PlayerTimer, PlayerTimers},
     },
     utils::input_hanlder::{Inputs, ModifierButton, MoveButton},
 };
 
 pub struct SMContext {
-    timers: HashMap<PlayerTimer, Gd<Timer>>,
+    timers: Rc<RefCell<PlayerTimers>>,
     resources: Rc<RefCell<CombatResources>>,
     hurtbox: Gd<Hurtbox>,
 }
 
 impl SMContext {
     pub fn new(
-        timers: HashMap<PlayerTimer, Gd<Timer>>,
+        timers: Rc<RefCell<PlayerTimers>>,
         resources: Rc<RefCell<CombatResources>>,
         hurtbox: Gd<Hurtbox>,
     ) -> Self {
@@ -113,10 +113,17 @@ impl CharacterStateMachine {
                     (Some(MoveButton::Left), Some(ModifierButton::Dodge)) => {
                         Response::Transition(State::dodging_left())
                     }
-                    (Some(MoveButton::Right), Some(ModifierButton::Dodge)) => {
+                    (Some(MoveButton::Right), Some(ModifierButton::Dodge))
+                        if context.timers.borrow().dodge_cooldown.get_time_left() == 0.0 =>
+                    {
+                        context.timers.borrow_mut().dodge_cooldown.start();
                         Response::Transition(State::dodging_right())
                     }
-                    (None, Some(ModifierButton::Dodge)) => {
+                    (None, Some(ModifierButton::Dodge))
+                        if context.timers.borrow().dodge_anim.get_time_left() == 0.0
+                            && context.timers.borrow().dodge_cooldown.get_time_left() == 0.0 =>
+                    {
+                        context.timers.borrow_mut().dodge_anim.start();
                         Response::Transition(State::dodging_right())
                     }
 
@@ -133,63 +140,78 @@ impl CharacterStateMachine {
                     }
 
                     // Healing
-                    (Some(MoveButton::Right), Some(ModifierButton::Heal)) => {
+                    (Some(MoveButton::Right), Some(ModifierButton::Heal))
+                        if context.timers.borrow().healing_anim.get_time_left() == 0.0 =>
+                    {
+                        context.timers.borrow_mut().healing_anim.start();
                         Response::Transition(State::healing_right())
                     }
-                    (Some(MoveButton::Left), Some(ModifierButton::Heal)) => {
+                    (Some(MoveButton::Left), Some(ModifierButton::Heal))
+                        if context.timers.borrow().healing_anim.get_time_left() == 0.0 =>
+                    {
+                        context.timers.borrow_mut().healing_anim.start();
                         Response::Transition(State::healing_left())
                     }
-                    (None, Some(ModifierButton::Heal)) => {
+                    (None, Some(ModifierButton::Heal))
+                        if context.timers.borrow().healing_anim.get_time_left() == 0.0 =>
+                    {
+                        context.timers.borrow_mut().healing_anim.start();
                         Response::Transition(State::healing_right())
                     }
 
                     // Attacking
-                    (Some(MoveButton::Right), Some(ModifierButton::Attack)) => {
-                        if let Ok(attack) = Offense::try_attack(
-                            PlayerAttacks::SimpleMelee,
-                            &mut context.resources.borrow_mut(),
-                            1,
-                        ) {
-                            context.hurtbox.bind_mut().set_attack(attack);
-                            Response::Transition(State::attacking_right())
-                        } else {
-                            Handled
-                        }
+                    (Some(MoveButton::Right), Some(ModifierButton::Attack))
+                        if context.timers.borrow().attack_anim.get_time_left() == 0.0
+                            && let Ok(attack) = Offense::try_attack(
+                                PlayerAttacks::SimpleMelee,
+                                &mut context.resources.borrow_mut(),
+                                1,
+                            ) =>
+                    {
+                        context.hurtbox.bind_mut().set_attack(attack);
+                        context.timers.borrow_mut().attack_anim.start();
+                        Response::Transition(State::attacking_right())
                     }
-                    (Some(MoveButton::Left), Some(ModifierButton::Attack)) => {
+                    (Some(MoveButton::Left), Some(ModifierButton::Attack))
                         if let Ok(attack) = Offense::try_attack(
                             PlayerAttacks::SimpleMelee,
                             &mut context.resources.borrow_mut(),
                             1,
-                        ) {
-                            context.hurtbox.bind_mut().set_attack(attack);
-                            Response::Transition(State::attacking_left())
-                        } else {
-                            Handled
-                        }
+                        ) && context.timers.borrow().attack_anim.get_time_left() == 0.0 =>
+                    {
+                        context.hurtbox.bind_mut().set_attack(attack);
+                        context.timers.borrow_mut().attack_anim.start();
+                        Response::Transition(State::attacking_left())
                     }
-                    (None, Some(ModifierButton::Attack)) => {
+                    (None, Some(ModifierButton::Attack))
                         if let Ok(attack) = Offense::try_attack(
                             PlayerAttacks::SimpleMelee,
                             &mut context.resources.borrow_mut(),
                             1,
-                        ) {
-                            // dbg!(context.resources.stamina());
-                            context.hurtbox.bind_mut().set_attack(attack);
-                            Response::Transition(State::attacking_right())
-                        } else {
-                            Handled
-                        }
+                        ) && context.timers.borrow().attack_anim.get_time_left() == 0.0 =>
+                    {
+                        context.hurtbox.bind_mut().set_attack(attack);
+                        context.timers.borrow_mut().attack_anim.start();
+                        Response::Transition(State::attacking_right())
                     }
 
                     // Parry
-                    (Some(MoveButton::Right), Some(ModifierButton::Parry)) => {
+                    (Some(MoveButton::Right), Some(ModifierButton::Parry))
+                        if context.timers.borrow().parry_anim.get_time_left() == 0.0 =>
+                    {
+                        context.timers.borrow_mut().parry_anim.start();
                         Response::Transition(State::parry_right())
                     }
-                    (Some(MoveButton::Left), Some(ModifierButton::Parry)) => {
+                    (Some(MoveButton::Left), Some(ModifierButton::Parry))
+                        if context.timers.borrow().parry_anim.get_time_left() == 0.0 =>
+                    {
+                        context.timers.borrow_mut().parry_anim.start();
                         Response::Transition(State::parry_left())
                     }
-                    (None, Some(ModifierButton::Parry)) => {
+                    (None, Some(ModifierButton::Parry))
+                        if context.timers.borrow().parry_anim.get_time_left() == 0.0 =>
+                    {
+                        context.timers.borrow_mut().parry_anim.start();
                         Response::Transition(State::parry_right())
                     }
                     _ => Handled,
@@ -208,11 +230,7 @@ impl CharacterStateMachine {
 
             // Hurt
             Event::Hurt => {
-                context
-                    .timers
-                    .get_mut(&PlayerTimer::HurtAnimation)
-                    .unwrap()
-                    .start();
+                context.timers.borrow_mut().hurt_anim.start();
                 Response::Transition(State::hurt_right())
             }
             Event::ForceDisabled => Response::Transition(State::forced_disabled_right()),
@@ -223,92 +241,125 @@ impl CharacterStateMachine {
     #[state]
     fn idle_left(&mut self, event: &Event, context: &mut SMContext) -> Response<State> {
         match event {
-            Event::InputChanged(inputs) => match (&inputs.0, &inputs.1) {
-                // Moving
-                (Some(MoveButton::Left), None) => Response::Transition(State::move_left()),
-                (Some(MoveButton::Right), None) => Response::Transition(State::move_right()),
+            Event::InputChanged(inputs) => {
+                match (&inputs.0, &inputs.1) {
+                    // Moving
+                    (Some(MoveButton::Left), None) => Response::Transition(State::move_left()),
+                    (Some(MoveButton::Right), None) => Response::Transition(State::move_right()),
 
-                // Dodging
-                (Some(MoveButton::Left), Some(ModifierButton::Dodge)) => {
-                    Response::Transition(State::dodging_left())
-                }
-                (Some(MoveButton::Right), Some(ModifierButton::Dodge)) => {
-                    Response::Transition(State::dodging_right())
-                }
-                (None, Some(ModifierButton::Dodge)) => Response::Transition(State::dodging_left()),
+                    // Dodging
+                    (Some(MoveButton::Left), Some(ModifierButton::Dodge))
+                        if context.timers.borrow().dodge_anim.get_time_left() == 0.0
+                            && context.timers.borrow().dodge_cooldown.get_time_left() == 0.0 =>
+                    {
+                        context.timers.borrow_mut().dodge_anim.start();
+                        Response::Transition(State::dodging_left())
+                    }
+                    (Some(MoveButton::Right), Some(ModifierButton::Dodge))
+                        if context.timers.borrow().dodge_anim.get_time_left() == 0.0
+                            && context.timers.borrow().dodge_cooldown.get_time_left() == 0.0 =>
+                    {
+                        context.timers.borrow_mut().dodge_anim.start();
+                        Response::Transition(State::dodging_right())
+                    }
+                    (None, Some(ModifierButton::Dodge))
+                        if context.timers.borrow().dodge_anim.get_time_left() == 0.0
+                            && context.timers.borrow().dodge_cooldown.get_time_left() == 0.0 =>
+                    {
+                        context.timers.borrow_mut().dodge_anim.start();
+                        Response::Transition(State::dodging_left())
+                    }
 
-                // Jumping
-                (Some(MoveButton::Right), Some(ModifierButton::Jump)) => {
-                    try_jump(
+                    // Jumping
+                    (Some(MoveButton::Right), Some(ModifierButton::Jump)) => try_jump(
                         context,
                         || Response::Transition(State::move_jumping_right()),
-                    )
-                }
-                (Some(MoveButton::Left), Some(ModifierButton::Jump)) => {
-                    try_jump(context, || Response::Transition(State::move_jumping_left()))
-                }
-                (None, Some(ModifierButton::Jump)) => {
-                    try_jump(context, || Response::Transition(State::jumping_left()))
-                }
+                    ),
+                    (Some(MoveButton::Left), Some(ModifierButton::Jump)) => {
+                        try_jump(context, || Response::Transition(State::move_jumping_left()))
+                    }
+                    (None, Some(ModifierButton::Jump)) => {
+                        try_jump(context, || Response::Transition(State::jumping_left()))
+                    }
 
-                // Healing
-                (Some(MoveButton::Right), Some(ModifierButton::Heal)) => {
-                    Response::Transition(State::healing_right())
-                }
-                (Some(MoveButton::Left), Some(ModifierButton::Heal)) => {
-                    Response::Transition(State::healing_left())
-                }
-                (None, Some(ModifierButton::Heal)) => Response::Transition(State::healing_left()),
+                    // Healing
+                    (Some(MoveButton::Right), Some(ModifierButton::Heal))
+                        if context.timers.borrow().healing_anim.get_time_left() == 0.0 =>
+                    {
+                        context.timers.borrow_mut().healing_anim.start();
+                        Response::Transition(State::healing_right())
+                    }
+                    (Some(MoveButton::Left), Some(ModifierButton::Heal))
+                        if context.timers.borrow().healing_anim.get_time_left() == 0.0 =>
+                    {
+                        context.timers.borrow_mut().healing_anim.start();
+                        Response::Transition(State::healing_left())
+                    }
+                    (None, Some(ModifierButton::Heal))
+                        if context.timers.borrow().healing_anim.get_time_left() == 0.0 =>
+                    {
+                        context.timers.borrow_mut().healing_anim.start();
+                        Response::Transition(State::healing_left())
+                    }
 
-                // Attacking
-                (Some(MoveButton::Right), Some(ModifierButton::Attack)) => {
-                    if let Ok(attack) = Offense::try_attack(
-                        PlayerAttacks::SimpleMelee,
-                        &mut context.resources.borrow_mut(),
-                        1,
-                    ) {
+                    // Attacking
+                    (Some(MoveButton::Right), Some(ModifierButton::Attack))
+                        if let Ok(attack) = Offense::try_attack(
+                            PlayerAttacks::SimpleMelee,
+                            &mut context.resources.borrow_mut(),
+                            1,
+                        ) && context.timers.borrow().attack_anim.get_time_left() == 0.0 =>
+                    {
                         context.hurtbox.bind_mut().set_attack(attack);
+                        context.timers.borrow_mut().attack_anim.start();
                         Response::Transition(State::attacking_right())
-                    } else {
-                        Handled
                     }
-                }
-                (Some(MoveButton::Left), Some(ModifierButton::Attack)) => {
-                    if let Ok(attack) = Offense::try_attack(
-                        PlayerAttacks::SimpleMelee,
-                        &mut context.resources.borrow_mut(),
-                        1,
-                    ) {
+                    (Some(MoveButton::Left), Some(ModifierButton::Attack))
+                        if let Ok(attack) = Offense::try_attack(
+                            PlayerAttacks::SimpleMelee,
+                            &mut context.resources.borrow_mut(),
+                            1,
+                        ) && context.timers.borrow().attack_anim.get_time_left() == 0.0 =>
+                    {
                         context.hurtbox.bind_mut().set_attack(attack);
+                        context.timers.borrow_mut().attack_anim.start();
                         Response::Transition(State::attacking_left())
-                    } else {
-                        Handled
                     }
-                }
-                (None, Some(ModifierButton::Attack)) => {
-                    if let Ok(attack) = Offense::try_attack(
-                        PlayerAttacks::SimpleMelee,
-                        &mut context.resources.borrow_mut(),
-                        1,
-                    ) {
+                    (None, Some(ModifierButton::Attack))
+                        if let Ok(attack) = Offense::try_attack(
+                            PlayerAttacks::SimpleMelee,
+                            &mut context.resources.borrow_mut(),
+                            1,
+                        ) && context.timers.borrow().attack_anim.get_time_left() == 0.0 =>
+                    {
                         context.hurtbox.bind_mut().set_attack(attack);
+                        context.timers.borrow_mut().attack_anim.start();
                         Response::Transition(State::attacking_left())
-                    } else {
-                        Handled
                     }
-                }
 
-                // Parry
-                (Some(MoveButton::Right), Some(ModifierButton::Parry)) => {
-                    Response::Transition(State::parry_right())
-                }
-                (Some(MoveButton::Left), Some(ModifierButton::Parry)) => {
-                    Response::Transition(State::parry_left())
-                }
-                (None, Some(ModifierButton::Parry)) => Response::Transition(State::parry_left()),
+                    // Parry
+                    (Some(MoveButton::Right), Some(ModifierButton::Parry))
+                        if context.timers.borrow().parry_anim.get_time_left() == 0.0 =>
+                    {
+                        context.timers.borrow_mut().parry_anim.start();
+                        Response::Transition(State::parry_right())
+                    }
+                    (Some(MoveButton::Left), Some(ModifierButton::Parry))
+                        if context.timers.borrow().parry_anim.get_time_left() == 0.0 =>
+                    {
+                        context.timers.borrow_mut().parry_anim.start();
+                        Response::Transition(State::parry_left())
+                    }
+                    (None, Some(ModifierButton::Parry))
+                        if context.timers.borrow().parry_anim.get_time_left() == 0.0 =>
+                    {
+                        context.timers.borrow_mut().parry_anim.start();
+                        Response::Transition(State::parry_left())
+                    }
 
-                _ => Handled,
-            },
+                    _ => Handled,
+                }
+            }
 
             // Falling
             Event::FailedFloorCheck(inputs) => match (&inputs.0, &inputs.1) {
@@ -322,11 +373,7 @@ impl CharacterStateMachine {
 
             // Hurt
             Event::Hurt => {
-                context
-                    .timers
-                    .get_mut(&PlayerTimer::HurtAnimation)
-                    .unwrap()
-                    .start();
+                context.timers.borrow_mut().hurt_anim.start();
                 Response::Transition(State::hurt_left())
             }
             Event::ForceDisabled => Response::Transition(State::forced_disabled_left()),
@@ -355,73 +402,100 @@ impl CharacterStateMachine {
                     }
 
                     // Dodging
-                    (Some(MoveButton::Left), Some(ModifierButton::Dodge)) => {
+                    (Some(MoveButton::Left), Some(ModifierButton::Dodge))
+                        if context.timers.borrow().dodge_anim.get_time_left() == 0.0
+                            && context.timers.borrow().dodge_cooldown.get_time_left() == 0.0 =>
+                    {
+                        context.timers.borrow_mut().dodge_anim.start();
                         Response::Transition(State::dodging_left())
                     }
-                    (Some(MoveButton::Right), Some(ModifierButton::Dodge)) => {
+                    (Some(MoveButton::Right), Some(ModifierButton::Dodge))
+                        if context.timers.borrow().dodge_anim.get_time_left() == 0.0
+                            && context.timers.borrow().dodge_cooldown.get_time_left() == 0.0 =>
+                    {
+                        context.timers.borrow_mut().dodge_anim.start();
                         Response::Transition(State::dodging_right())
                     }
-                    (None, Some(ModifierButton::Dodge)) => {
+                    (None, Some(ModifierButton::Dodge))
+                        if context.timers.borrow().dodge_anim.get_time_left() == 0.0
+                            && context.timers.borrow().dodge_cooldown.get_time_left() == 0.0 =>
+                    {
+                        context.timers.borrow_mut().dodge_anim.start();
                         Response::Transition(State::dodging_right())
                     }
 
                     // Healing
-                    (Some(MoveButton::Right), Some(ModifierButton::Heal)) => {
+                    (Some(MoveButton::Right), Some(ModifierButton::Heal))
+                        if context.timers.borrow().healing_anim.get_time_left() == 0.0 =>
+                    {
+                        context.timers.borrow_mut().healing_anim.start();
                         Response::Transition(State::healing_right())
                     }
-                    (Some(MoveButton::Left), Some(ModifierButton::Heal)) => {
+                    (Some(MoveButton::Left), Some(ModifierButton::Heal))
+                        if context.timers.borrow().healing_anim.get_time_left() == 0.0 =>
+                    {
+                        context.timers.borrow_mut().healing_anim.start();
                         Response::Transition(State::healing_left())
                     }
-                    (None, Some(ModifierButton::Heal)) => {
+                    (None, Some(ModifierButton::Heal))
+                        if context.timers.borrow().healing_anim.get_time_left() == 0.0 =>
+                    {
+                        context.timers.borrow_mut().healing_anim.start();
                         Response::Transition(State::healing_right())
                     }
 
                     // Attacking
-                    (Some(MoveButton::Right), Some(ModifierButton::Attack)) => {
+                    (Some(MoveButton::Right), Some(ModifierButton::Attack))
                         if let Ok(attack) = Offense::try_attack(
                             PlayerAttacks::SimpleMelee,
                             &mut context.resources.borrow_mut(),
                             1,
-                        ) {
-                            context.hurtbox.bind_mut().set_attack(attack);
-                            Response::Transition(State::attacking_right())
-                        } else {
-                            Handled
-                        }
+                        ) && context.timers.borrow().attack_anim.get_time_left() == 0.0 =>
+                    {
+                        context.hurtbox.bind_mut().set_attack(attack);
+                        context.timers.borrow_mut().attack_anim.start();
+                        Response::Transition(State::attacking_right())
                     }
-                    (Some(MoveButton::Left), Some(ModifierButton::Attack)) => {
+                    (Some(MoveButton::Left), Some(ModifierButton::Attack))
                         if let Ok(attack) = Offense::try_attack(
                             PlayerAttacks::SimpleMelee,
                             &mut context.resources.borrow_mut(),
                             1,
-                        ) {
-                            context.hurtbox.bind_mut().set_attack(attack);
-                            Response::Transition(State::attacking_left())
-                        } else {
-                            Handled
-                        }
+                        ) && context.timers.borrow().attack_anim.get_time_left() == 0.0 =>
+                    {
+                        context.hurtbox.bind_mut().set_attack(attack);
+                        context.timers.borrow_mut().attack_anim.start();
+                        Response::Transition(State::attacking_left())
                     }
-                    (None, Some(ModifierButton::Attack)) => {
+                    (None, Some(ModifierButton::Attack))
                         if let Ok(attack) = Offense::try_attack(
                             PlayerAttacks::SimpleMelee,
                             &mut context.resources.borrow_mut(),
                             1,
-                        ) {
-                            context.hurtbox.bind_mut().set_attack(attack);
-                            Response::Transition(State::attacking_right())
-                        } else {
-                            Handled
-                        }
+                        ) && context.timers.borrow().attack_anim.get_time_left() == 0.0 =>
+                    {
+                        context.hurtbox.bind_mut().set_attack(attack);
+                        context.timers.borrow_mut().attack_anim.start();
+                        Response::Transition(State::attacking_right())
                     }
 
                     // Parry
-                    (Some(MoveButton::Right), Some(ModifierButton::Parry)) => {
+                    (Some(MoveButton::Right), Some(ModifierButton::Parry))
+                        if context.timers.borrow().parry_anim.get_time_left() == 0.0 =>
+                    {
+                        context.timers.borrow_mut().parry_anim.start();
                         Response::Transition(State::parry_right())
                     }
-                    (Some(MoveButton::Left), Some(ModifierButton::Parry)) => {
+                    (Some(MoveButton::Left), Some(ModifierButton::Parry))
+                        if context.timers.borrow().parry_anim.get_time_left() == 0.0 =>
+                    {
+                        context.timers.borrow_mut().parry_anim.start();
                         Response::Transition(State::parry_left())
                     }
-                    (None, Some(ModifierButton::Parry)) => {
+                    (None, Some(ModifierButton::Parry))
+                        if context.timers.borrow().parry_anim.get_time_left() == 0.0 =>
+                    {
+                        context.timers.borrow_mut().parry_anim.start();
                         Response::Transition(State::parry_right())
                     }
 
@@ -450,92 +524,119 @@ impl CharacterStateMachine {
     #[state]
     fn move_left(&mut self, event: &Event, context: &mut SMContext) -> Response<State> {
         match event {
-            Event::InputChanged(input) => match (&input.0, &input.1) {
-                // Moving
-                (Some(MoveButton::Right), None) => Response::Transition(State::move_right()),
+            Event::InputChanged(input) => {
+                match (&input.0, &input.1) {
+                    // Moving
+                    (Some(MoveButton::Right), None) => Response::Transition(State::move_right()),
 
-                // Jumping
-                (Some(MoveButton::Right), Some(ModifierButton::Jump)) => {
-                    try_jump(
+                    // Jumping
+                    (Some(MoveButton::Right), Some(ModifierButton::Jump)) => try_jump(
                         context,
                         || Response::Transition(State::move_jumping_right()),
-                    )
-                }
-                (Some(MoveButton::Left), Some(ModifierButton::Jump)) => {
-                    try_jump(context, || Response::Transition(State::move_jumping_left()))
-                }
-                (None, Some(ModifierButton::Jump)) => {
-                    try_jump(context, || Response::Transition(State::jumping_left()))
-                }
+                    ),
+                    (Some(MoveButton::Left), Some(ModifierButton::Jump)) => {
+                        try_jump(context, || Response::Transition(State::move_jumping_left()))
+                    }
+                    (None, Some(ModifierButton::Jump)) => {
+                        try_jump(context, || Response::Transition(State::jumping_left()))
+                    }
 
-                // Dodging
-                (Some(MoveButton::Left), Some(ModifierButton::Dodge)) => {
-                    Response::Transition(State::dodging_left())
-                }
-                (Some(MoveButton::Right), Some(ModifierButton::Dodge)) => {
-                    Response::Transition(State::dodging_right())
-                }
+                    // Dodging
+                    (Some(MoveButton::Left), Some(ModifierButton::Dodge))
+                        if context.timers.borrow().dodge_anim.get_time_left() == 0.0
+                            && context.timers.borrow().dodge_cooldown.get_time_left() == 0.0 =>
+                    {
+                        context.timers.borrow_mut().dodge_anim.start();
+                        Response::Transition(State::dodging_left())
+                    }
+                    (Some(MoveButton::Right), Some(ModifierButton::Dodge))
+                        if context.timers.borrow().dodge_anim.get_time_left() == 0.0
+                            && context.timers.borrow().dodge_cooldown.get_time_left() == 0.0 =>
+                    {
+                        context.timers.borrow_mut().dodge_anim.start();
+                        Response::Transition(State::dodging_right())
+                    }
 
-                // Healing
-                (Some(MoveButton::Right), Some(ModifierButton::Heal)) => {
-                    Response::Transition(State::healing_right())
-                }
-                (Some(MoveButton::Left), Some(ModifierButton::Heal)) => {
-                    Response::Transition(State::healing_left())
-                }
-                (None, Some(ModifierButton::Heal)) => Response::Transition(State::healing_left()),
+                    // Healing
+                    (Some(MoveButton::Right), Some(ModifierButton::Heal))
+                        if context.timers.borrow().healing_anim.get_time_left() == 0.0 =>
+                    {
+                        context.timers.borrow_mut().healing_anim.start();
+                        Response::Transition(State::healing_right())
+                    }
+                    (Some(MoveButton::Left), Some(ModifierButton::Heal))
+                        if context.timers.borrow().healing_anim.get_time_left() == 0.0 =>
+                    {
+                        context.timers.borrow_mut().healing_anim.start();
+                        Response::Transition(State::healing_left())
+                    }
+                    (None, Some(ModifierButton::Heal))
+                        if context.timers.borrow().healing_anim.get_time_left() == 0.0 =>
+                    {
+                        context.timers.borrow_mut().healing_anim.start();
+                        Response::Transition(State::healing_left())
+                    }
 
-                // Attacking
-                (Some(MoveButton::Right), Some(ModifierButton::Attack)) => {
-                    if let Ok(attack) = Offense::try_attack(
-                        PlayerAttacks::SimpleMelee,
-                        &mut context.resources.borrow_mut(),
-                        1,
-                    ) {
+                    // Attacking
+                    (Some(MoveButton::Right), Some(ModifierButton::Attack))
+                        if let Ok(attack) = Offense::try_attack(
+                            PlayerAttacks::SimpleMelee,
+                            &mut context.resources.borrow_mut(),
+                            1,
+                        ) && context.timers.borrow().attack_anim.get_time_left() == 0.0 =>
+                    {
                         context.hurtbox.bind_mut().set_attack(attack);
+                        context.timers.borrow_mut().attack_anim.start();
                         Response::Transition(State::attacking_right())
-                    } else {
-                        Handled
                     }
-                }
-                (Some(MoveButton::Left), Some(ModifierButton::Attack)) => {
-                    if let Ok(attack) = Offense::try_attack(
-                        PlayerAttacks::SimpleMelee,
-                        &mut context.resources.borrow_mut(),
-                        1,
-                    ) {
+                    (Some(MoveButton::Left), Some(ModifierButton::Attack))
+                        if let Ok(attack) = Offense::try_attack(
+                            PlayerAttacks::SimpleMelee,
+                            &mut context.resources.borrow_mut(),
+                            1,
+                        ) && context.timers.borrow().attack_anim.get_time_left() == 0.0 =>
+                    {
                         context.hurtbox.bind_mut().set_attack(attack);
+                        context.timers.borrow_mut().attack_anim.start();
                         Response::Transition(State::attacking_left())
-                    } else {
-                        Handled
                     }
-                }
-                (None, Some(ModifierButton::Attack)) => {
-                    if let Ok(attack) = Offense::try_attack(
-                        PlayerAttacks::SimpleMelee,
-                        &mut context.resources.borrow_mut(),
-                        1,
-                    ) {
+                    (None, Some(ModifierButton::Attack))
+                        if let Ok(attack) = Offense::try_attack(
+                            PlayerAttacks::SimpleMelee,
+                            &mut context.resources.borrow_mut(),
+                            1,
+                        ) && context.timers.borrow().attack_anim.get_time_left() == 0.0 =>
+                    {
                         context.hurtbox.bind_mut().set_attack(attack);
+                        context.timers.borrow_mut().attack_anim.start();
                         Response::Transition(State::attacking_left())
-                    } else {
-                        Handled
                     }
-                }
 
-                // Parry
-                (Some(MoveButton::Right), Some(ModifierButton::Parry)) => {
-                    Response::Transition(State::parry_right())
-                }
-                (Some(MoveButton::Left), Some(ModifierButton::Parry)) => {
-                    Response::Transition(State::parry_left())
-                }
-                (None, Some(ModifierButton::Parry)) => Response::Transition(State::parry_left()),
+                    // Parry
+                    (Some(MoveButton::Right), Some(ModifierButton::Parry))
+                        if context.timers.borrow().parry_anim.get_time_left() == 0.0 =>
+                    {
+                        context.timers.borrow_mut().parry_anim.start();
+                        Response::Transition(State::parry_right())
+                    }
+                    (Some(MoveButton::Left), Some(ModifierButton::Parry))
+                        if context.timers.borrow().parry_anim.get_time_left() == 0.0 =>
+                    {
+                        context.timers.borrow_mut().parry_anim.start();
+                        Response::Transition(State::parry_left())
+                    }
+                    (None, Some(ModifierButton::Parry))
+                        if context.timers.borrow().parry_anim.get_time_left() == 0.0 =>
+                    {
+                        context.timers.borrow_mut().parry_anim.start();
+                        Response::Transition(State::parry_left())
+                    }
 
-                // Idle
-                (None, None) => Response::Transition(State::idle_left()),
-                _ => Handled,
-            },
+                    // Idle
+                    (None, None) => Response::Transition(State::idle_left()),
+                    _ => Handled,
+                }
+            }
 
             // Falling
             Event::FailedFloorCheck(inputs) => match (&inputs.0, &inputs.1) {
@@ -977,17 +1078,26 @@ impl CharacterStateMachine {
 
     // TODO: Chain attacking.
     #[state]
-    fn attacking_right(&mut self, event: &Event) -> Response<State> {
+    fn attacking_right(&mut self, event: &Event, context: &mut SMContext) -> Response<State> {
         match event {
             Event::TimerElapsed(inputs) => match (&inputs.0, &inputs.1) {
                 // Chain attacking
-                (Some(MoveButton::Left), Some(ModifierButton::Attack)) => {
+                (Some(MoveButton::Left), Some(ModifierButton::Attack))
+                    if context.timers.borrow().attack_2_anim.get_time_left() == 0.0 =>
+                {
+                    context.timers.borrow_mut().attack_2_anim.start();
                     Response::Transition(State::attack_left_2())
                 }
-                (Some(MoveButton::Right), Some(ModifierButton::Attack)) => {
+                (Some(MoveButton::Right), Some(ModifierButton::Attack))
+                    if context.timers.borrow().attack_2_anim.get_time_left() == 0.0 =>
+                {
+                    context.timers.borrow_mut().attack_2_anim.start();
                     Response::Transition(State::attack_right_2())
                 }
-                (None, Some(ModifierButton::Attack)) => {
+                (None, Some(ModifierButton::Attack))
+                    if context.timers.borrow().attack_2_anim.get_time_left() == 0.0 =>
+                {
+                    context.timers.borrow_mut().attack_2_anim.start();
                     Response::Transition(State::attack_right_2())
                 }
 
@@ -1005,17 +1115,26 @@ impl CharacterStateMachine {
 
     // TODO: Chain attacking.
     #[state]
-    fn attacking_left(&mut self, event: &Event) -> Response<State> {
+    fn attacking_left(&mut self, event: &Event, context: &mut SMContext) -> Response<State> {
         match event {
             Event::TimerElapsed(inputs) => match (&inputs.0, &inputs.1) {
                 // Chain attacking
-                (Some(MoveButton::Left), Some(ModifierButton::Attack)) => {
+                (Some(MoveButton::Left), Some(ModifierButton::Attack))
+                    if context.timers.borrow().attack_2_anim.get_time_left() == 0.0 =>
+                {
+                    context.timers.borrow_mut().attack_2_anim.start();
                     Response::Transition(State::attack_left_2())
                 }
-                (Some(MoveButton::Right), Some(ModifierButton::Attack)) => {
+                (Some(MoveButton::Right), Some(ModifierButton::Attack))
+                    if context.timers.borrow().attack_2_anim.get_time_left() == 0.0 =>
+                {
+                    context.timers.borrow_mut().attack_2_anim.start();
                     Response::Transition(State::attack_right_2())
                 }
-                (None, Some(ModifierButton::Attack)) => {
+                (None, Some(ModifierButton::Attack))
+                    if context.timers.borrow().attack_2_anim.get_time_left() == 0.0 =>
+                {
+                    context.timers.borrow_mut().attack_2_anim.start();
                     Response::Transition(State::attack_right_2())
                 }
 
@@ -1299,15 +1418,11 @@ impl CharacterStateMachine {
         match event {
             Event::InputChanged(inputs) => match (&inputs.0, inputs.1) {
                 // Jumping
-                (Some(MoveButton::Left), Some(ModifierButton::Jump)) => {
-                    if let Some(timer) = context.timers.get_mut(&PlayerTimer::WallJumpLimit)
-                        && timer.get_time_left() == 0.0
-                    {
-                        timer.start();
-                        Response::Transition(State::move_jumping_right())
-                    } else {
-                        Handled
-                    }
+                (Some(MoveButton::Left), Some(ModifierButton::Jump))
+                    if context.timers.borrow().wall_jump.get_time_left() == 0.0 =>
+                {
+                    context.timers.borrow_mut().wall_jump.start();
+                    Response::Transition(State::move_jumping_right())
                 }
 
                 // Falling
@@ -1333,15 +1448,11 @@ impl CharacterStateMachine {
         match event {
             Event::InputChanged(inputs) => match (&inputs.0, inputs.1) {
                 // Jumping
-                (Some(MoveButton::Right), Some(ModifierButton::Jump)) => {
-                    if let Some(timer) = context.timers.get_mut(&PlayerTimer::WallJumpLimit)
-                        && timer.get_time_left() == 0.0
-                    {
-                        timer.start();
-                        Response::Transition(State::move_jumping_left())
-                    } else {
-                        Handled
-                    }
+                (Some(MoveButton::Right), Some(ModifierButton::Jump))
+                    if context.timers.borrow().wall_jump.get_time_left() == 0.0 =>
+                {
+                    context.timers.borrow_mut().wall_jump.start();
+                    Response::Transition(State::move_jumping_left())
                 }
 
                 // Falling
@@ -1367,10 +1478,8 @@ fn try_jump<F>(context: &mut SMContext, completed: F) -> Response<State>
 where
     F: FnOnce() -> Response<State>,
 {
-    if let Some(timer) = context.timers.get_mut(&PlayerTimer::JumpTimeLimit)
-        && timer.get_time_left() == 0.0
-    {
-        timer.start();
+    if context.timers.borrow().jump_limit.get_time_left() == 0.0 {
+        context.timers.borrow_mut().jump_limit.start();
         completed()
     } else {
         Handled
