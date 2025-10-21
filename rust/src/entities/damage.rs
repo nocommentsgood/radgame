@@ -27,7 +27,7 @@ impl Resource {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct Stamina(Resource);
 impl Stamina {
     pub fn new(amount: i64, max: i64) -> Self {
@@ -61,12 +61,6 @@ impl Mana {
 
 #[derive(Clone, Copy, Debug)]
 pub struct Damage(pub i64);
-
-#[derive(Clone, Copy)]
-pub enum DamageType {
-    Elemental(Element),
-    Physical,
-}
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Element {
@@ -263,7 +257,11 @@ impl CombatResources {
         &self.mana
     }
 
-    pub fn handle_attack_cost(&mut self, costs: &[AttackResourceCost]) -> Result<(), ()> {
+    pub fn stamina(&self) -> &Stamina {
+        &self.stam
+    }
+
+    fn handle_attack_cost(&mut self, costs: &[AttackResourceCost]) -> Result<(), ()> {
         for cost in costs {
             match cost {
                 AttackResourceCost::Stamina(val) => {

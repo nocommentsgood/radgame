@@ -13,14 +13,14 @@ use crate::{
 };
 
 pub struct SMContext {
-    timers: Rc<RefCell<HashMap<PlayerTimer, Gd<Timer>>>>,
+    timers: HashMap<PlayerTimer, Gd<Timer>>,
     resources: Rc<RefCell<CombatResources>>,
     hurtbox: Gd<Hurtbox>,
 }
 
 impl SMContext {
     pub fn new(
-        timers: Rc<RefCell<HashMap<PlayerTimer, Gd<Timer>>>>,
+        timers: HashMap<PlayerTimer, Gd<Timer>>,
         resources: Rc<RefCell<CombatResources>>,
         hurtbox: Gd<Hurtbox>,
     ) -> Self {
@@ -31,7 +31,6 @@ impl SMContext {
         }
     }
 }
-
 #[derive(Default, Debug, Clone)]
 pub struct CharacterStateMachine {
     #[allow(unused)]
@@ -102,15 +101,7 @@ pub enum Event {
 )]
 impl CharacterStateMachine {
     #[state]
-    fn idle_right(
-        &mut self,
-        event: &Event,
-        context: &mut (
-            &mut HashMap<PlayerTimer, Gd<Timer>>,
-            &mut CombatResources,
-            &mut Gd<Hurtbox>,
-        ),
-    ) -> Response<State> {
+    fn idle_right(&mut self, event: &Event, context: &mut SMContext) -> Response<State> {
         match event {
             Event::InputChanged(inputs) => {
                 match (&inputs.0, &inputs.1) {
@@ -154,30 +145,37 @@ impl CharacterStateMachine {
 
                     // Attacking
                     (Some(MoveButton::Right), Some(ModifierButton::Attack)) => {
-                        if let Ok(attack) =
-                            Offense::try_attack(PlayerAttacks::SimpleMelee, context.1, 1)
-                        {
-                            context.2.bind_mut().set_attack(attack);
+                        if let Ok(attack) = Offense::try_attack(
+                            PlayerAttacks::SimpleMelee,
+                            &mut context.resources.borrow_mut(),
+                            1,
+                        ) {
+                            context.hurtbox.bind_mut().set_attack(attack);
                             Response::Transition(State::attacking_right())
                         } else {
                             Handled
                         }
                     }
                     (Some(MoveButton::Left), Some(ModifierButton::Attack)) => {
-                        if let Ok(attack) =
-                            Offense::try_attack(PlayerAttacks::SimpleMelee, context.1, 1)
-                        {
-                            context.2.bind_mut().set_attack(attack);
+                        if let Ok(attack) = Offense::try_attack(
+                            PlayerAttacks::SimpleMelee,
+                            &mut context.resources.borrow_mut(),
+                            1,
+                        ) {
+                            context.hurtbox.bind_mut().set_attack(attack);
                             Response::Transition(State::attacking_left())
                         } else {
                             Handled
                         }
                     }
                     (None, Some(ModifierButton::Attack)) => {
-                        if let Ok(attack) =
-                            Offense::try_attack(PlayerAttacks::SimpleMelee, context.1, 1)
-                        {
-                            context.2.bind_mut().set_attack(attack);
+                        if let Ok(attack) = Offense::try_attack(
+                            PlayerAttacks::SimpleMelee,
+                            &mut context.resources.borrow_mut(),
+                            1,
+                        ) {
+                            // dbg!(context.resources.stamina());
+                            context.hurtbox.bind_mut().set_attack(attack);
                             Response::Transition(State::attacking_right())
                         } else {
                             Handled
@@ -211,7 +209,7 @@ impl CharacterStateMachine {
             // Hurt
             Event::Hurt => {
                 context
-                    .0
+                    .timers
                     .get_mut(&PlayerTimer::HurtAnimation)
                     .unwrap()
                     .start();
@@ -223,15 +221,7 @@ impl CharacterStateMachine {
     }
 
     #[state]
-    fn idle_left(
-        &mut self,
-        event: &Event,
-        context: &mut (
-            &mut HashMap<PlayerTimer, Gd<Timer>>,
-            &mut CombatResources,
-            &mut Gd<Hurtbox>,
-        ),
-    ) -> Response<State> {
+    fn idle_left(&mut self, event: &Event, context: &mut SMContext) -> Response<State> {
         match event {
             Event::InputChanged(inputs) => match (&inputs.0, &inputs.1) {
                 // Moving
@@ -272,30 +262,36 @@ impl CharacterStateMachine {
 
                 // Attacking
                 (Some(MoveButton::Right), Some(ModifierButton::Attack)) => {
-                    if let Ok(attack) =
-                        Offense::try_attack(PlayerAttacks::SimpleMelee, context.1, 1)
-                    {
-                        context.2.bind_mut().set_attack(attack);
+                    if let Ok(attack) = Offense::try_attack(
+                        PlayerAttacks::SimpleMelee,
+                        &mut context.resources.borrow_mut(),
+                        1,
+                    ) {
+                        context.hurtbox.bind_mut().set_attack(attack);
                         Response::Transition(State::attacking_right())
                     } else {
                         Handled
                     }
                 }
                 (Some(MoveButton::Left), Some(ModifierButton::Attack)) => {
-                    if let Ok(attack) =
-                        Offense::try_attack(PlayerAttacks::SimpleMelee, context.1, 1)
-                    {
-                        context.2.bind_mut().set_attack(attack);
+                    if let Ok(attack) = Offense::try_attack(
+                        PlayerAttacks::SimpleMelee,
+                        &mut context.resources.borrow_mut(),
+                        1,
+                    ) {
+                        context.hurtbox.bind_mut().set_attack(attack);
                         Response::Transition(State::attacking_left())
                     } else {
                         Handled
                     }
                 }
                 (None, Some(ModifierButton::Attack)) => {
-                    if let Ok(attack) =
-                        Offense::try_attack(PlayerAttacks::SimpleMelee, context.1, 1)
-                    {
-                        context.2.bind_mut().set_attack(attack);
+                    if let Ok(attack) = Offense::try_attack(
+                        PlayerAttacks::SimpleMelee,
+                        &mut context.resources.borrow_mut(),
+                        1,
+                    ) {
+                        context.hurtbox.bind_mut().set_attack(attack);
                         Response::Transition(State::attacking_left())
                     } else {
                         Handled
@@ -327,7 +323,7 @@ impl CharacterStateMachine {
             // Hurt
             Event::Hurt => {
                 context
-                    .0
+                    .timers
                     .get_mut(&PlayerTimer::HurtAnimation)
                     .unwrap()
                     .start();
@@ -339,15 +335,7 @@ impl CharacterStateMachine {
     }
 
     #[state]
-    fn move_right(
-        &mut self,
-        event: &Event,
-        context: &mut (
-            &mut HashMap<PlayerTimer, Gd<Timer>>,
-            &mut CombatResources,
-            &mut Gd<Hurtbox>,
-        ),
-    ) -> Response<State> {
+    fn move_right(&mut self, event: &Event, context: &mut SMContext) -> Response<State> {
         match event {
             Event::InputChanged(input) => {
                 match (&input.0, &input.1) {
@@ -390,30 +378,36 @@ impl CharacterStateMachine {
 
                     // Attacking
                     (Some(MoveButton::Right), Some(ModifierButton::Attack)) => {
-                        if let Ok(attack) =
-                            Offense::try_attack(PlayerAttacks::SimpleMelee, context.1, 1)
-                        {
-                            context.2.bind_mut().set_attack(attack);
+                        if let Ok(attack) = Offense::try_attack(
+                            PlayerAttacks::SimpleMelee,
+                            &mut context.resources.borrow_mut(),
+                            1,
+                        ) {
+                            context.hurtbox.bind_mut().set_attack(attack);
                             Response::Transition(State::attacking_right())
                         } else {
                             Handled
                         }
                     }
                     (Some(MoveButton::Left), Some(ModifierButton::Attack)) => {
-                        if let Ok(attack) =
-                            Offense::try_attack(PlayerAttacks::SimpleMelee, context.1, 1)
-                        {
-                            context.2.bind_mut().set_attack(attack);
+                        if let Ok(attack) = Offense::try_attack(
+                            PlayerAttacks::SimpleMelee,
+                            &mut context.resources.borrow_mut(),
+                            1,
+                        ) {
+                            context.hurtbox.bind_mut().set_attack(attack);
                             Response::Transition(State::attacking_left())
                         } else {
                             Handled
                         }
                     }
                     (None, Some(ModifierButton::Attack)) => {
-                        if let Ok(attack) =
-                            Offense::try_attack(PlayerAttacks::SimpleMelee, context.1, 1)
-                        {
-                            context.2.bind_mut().set_attack(attack);
+                        if let Ok(attack) = Offense::try_attack(
+                            PlayerAttacks::SimpleMelee,
+                            &mut context.resources.borrow_mut(),
+                            1,
+                        ) {
+                            context.hurtbox.bind_mut().set_attack(attack);
                             Response::Transition(State::attacking_right())
                         } else {
                             Handled
@@ -454,15 +448,7 @@ impl CharacterStateMachine {
         }
     }
     #[state]
-    fn move_left(
-        &mut self,
-        event: &Event,
-        context: &mut (
-            &mut HashMap<PlayerTimer, Gd<Timer>>,
-            &mut CombatResources,
-            &mut Gd<Hurtbox>,
-        ),
-    ) -> Response<State> {
+    fn move_left(&mut self, event: &Event, context: &mut SMContext) -> Response<State> {
         match event {
             Event::InputChanged(input) => match (&input.0, &input.1) {
                 // Moving
@@ -501,30 +487,36 @@ impl CharacterStateMachine {
 
                 // Attacking
                 (Some(MoveButton::Right), Some(ModifierButton::Attack)) => {
-                    if let Ok(attack) =
-                        Offense::try_attack(PlayerAttacks::SimpleMelee, context.1, 1)
-                    {
-                        context.2.bind_mut().set_attack(attack);
+                    if let Ok(attack) = Offense::try_attack(
+                        PlayerAttacks::SimpleMelee,
+                        &mut context.resources.borrow_mut(),
+                        1,
+                    ) {
+                        context.hurtbox.bind_mut().set_attack(attack);
                         Response::Transition(State::attacking_right())
                     } else {
                         Handled
                     }
                 }
                 (Some(MoveButton::Left), Some(ModifierButton::Attack)) => {
-                    if let Ok(attack) =
-                        Offense::try_attack(PlayerAttacks::SimpleMelee, context.1, 1)
-                    {
-                        context.2.bind_mut().set_attack(attack);
+                    if let Ok(attack) = Offense::try_attack(
+                        PlayerAttacks::SimpleMelee,
+                        &mut context.resources.borrow_mut(),
+                        1,
+                    ) {
+                        context.hurtbox.bind_mut().set_attack(attack);
                         Response::Transition(State::attacking_left())
                     } else {
                         Handled
                     }
                 }
                 (None, Some(ModifierButton::Attack)) => {
-                    if let Ok(attack) =
-                        Offense::try_attack(PlayerAttacks::SimpleMelee, context.1, 1)
-                    {
-                        context.2.bind_mut().set_attack(attack);
+                    if let Ok(attack) = Offense::try_attack(
+                        PlayerAttacks::SimpleMelee,
+                        &mut context.resources.borrow_mut(),
+                        1,
+                    ) {
+                        context.hurtbox.bind_mut().set_attack(attack);
                         Response::Transition(State::attacking_left())
                     } else {
                         Handled
@@ -985,15 +977,7 @@ impl CharacterStateMachine {
 
     // TODO: Chain attacking.
     #[state]
-    fn attacking_right(
-        &mut self,
-        event: &Event,
-        context: &mut (
-            &mut HashMap<PlayerTimer, Gd<Timer>>,
-            &mut CombatResources,
-            &mut Gd<Hurtbox>,
-        ),
-    ) -> Response<State> {
+    fn attacking_right(&mut self, event: &Event) -> Response<State> {
         match event {
             Event::TimerElapsed(inputs) => match (&inputs.0, &inputs.1) {
                 // Chain attacking
@@ -1311,19 +1295,12 @@ impl CharacterStateMachine {
     }
 
     #[state]
-    fn wall_grab_left(
-        event: &Event,
-        context: &mut (
-            &mut HashMap<PlayerTimer, Gd<Timer>>,
-            &mut CombatResources,
-            &mut Gd<Hurtbox>,
-        ),
-    ) -> Response<State> {
+    fn wall_grab_left(event: &Event, context: &mut SMContext) -> Response<State> {
         match event {
             Event::InputChanged(inputs) => match (&inputs.0, inputs.1) {
                 // Jumping
                 (Some(MoveButton::Left), Some(ModifierButton::Jump)) => {
-                    if let Some(timer) = context.0.get_mut(&PlayerTimer::WallJumpLimit)
+                    if let Some(timer) = context.timers.get_mut(&PlayerTimer::WallJumpLimit)
                         && timer.get_time_left() == 0.0
                     {
                         timer.start();
@@ -1352,19 +1329,12 @@ impl CharacterStateMachine {
     }
 
     #[state]
-    fn wall_grab_right(
-        event: &Event,
-        context: &mut (
-            &mut HashMap<PlayerTimer, Gd<Timer>>,
-            &mut CombatResources,
-            &mut Gd<Hurtbox>,
-        ),
-    ) -> Response<State> {
+    fn wall_grab_right(event: &Event, context: &mut SMContext) -> Response<State> {
         match event {
             Event::InputChanged(inputs) => match (&inputs.0, inputs.1) {
                 // Jumping
                 (Some(MoveButton::Right), Some(ModifierButton::Jump)) => {
-                    if let Some(timer) = context.0.get_mut(&PlayerTimer::WallJumpLimit)
+                    if let Some(timer) = context.timers.get_mut(&PlayerTimer::WallJumpLimit)
                         && timer.get_time_left() == 0.0
                     {
                         timer.start();
@@ -1393,18 +1363,11 @@ impl CharacterStateMachine {
     }
 }
 
-fn try_jump<F>(
-    context: &mut (
-        &mut HashMap<PlayerTimer, Gd<Timer>>,
-        &mut CombatResources,
-        &mut Gd<Hurtbox>,
-    ),
-    completed: F,
-) -> Response<State>
+fn try_jump<F>(context: &mut SMContext, completed: F) -> Response<State>
 where
     F: FnOnce() -> Response<State>,
 {
-    if let Some(timer) = context.0.get_mut(&PlayerTimer::JumpTimeLimit)
+    if let Some(timer) = context.timers.get_mut(&PlayerTimer::JumpTimeLimit)
         && timer.get_time_left() == 0.0
     {
         timer.start();

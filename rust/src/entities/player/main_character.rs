@@ -1,8 +1,8 @@
-use std::collections::HashMap;
+use std::{cell, collections, rc};
 
 use godot::{
     classes::{
-        AnimationPlayer, Area2D, CharacterBody2D, ICharacterBody2D, Input, RayCast2D, Timer,
+        Area2D, CharacterBody2D, ICharacterBody2D, Input, RayCast2D, Timer,
         timer::TimerProcessCallback,
     },
     obj::WithBaseField,
@@ -13,10 +13,7 @@ use statig::prelude::StateMachine;
 use super::physics;
 use crate::{
     entities::{
-        damage::{
-            CombatResources, Defense, Element, Health, Mana, Offense, PlayerAttacks, Resistance,
-            Stamina,
-        },
+        damage::{CombatResources, Defense, Element, Health, Mana, Resistance, Stamina},
         enemies::projectile::Projectile,
         entity_stats::{EntityStats, Stat, StatModifier, StatVal},
         graphics::Graphics,
@@ -24,7 +21,7 @@ use crate::{
         movements::Direction,
         player::{
             abilities::AbilityComp,
-            character_state_machine as csm,
+            character_state_machine::{self as csm},
             item_component::ItemComponent,
             shaky_player_camera::{PlayerCamera, TraumaLevel},
         },
@@ -45,8 +42,9 @@ type Event = csm::Event;
 pub struct MainCharacter {
     inputs: Inputs,
     previous_state: State,
-    pub timers: HashMap<PlayerTimer, Gd<Timer>>,
+    pub timers: collections::HashMap<PlayerTimer, Gd<Timer>>,
     pub state: StateMachine<csm::CharacterStateMachine>,
+
     pub stats: EntityStats,
     movements: physics::Movement,
     base: Base<CharacterBody2D>,
@@ -82,8 +80,10 @@ pub struct MainCharacter {
     #[init(val = Defense::new(vec![Resistance::Physical(5), Resistance::Elemental(Element::Fire, 10)]))]
     pub def: Defense,
 
-    #[init(val = CombatResources::new(Stamina::new(30, 30), Mana::new(50, 50)))]
-    resources: CombatResources,
+    // statig SM lifetime support seems a bit limited, hence Rc<RefCell<T>>>. Could be user error
+    // but may as well move on for now.
+    #[init(val = rc::Rc::new(cell::RefCell::new(CombatResources::new(Stamina::new(30, 30), Mana::new(50, 50)))))]
+    resources: rc::Rc<cell::RefCell<CombatResources>>,
 }
 
 #[godot_api]
@@ -256,14 +256,13 @@ impl MainCharacter {
     /// current state.
     pub fn transition_sm(&mut self, event: &Event) {
         let prev = *self.state.state();
-        self.state.handle_with_context(
-            event,
-            &mut (
-                &mut self.timers,
-                &mut self.resources,
-                &mut self.hit_reg.hurtbox,
-            ),
+        let mut context = csm::SMContext::new(
+            self.timers.clone(),
+            self.resources.clone(),
+            self.hit_reg.hurtbox.clone(),
         );
+        self.state.handle_with_context(event, &mut context);
+        dbg!(&self.resources.borrow().stamina());
         let new = *self.state.state();
         if prev != new {
             // TODO: Temporary solution. The direction isn't updated in time, so defer getting the
