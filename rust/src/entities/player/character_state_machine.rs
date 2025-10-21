@@ -1,13 +1,13 @@
-use std::{cell::RefCell, collections::HashMap, rc::Rc};
+use std::{cell::RefCell, rc::Rc};
 
-use godot::{classes::Timer, obj::Gd};
+use godot::obj::Gd;
 use statig::blocking::*;
 
 use crate::{
     entities::{
         damage::{CombatResources, Offense, PlayerAttacks},
         hit_reg::Hurtbox,
-        player::time::{PlayerTimer, PlayerTimers},
+        player::time::PlayerTimers,
     },
     utils::input_hanlder::{Inputs, ModifierButton, MoveButton},
 };
@@ -1083,20 +1083,38 @@ impl CharacterStateMachine {
             Event::TimerElapsed(inputs) => match (&inputs.0, &inputs.1) {
                 // Chain attacking
                 (Some(MoveButton::Left), Some(ModifierButton::Attack))
-                    if context.timers.borrow().attack_2_anim.get_time_left() == 0.0 =>
+                    if context.timers.borrow().attack_2_anim.get_time_left() == 0.0
+                        && let Ok(attack) = Offense::try_attack(
+                            PlayerAttacks::ChargedMelee,
+                            &mut context.resources.borrow_mut(),
+                            1,
+                        ) =>
                 {
+                    context.hurtbox.bind_mut().set_attack(attack);
                     context.timers.borrow_mut().attack_2_anim.start();
                     Response::Transition(State::attack_left_2())
                 }
                 (Some(MoveButton::Right), Some(ModifierButton::Attack))
-                    if context.timers.borrow().attack_2_anim.get_time_left() == 0.0 =>
+                    if context.timers.borrow().attack_2_anim.get_time_left() == 0.0
+                        && let Ok(attack) = Offense::try_attack(
+                            PlayerAttacks::ChargedMelee,
+                            &mut context.resources.borrow_mut(),
+                            1,
+                        ) =>
                 {
+                    context.hurtbox.bind_mut().set_attack(attack);
                     context.timers.borrow_mut().attack_2_anim.start();
                     Response::Transition(State::attack_right_2())
                 }
                 (None, Some(ModifierButton::Attack))
-                    if context.timers.borrow().attack_2_anim.get_time_left() == 0.0 =>
+                    if context.timers.borrow().attack_2_anim.get_time_left() == 0.0
+                        && let Ok(attack) = Offense::try_attack(
+                            PlayerAttacks::ChargedMelee,
+                            &mut context.resources.borrow_mut(),
+                            1,
+                        ) =>
                 {
+                    context.hurtbox.bind_mut().set_attack(attack);
                     context.timers.borrow_mut().attack_2_anim.start();
                     Response::Transition(State::attack_right_2())
                 }
@@ -1120,20 +1138,38 @@ impl CharacterStateMachine {
             Event::TimerElapsed(inputs) => match (&inputs.0, &inputs.1) {
                 // Chain attacking
                 (Some(MoveButton::Left), Some(ModifierButton::Attack))
-                    if context.timers.borrow().attack_2_anim.get_time_left() == 0.0 =>
+                    if context.timers.borrow().attack_2_anim.get_time_left() == 0.0
+                        && let Ok(attack) = Offense::try_attack(
+                            PlayerAttacks::ChargedMelee,
+                            &mut context.resources.borrow_mut(),
+                            1,
+                        ) =>
                 {
+                    context.hurtbox.bind_mut().set_attack(attack);
                     context.timers.borrow_mut().attack_2_anim.start();
                     Response::Transition(State::attack_left_2())
                 }
                 (Some(MoveButton::Right), Some(ModifierButton::Attack))
-                    if context.timers.borrow().attack_2_anim.get_time_left() == 0.0 =>
+                    if context.timers.borrow().attack_2_anim.get_time_left() == 0.0
+                        && let Ok(attack) = Offense::try_attack(
+                            PlayerAttacks::ChargedMelee,
+                            &mut context.resources.borrow_mut(),
+                            1,
+                        ) =>
                 {
+                    context.hurtbox.bind_mut().set_attack(attack);
                     context.timers.borrow_mut().attack_2_anim.start();
                     Response::Transition(State::attack_right_2())
                 }
                 (None, Some(ModifierButton::Attack))
-                    if context.timers.borrow().attack_2_anim.get_time_left() == 0.0 =>
+                    if context.timers.borrow().attack_2_anim.get_time_left() == 0.0
+                        && let Ok(attack) = Offense::try_attack(
+                            PlayerAttacks::ChargedMelee,
+                            &mut context.resources.borrow_mut(),
+                            1,
+                        ) =>
                 {
+                    context.hurtbox.bind_mut().set_attack(attack);
                     context.timers.borrow_mut().attack_2_anim.start();
                     Response::Transition(State::attack_right_2())
                 }
