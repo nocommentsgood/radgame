@@ -3684,3 +3684,53 @@ collision_mask = 768
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="EnvironmentBox"]
 shape = SubResource("RectangleShape2D_62fq1")
+
+[node name="WallJump" type="Timer" parent="."]
+wait_time = 0.1
+one_shot = true
+
+[node name="DodgeAnimation" type="Timer" parent="."]
+one_shot = true
+
+[node name="AttackAnimation" type="Timer" parent="."]
+wait_time = 0.2
+one_shot = true
+
+[node name="AttackAnimation2" type="Timer" parent="."]
+wait_time = 0.7
+one_shot = true
+
+[node name="HealingAnimation" type="Timer" parent="."]
+wait_time = 0.7
+one_shot = true
+
+[node name="HealingCooldown" type="Timer" parent="."]
+wait_time = 1.5
+one_shot = true
+
+[node name="HurtAnimation" type="Timer" parent="."]
+wait_time = 0.3
+one_shot = true
+
+[node name="ParryAnimation" type="Timer" parent="."]
+wait_time = 0.3
+one_shot = true
+
+[node name="Parry" type="Timer" parent="."]
+wait_time = 0.3
+one_shot = true
+
+[node name="PerfectParry" type="Timer" parent="."]
+wait_time = 0.15
+one_shot = true
+
+[node name="Coyote" type="Timer" parent="."]
+one_shot = true
+
+[node name="JumpLimit" type="Timer" parent="."]
+wait_time = 0.4
+one_shot = true
+
+[node name="DodgeCooldown" type="Timer" parent="."]
+wait_time = 2.5
+one_shot = true
