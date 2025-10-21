@@ -1,10 +1,9 @@
 use godot::obj::Singleton;
 use godot::{
-    classes::{Input, Timer},
+    classes::Input,
     obj::{Gd, WithBaseField, WithUserSignals},
 };
 
-use crate::entities::player::time::PlayerTimer;
 use crate::entities::{
     entity_stats::Stat,
     player::{
@@ -12,8 +11,6 @@ use crate::entities::{
         main_character::MainCharacter,
     },
 };
-
-type PT = PlayerTimer;
 
 #[derive(Default, Clone)]
 pub struct InputHandler;

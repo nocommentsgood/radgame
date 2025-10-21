@@ -1,10 +1,7 @@
-use std::{cell, collections, rc};
+use std::{cell, rc};
 
 use godot::{
-    classes::{
-        Area2D, CharacterBody2D, ICharacterBody2D, Input, RayCast2D, Timer,
-        timer::TimerProcessCallback,
-    },
+    classes::{Area2D, CharacterBody2D, ICharacterBody2D, Input, RayCast2D},
     obj::WithBaseField,
     prelude::*,
 };
@@ -24,7 +21,7 @@ use crate::{
             character_state_machine::{self as csm},
             item_component::ItemComponent,
             shaky_player_camera::{PlayerCamera, TraumaLevel},
-            time::{PlayerTimer, PlayerTimers},
+            time::PlayerTimers,
         },
     },
     utils::{
@@ -34,7 +31,6 @@ use crate::{
 };
 
 type State = csm::State;
-type PT = PlayerTimer;
 type Event = csm::Event;
 
 #[derive(GodotClass)]

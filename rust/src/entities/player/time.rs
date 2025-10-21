@@ -3,25 +3,6 @@ use godot::{
     obj::Gd,
 };
 
-#[derive(Clone, Copy, Eq, PartialEq, Hash)]
-pub enum PlayerTimer {
-    WallJumpLimit,
-    AttackChain,
-    DodgeAnimation,
-    JumpingCooldown,
-    AttackAnimation,
-    Attack2Animation,
-    HealingAnimation,
-    HealingCooldown,
-    HurtAnimation,
-    ParryAnimation,
-    Parry,
-    PerfectParry,
-    Coyote,
-    DodgeCooldown,
-    JumpTimeLimit,
-}
-
 #[derive(Clone)]
 pub struct PlayerTimers {
     pub wall_jump: Gd<Timer>,
