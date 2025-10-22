@@ -3,6 +3,8 @@ use godot::{
     obj::Gd,
 };
 
+use crate::entities::graphics::Graphics;
+
 #[derive(Clone)]
 pub struct PlayerTimers {
     pub wall_jump: Gd<Timer>,
@@ -21,11 +23,11 @@ pub struct PlayerTimers {
 }
 
 impl PlayerTimers {
-    pub fn new(player: &Gd<Node>) -> Self {
+    pub fn new(player: &Gd<Node>, graphics: &mut Graphics) -> Self {
         fn get(node: &Gd<Node>, s: &str) -> Gd<Timer> {
             node.get_node_as::<Timer>(s)
         }
-        Self {
+        let mut this = Self {
             wall_jump: get(player, "WallJump"),
             dodge_anim: get(player, "DodgeAnimation"),
             attack_anim: get(player, "AttackAnimation"),
@@ -39,11 +41,24 @@ impl PlayerTimers {
             coyote: get(player, "Coyote"),
             dodge_cooldown: get(player, "DodgeCooldown"),
             jump_limit: get(player, "JumpLimit"),
-        }
+        };
+        this.dodge_anim
+            .set_wait_time(graphics.get_animation_length("dodge_right"));
+        this.attack_anim
+            .set_wait_time(graphics.get_animation_length("attack_right"));
+        this.attack_2_anim
+            .set_wait_time(graphics.get_animation_length("chainattack_right"));
+        this.healing_anim
+            .set_wait_time(graphics.get_animation_length("heal_right"));
+        this.parry_anim
+            .set_wait_time(graphics.get_animation_length("parry_right"));
+        this.hurt_anim
+            .set_wait_time(graphics.get_animation_length("hurt_right"));
+        this
     }
 
     #[allow(clippy::too_many_arguments)]
-    pub fn connect_signals<A, B, C, D, E, F, G, H, I, J, K, L>(
+    pub fn connect_signals<A, B, C, D, E, F, G, L>(
         &mut self,
         on_walljump: A,
         on_dodge_anim: B,
@@ -52,10 +67,6 @@ impl PlayerTimers {
         on_healing_anim: E,
         on_hurt_anim: F,
         on_parry_anim: G,
-        on_parry: H,
-        on_perfect_parry: I,
-        on_coyote: J,
-        on_dodge_cool: K,
         on_jump_limit: L,
     ) where
         A: FnMut() + 'static,
@@ -65,10 +76,6 @@ impl PlayerTimers {
         E: FnMut() + 'static,
         F: FnMut() + 'static,
         G: FnMut() + 'static,
-        H: FnMut() + 'static,
-        I: FnMut() + 'static,
-        J: FnMut() + 'static,
-        K: FnMut() + 'static,
         L: FnMut() + 'static,
     {
         self.wall_jump.signals().timeout().connect(on_walljump);
@@ -84,16 +91,6 @@ impl PlayerTimers {
             .connect(on_healing_anim);
         self.hurt_anim.signals().timeout().connect(on_hurt_anim);
         self.parry_anim.signals().timeout().connect(on_parry_anim);
-        self.parry.signals().timeout().connect(on_parry);
-        self.perfect_parry
-            .signals()
-            .timeout()
-            .connect(on_perfect_parry);
-        self.coyote.signals().timeout().connect(on_coyote);
-        self.dodge_cooldown
-            .signals()
-            .timeout()
-            .connect(on_dodge_cool);
         self.jump_limit.signals().timeout().connect(on_jump_limit);
     }
 }

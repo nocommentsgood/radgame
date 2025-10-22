@@ -15,7 +15,6 @@ use crate::{
         entity_stats::{EntityStats, Stat, StatModifier, StatVal},
         graphics::Graphics,
         hit_reg::{self, Hitbox, Hurtbox},
-        movements::Direction,
         player::{
             abilities::AbilityComp,
             character_state_machine::{self as csm},
@@ -39,7 +38,7 @@ pub struct MainCharacter {
     inputs: Inputs,
     previous_state: State,
 
-    #[init(val = OnReady::from_base_fn(|this| rc::Rc::new(cell::RefCell::new(PlayerTimers::new(this)))))]
+    #[init(val = OnReady::manual())]
     pub timer: OnReady<rc::Rc<cell::RefCell<PlayerTimers>>>,
 
     pub state: StateMachine<csm::CharacterStateMachine>,
@@ -93,6 +92,12 @@ impl ICharacterBody2D for MainCharacter {
             jumping: 300.0,
             dodging: 250.0,
         };
+
+        self.timer
+            .init(rc::Rc::new(cell::RefCell::new(PlayerTimers::new(
+                &self.to_gd().upcast(),
+                &mut self.graphics,
+            ))));
 
         let hitbox = self.base().get_node_as::<Hitbox>("Hitbox");
         hitbox
@@ -307,14 +312,6 @@ impl MainCharacter {
                 move || this.bind_mut().on_parry_timeout()
             },
             {
-                || ()
-                // let this = this.clone();
-                // this.bind_mut().
-            },
-            || (),
-            || (),
-            || (),
-            {
                 let mut this = this.clone();
                 move || this.bind_mut().on_jump_limit_timeout()
             },
@@ -341,10 +338,6 @@ impl MainCharacter {
         self.stats
             .get_mut(modif.stat)
             .remove_modifier(modif.clone());
-    }
-
-    pub fn get_direction(&self) -> Direction {
-        Direction::from_vel(&self.movements.velocity)
     }
 
     /// Transitions state machine from it's current state to `disabled`.
