@@ -19,27 +19,27 @@ impl Ability {
     pub fn execute(&self, player: &mut MainCharacter) {
         match self {
             Ability::JumpPlatform => {
-                let mut plat =
-                    load::<PackedScene>("uid://cul64aw83q0sm").instantiate_as::<JumpPlatform>();
-                let pos = player.base().get_position();
-                let dir = player.get_direction();
-                match dir {
-                    crate::entities::movements::Direction::Right => {
-                        plat.set_constant_linear_velocity(Vector2::new(100.0, 0.0));
-                        plat.set_position(pos + Vector2::new(40.0, 0.0));
-                        plat.bind_mut().target = pos + Vector2::new(100.0, 0.0);
-                        plat.bind_mut().velocity = pos.direction_to(pos + Vector2::new(100.0, 0.0));
-                    }
-                    crate::entities::movements::Direction::Left => {
-                        plat.set_constant_linear_velocity(Vector2::new(-100.0, 0.0));
-                        plat.set_position(pos + Vector2::new(-40.0, 0.0));
-                        plat.bind_mut().target = pos + Vector2::new(-100.0, 0.0);
-                        plat.bind_mut().velocity =
-                            pos.direction_to(pos + Vector2::new(-100.0, 0.0));
-                    }
-                }
-                plat.bind_mut().start = pos;
-                player.base_mut().add_sibling(&plat);
+                // let mut plat =
+                //     load::<PackedScene>("uid://cul64aw83q0sm").instantiate_as::<JumpPlatform>();
+                // let pos = player.base().get_position();
+                //  let dir = player.get_direction();
+                // match dir {
+                //     crate::entities::movements::Direction::Right => {
+                //         plat.set_constant_linear_velocity(Vector2::new(100.0, 0.0));
+                //         plat.set_position(pos + Vector2::new(40.0, 0.0));
+                //         plat.bind_mut().target = pos + Vector2::new(100.0, 0.0);
+                //         plat.bind_mut().velocity = pos.direction_to(pos + Vector2::new(100.0, 0.0));
+                //     }
+                //     crate::entities::movements::Direction::Left => {
+                //         plat.set_constant_linear_velocity(Vector2::new(-100.0, 0.0));
+                //         plat.set_position(pos + Vector2::new(-40.0, 0.0));
+                //         plat.bind_mut().target = pos + Vector2::new(-100.0, 0.0);
+                //         plat.bind_mut().velocity =
+                //             pos.direction_to(pos + Vector2::new(-100.0, 0.0));
+                //     }
+                // }
+                // plat.bind_mut().start = pos;
+                // player.base_mut().add_sibling(&plat);
             }
             Ability::TwinPillar => {
                 let mut ability =

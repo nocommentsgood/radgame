@@ -163,7 +163,14 @@ impl INode2D for NewProjectileEnemy {
 impl NewProjectileEnemy {
     fn on_hitbox_entered(&mut self, area: Gd<Area2D>) {
         let hurtbox = area.cast::<Hurtbox>();
+
+        // BUG: Seems like on occasion the hurtbox sets the attack after the hitbox checks it,
+        // leading to a panic upon unwrapping.
+        // Could try:
+        // - disabling multi-threading in Godot editor
+        // - deferring the hitbox check to the next idle frame
         let attack = hurtbox.bind().attack.clone().unwrap();
+
         let damage = self.def.apply_resistances(attack);
         self.health.take_damage(damage);
         if self.health.is_dead() {

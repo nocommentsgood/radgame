@@ -103,13 +103,17 @@ impl Movement {
             }
             _ => self.velocity.x = 0.0,
         }
-        if self.velocity.x != 0.0 {
-            self.direction = Direction::from_vel(&self.velocity);
-        }
     }
 
-    pub fn get_direction(&self) -> Direction {
-        self.direction
+    pub fn get_direction(&mut self) -> Direction {
+        let cur = self.direction;
+        if self.velocity.x != 0.0 {
+            let new = Direction::from_vel(&self.velocity);
+            self.direction = new;
+            new
+        } else {
+            cur
+        }
     }
 
     pub fn bounce_off_ceiling(&mut self, collision: Gd<KinematicCollision2D>) {

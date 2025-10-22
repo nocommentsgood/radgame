@@ -185,7 +185,6 @@ impl MainCharacter {
     pub fn player_health_changed(previous_health: u32, new_health: u32, damage_amount: u32);
 
     fn on_area_entered_hitbox(&mut self, area: Gd<Area2D>) {
-        println!("Player Hitbox entered");
         let hurtbox = area.cast::<Hurtbox>();
         let attack = hurtbox.bind().attack.clone().unwrap();
         if attack.is_parryable() && self.parried() {
@@ -270,12 +269,9 @@ impl MainCharacter {
         self.state.handle_with_context(event, &mut context);
         let new = *self.state.state();
         if prev != new {
-            // TODO: Temporary solution. The direction isn't updated in time, so defer getting the
-            // direction unti the velocity updates.
-            self.run_deferred(|this| {
-                this.graphics
-                    .update(this.state.state(), &this.movements.get_direction())
-            });
+            self.movements.handle_acceleration(self.state.state());
+            self.graphics
+                .update(self.state.state(), &self.movements.get_direction());
         }
     }
 
