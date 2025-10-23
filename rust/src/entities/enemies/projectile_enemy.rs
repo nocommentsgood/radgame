@@ -1,8 +1,8 @@
 use super::{enemy_state_machine::State, projectile::Projectile};
 use crate::entities::{
     damage::{
-        Buff, CombatResources, Defense, Element, Health, Mana, Offense, PlayerAttacks, Resistance,
-        Stamina,
+        Buff, CombatResources, Defense, Element, Heal, Health, Mana, Offense, PlayerAttacks,
+        Resistance, Stamina,
     },
     enemies::{enemy_context as ctx, enemy_state_machine as esm, physics, time},
     graphics::Graphics,
@@ -39,11 +39,8 @@ pub struct NewProjectileEnemy {
     #[init(val = OnReady::from_base_fn(|this|{ Graphics::new(this)}))]
     graphics: OnReady<Graphics>,
 
-    #[init(val = OnReady::new(|| Health::new(10, 10)))]
-    health: OnReady<Health>,
-
     #[init(val = OnReady::new(|| CombatResources::new(
-        Stamina::new(20, 20), Mana::new(20, 20)
+        Health::new(10, 10, Heal::new(5)), Stamina::new(20, 20), Mana::new(20, 20)
     )))]
     pub resources: OnReady<CombatResources>,
 
@@ -172,8 +169,8 @@ impl NewProjectileEnemy {
         let attack = hurtbox.bind().attack.clone().unwrap();
 
         let damage = self.def.apply_resistances(attack);
-        self.health.take_damage(damage);
-        if self.health.is_dead() {
+        self.resources.take_damage(damage);
+        if self.resources.health().is_dead() {
             self.sm.handle(&esm::EnemyEvent::Death);
             self.run_deferred(|this| this.base_mut().queue_free());
         }

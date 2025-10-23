@@ -10,7 +10,7 @@ use statig::prelude::StateMachine;
 use super::physics;
 use crate::{
     entities::{
-        damage::{CombatResources, Defense, Element, Health, Mana, Resistance, Stamina},
+        damage::{CombatResources, Defense, Element, Heal, Health, Mana, Resistance, Stamina},
         enemies::projectile::Projectile,
         entity_stats::{EntityStats, Stat, StatModifier, StatVal},
         graphics::Graphics,
@@ -72,15 +72,13 @@ pub struct MainCharacter {
     #[init(node = "ShakyPlayerCamera")]
     pub camera: OnReady<Gd<PlayerCamera>>,
 
-    #[init(val = Health::new(50, 50))]
-    pub health: Health,
-
     #[init(val = Defense::new(vec![Resistance::Physical(5), Resistance::Elemental(Element::Fire, 10)]))]
     pub def: Defense,
 
     // statig SM lifetime support seems a bit limited, hence Rc<RefCell<T>>>. Could be user error
     // but may as well move on for now.
-    #[init(val = rc::Rc::new(cell::RefCell::new(CombatResources::new(Stamina::new(30, 30), Mana::new(50, 50)))))]
+    #[init(val = rc::Rc::new(cell::RefCell::new(CombatResources::new(
+        Health::new(30, 30, Heal::new(5)), Stamina::new(30, 30), Mana::new(50, 50)))))]
     resources: rc::Rc<cell::RefCell<CombatResources>>,
 }
 
@@ -195,7 +193,7 @@ impl MainCharacter {
             }
         } else {
             let damage = self.def.apply_resistances(attack);
-            self.health.take_damage(damage);
+            self.resources.borrow_mut().take_damage(damage);
             self.camera
                 .bind_mut()
                 .add_trauma(TraumaLevel::from(damage.0));

@@ -1378,28 +1378,36 @@ impl CharacterStateMachine {
     }
 
     #[state]
-    fn healing_right(&mut self, event: &Event) -> Response<State> {
+    fn healing_right(&mut self, event: &Event, context: &mut SMContext) -> Response<State> {
         match event {
-            Event::TimerElapsed(inputs) => match (&inputs.0, &inputs.1) {
-                // Moving
-                (Some(MoveButton::Left), _) => Response::Transition(State::move_left()),
-                (Some(MoveButton::Right), _) => Response::Transition(State::move_right()),
-                (None, _) => Response::Transition(State::idle_right()),
-            },
+            Event::TimerElapsed(inputs) => {
+                context.resources.borrow_mut().heal();
+
+                match (&inputs.0, &inputs.1) {
+                    // Moving
+                    (Some(MoveButton::Left), _) => Response::Transition(State::move_left()),
+                    (Some(MoveButton::Right), _) => Response::Transition(State::move_right()),
+                    (None, _) => Response::Transition(State::idle_right()),
+                }
+            }
             Event::ForceDisabled => Response::Transition(State::forced_disabled_right()),
             _ => Handled,
         }
     }
 
     #[state]
-    fn healing_left(&mut self, event: &Event) -> Response<State> {
+    fn healing_left(&mut self, event: &Event, context: &mut SMContext) -> Response<State> {
         match event {
-            Event::TimerElapsed(inputs) => match (&inputs.0, &inputs.1) {
-                // Moving
-                (Some(MoveButton::Left), _) => Response::Transition(State::move_left()),
-                (Some(MoveButton::Right), _) => Response::Transition(State::move_right()),
-                (None, _) => Response::Transition(State::idle_left()),
-            },
+            Event::TimerElapsed(inputs) => {
+                context.resources.borrow_mut().heal();
+
+                match (&inputs.0, &inputs.1) {
+                    // Moving
+                    (Some(MoveButton::Left), _) => Response::Transition(State::move_left()),
+                    (Some(MoveButton::Right), _) => Response::Transition(State::move_right()),
+                    (None, _) => Response::Transition(State::idle_left()),
+                }
+            }
             Event::ForceDisabled => Response::Transition(State::forced_disabled_left()),
             _ => Handled,
         }

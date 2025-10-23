@@ -36,10 +36,18 @@ impl Stamina {
 }
 
 #[derive(Clone, Copy, Debug)]
-pub struct Health(Resource);
+pub struct Heal(i64);
+impl Heal {
+    pub fn new(amount: i64) -> Self {
+        Self(amount)
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct Health(Resource, Heal);
 impl Health {
-    pub fn new(amount: i64, max: i64) -> Self {
-        Self(Resource::new(amount, max))
+    pub fn new(amount: i64, max: i64, heal: Heal) -> Self {
+        Self(Resource::new(amount, max), heal)
     }
 
     pub fn take_damage(&mut self, damage: Damage) {
@@ -48,6 +56,14 @@ impl Health {
 
     pub fn is_dead(&self) -> bool {
         self.0.amount <= 0
+    }
+
+    pub fn heal(&mut self) {
+        self.0.increase(self.1.0);
+    }
+
+    pub fn set_healing(&mut self, heal: Heal) {
+        self.1 = heal;
     }
 }
 
@@ -243,6 +259,7 @@ impl Offense {
 
 #[derive(Clone, Copy)]
 pub struct CombatResources {
+    health: Health,
     stam: Stamina,
     mana: Mana,
     stam_counter: f32,
@@ -250,13 +267,18 @@ pub struct CombatResources {
 }
 
 impl CombatResources {
-    pub fn new(stam: Stamina, mana: Mana) -> Self {
+    pub fn new(health: Health, stam: Stamina, mana: Mana) -> Self {
         Self {
+            health,
             stam,
             mana,
             stam_counter: 0.0,
             mana_counter: 0.0,
         }
+    }
+
+    pub fn health(&self) -> &Health {
+        &self.health
     }
 
     pub fn mana(&self) -> &Mana {
@@ -265,6 +287,14 @@ impl CombatResources {
 
     pub fn stamina(&self) -> &Stamina {
         &self.stam
+    }
+
+    pub fn take_damage(&mut self, damage: Damage) {
+        self.health.take_damage(damage);
+    }
+
+    pub fn heal(&mut self) {
+        self.health.heal();
     }
 
     pub fn tick_resources(&mut self, delta: f32) {
@@ -311,13 +341,13 @@ impl CombatResources {
 
 #[cfg(test)]
 mod test {
+
     use super::{
-        Buff, CombatResources, Defense, Element, Health, Mana, Offense, PlayerAttacks, Resistance,
-        Stamina,
+        Buff, CombatResources, Defense, Element, Heal, Health, Mana, Offense, PlayerAttacks,
+        Resistance, Stamina,
     };
 
     struct Dummy {
-        health: Health,
         offense: Offense,
         defense: Defense,
         resource: CombatResources,
@@ -326,7 +356,6 @@ mod test {
     impl Dummy {
         fn new() -> Self {
             Self {
-                health: Health::new(10, 20),
                 offense: Offense {
                     buffs: vec![Buff::Physical(5), Buff::Elemental(Element::Fire, 5)],
                 },
@@ -336,7 +365,11 @@ mod test {
                         Resistance::Elemental(Element::Magic, 5),
                     ],
                 },
-                resource: CombatResources::new(Stamina::new(30, 30), Mana::new(15, 15)),
+                resource: CombatResources::new(
+                    Health::new(10, 10, Heal(2)),
+                    Stamina::new(30, 30),
+                    Mana::new(15, 15),
+                ),
             }
         }
     }
@@ -396,13 +429,13 @@ mod test {
         let mut dummy = Dummy::new(); // health is 10
         let attack = PlayerAttacks::SimpleMelee.build(1); // 10
         let damage = dummy.defense.apply_resistances(attack); // dummy resistance is 10
-        dummy.health.take_damage(damage);
-        assert_eq!(*dummy.health.0.amount(), 10);
+        dummy.resource.health.take_damage(damage);
+        assert_eq!(*dummy.resource.health.0.amount(), 10);
 
         let attack = PlayerAttacks::SimpleMelee.build(2); // 20
         let damage = dummy.defense.apply_resistances(attack);
-        dummy.health.take_damage(damage);
-        assert_eq!(*dummy.health.0.amount(), 0);
+        dummy.resource.health.take_damage(damage);
+        assert_eq!(*dummy.resource.health.0.amount(), 0);
     }
 
     #[test]

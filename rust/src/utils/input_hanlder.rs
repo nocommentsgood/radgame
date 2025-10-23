@@ -1,16 +1,33 @@
 use godot::obj::Singleton;
 use godot::{
     classes::Input,
-    obj::{Gd, WithBaseField, WithUserSignals},
+    obj::{Gd, WithBaseField},
 };
 
-use crate::entities::{
-    entity_stats::Stat,
-    player::{
-        character_state_machine::{Event, State},
-        main_character::MainCharacter,
-    },
-};
+use crate::entities::{entity_stats::Stat, player::main_character::MainCharacter};
+
+/// Horizontal movement buttons.
+#[derive(Clone, PartialEq, Eq, Debug, Copy)]
+pub enum MoveButton {
+    Left,
+    Right,
+}
+
+/// Action buttons.
+#[derive(Clone, PartialEq, Eq, Debug, Copy)]
+pub enum ModifierButton {
+    Dodge,
+    Jump,
+    Attack,
+    JumpAttack,
+    Heal,
+    Parry,
+    Spell,
+}
+
+/// Player inputs, used by the state machine.
+#[derive(Default, Clone, PartialEq, Eq, Debug, Copy)]
+pub struct Inputs(pub Option<MoveButton>, pub Option<ModifierButton>);
 
 #[derive(Default, Clone)]
 pub struct InputHandler;
@@ -28,13 +45,13 @@ impl InputHandler {
         inputs
     }
 
-    // TODO: Move timer handling to state machine.
-    pub fn handle(input: &Gd<Input>, entity: &mut MainCharacter) -> Inputs {
+    pub fn handle(input: &Gd<Input>, player: &mut MainCharacter) -> Inputs {
         let mut inputs = Self::get_movement(input);
 
         if input.is_action_pressed("attack") {
             inputs.1 = Some(ModifierButton::Attack);
         }
+
         if input.is_action_pressed("jump") {
             if inputs.1.is_some_and(|btn| btn == ModifierButton::Attack) {
                 inputs.1 = Some(ModifierButton::JumpAttack);
@@ -43,33 +60,27 @@ impl InputHandler {
             }
         }
 
+        if input.is_action_just_pressed("ability") {
+            inputs.1 = Some(ModifierButton::Spell);
+            println!("TODO: Implement ability usage.");
+        }
+
+        if input.is_action_just_pressed("rotate_abilities_right") {
+            dbg!(player.ability_comp.quick.rotate_right(1));
+        }
+
+        if input.is_action_just_pressed("rotate_abilities_left") {
+            dbg!(player.ability_comp.quick.rotate_left(1));
+        }
+
         if input.is_action_pressed("dodge") {
             inputs.1 = Some(ModifierButton::Dodge);
         }
-        if input.is_action_pressed("heal") {
+
+        if input.is_action_just_pressed("heal") {
             inputs.1 = Some(ModifierButton::Heal);
-            entity.transition_sm(&Event::InputChanged(inputs));
-
-            // TODO: This isn't the best place to apply healing...
-            //
-            // If the state machine changed to a `healing` state, heal the player.
-            if *entity.state.state() == (State::HealingLeft {})
-                || *entity.state.state() == (State::HealingRight {})
-            {
-                let cur = entity.stats.get_raw(Stat::Health);
-                let max = entity.stats.get_raw(Stat::MaxHealth);
-                let amount = entity.stats.get_raw(Stat::HealAmount);
-
-                if cur < max {
-                    entity.stats.get_mut(Stat::Health).0 += amount;
-                    let new = entity.stats.get(Stat::Health).0;
-                    entity
-                        .signals()
-                        .player_health_changed()
-                        .emit(cur, new, amount);
-                }
-            }
         }
+
         if input.is_action_pressed("parry") {
             {
                 inputs.1 = Some(ModifierButton::Parry);
@@ -116,24 +127,3 @@ impl DevInputHandler {
         inputs
     }
 }
-/// Horizontal movement.
-#[derive(Clone, PartialEq, Eq, Debug, Copy)]
-pub enum MoveButton {
-    Left,
-    Right,
-}
-
-/// Action buttons pressed by the player.
-#[derive(Clone, PartialEq, Eq, Debug, Copy)]
-pub enum ModifierButton {
-    Dodge,
-    Jump,
-    Attack,
-    JumpAttack,
-    Heal,
-    Parry,
-}
-
-/// Represents player input actions.
-#[derive(Default, Clone, PartialEq, Eq, Debug, Copy)]
-pub struct Inputs(pub Option<MoveButton>, pub Option<ModifierButton>);
