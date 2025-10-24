@@ -1,10 +1,13 @@
-use godot::obj::Singleton;
 use godot::{
     classes::Input,
     obj::{Gd, WithBaseField},
 };
 
 use crate::entities::{entity_stats::Stat, player::main_character::MainCharacter};
+
+// The time that has passed since the player began holding the attack button.
+// TODO: Maybe use a `!Sync` `!Send` type.
+static mut CHARGE_ATTACK_TIME: f32 = 0.0;
 
 /// Horizontal movement buttons.
 #[derive(Clone, PartialEq, Eq, Debug, Copy)]
@@ -23,6 +26,7 @@ pub enum ModifierButton {
     Heal,
     Parry,
     Spell,
+    ChargedAttack,
 }
 
 /// Player inputs, used by the state machine.
@@ -48,8 +52,33 @@ impl InputHandler {
     pub fn handle(input: &Gd<Input>, player: &mut MainCharacter) -> Inputs {
         let mut inputs = Self::get_movement(input);
 
-        if input.is_action_pressed("attack") {
+        if input.is_action_just_pressed("attack") {
             inputs.1 = Some(ModifierButton::Attack);
+        }
+
+        if input.is_action_pressed("attack") {
+            let delta = player.base().get_physics_process_delta_time() as f32;
+
+            // Safety: Only used on the Main thread.
+            unsafe {
+                if CHARGE_ATTACK_TIME < 2.0 {
+                    CHARGE_ATTACK_TIME += delta;
+                }
+            }
+        }
+
+        if input.is_action_just_released("attack") {
+            println!("Resetting time");
+
+            // Safety: Only used on the Main thread.
+            unsafe {
+                if CHARGE_ATTACK_TIME >= 2.0 {
+                    inputs.1 = Some(ModifierButton::ChargedAttack);
+                    CHARGE_ATTACK_TIME = 0.0;
+                } else {
+                    CHARGE_ATTACK_TIME = 0.0;
+                }
+            }
         }
 
         if input.is_action_pressed("jump") {
@@ -91,11 +120,13 @@ impl InputHandler {
 }
 
 /// Developer input handling.
+#[derive(Default)]
 pub struct DevInputHandler;
 
 impl DevInputHandler {
     pub fn handle_unhandled(event: &Gd<Input>, entity: &mut MainCharacter) -> Inputs {
-        let inputs = InputHandler::handle(&Input::singleton(), entity);
+        // let inputs = InputHandler::handle(&Input::singleton(), entity);
+        let inputs = InputHandler::handle(event, entity);
         if event.is_action_pressed("dev_teleport") {
             let pos = entity
                 .base()

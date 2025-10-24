@@ -32,15 +32,14 @@ impl SMContext {
     }
 }
 #[derive(Default, Debug, Clone)]
-pub struct CharacterStateMachine {
-    #[allow(unused)]
-    chain_attacked: bool,
-}
+pub struct CharacterStateMachine;
 
 // Animation player uses the implementation of `Display` for animation names.
 impl std::fmt::Display for State {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            // TODO: Combine direction variants.
+
             // Right variants
             State::HurtRight {} => write!(f, "hurt"),
             State::AttackingRight {} => write!(f, "attack"),
@@ -54,6 +53,9 @@ impl std::fmt::Display for State {
             State::ParryRight {} => write!(f, "parry"),
             State::AirAttackRight {} | State::MoveRightAirAttack {} => write!(f, "airattack"),
             State::WallGrabRight {} => write!(f, "idle"),
+            State::ChargedattackRight {} | State::ChargedattackLeft {} => {
+                write!(f, "chargedattack")
+            }
 
             // Left variants
             State::HurtLeft {} => write!(f, "hurt"),
@@ -195,6 +197,30 @@ impl CharacterStateMachine {
                         Response::Transition(State::attacking_right())
                     }
 
+                    // Charged Attack
+                    (Some(MoveButton::Left), Some(ModifierButton::ChargedAttack))
+                        if let Ok(attack) = Offense::try_attack(
+                            PlayerAttacks::ChargedMelee,
+                            &mut context.resources.borrow_mut(),
+                            1,
+                        ) =>
+                    {
+                        context.hurtbox.bind_mut().set_attack(attack);
+                        context.timers.borrow_mut().charged_attack_anim.start();
+                        Response::Transition(State::chargedattack_left())
+                    }
+                    (_, Some(ModifierButton::ChargedAttack))
+                        if let Ok(attack) = Offense::try_attack(
+                            PlayerAttacks::ChargedMelee,
+                            &mut context.resources.borrow_mut(),
+                            1,
+                        ) =>
+                    {
+                        context.hurtbox.bind_mut().set_attack(attack);
+                        context.timers.borrow_mut().charged_attack_anim.start();
+                        Response::Transition(State::chargedattack_right())
+                    }
+
                     // Parry
                     (Some(MoveButton::Right), Some(ModifierButton::Parry))
                         if context.timers.borrow().parry_anim.get_time_left() == 0.0 =>
@@ -214,6 +240,7 @@ impl CharacterStateMachine {
                         context.timers.borrow_mut().parry_anim.start();
                         Response::Transition(State::parry_right())
                     }
+
                     _ => Handled,
                 }
             }
@@ -335,6 +362,30 @@ impl CharacterStateMachine {
                         context.hurtbox.bind_mut().set_attack(attack);
                         context.timers.borrow_mut().attack_anim.start();
                         Response::Transition(State::attacking_left())
+                    }
+
+                    // Charged Attack
+                    (Some(MoveButton::Right), Some(ModifierButton::ChargedAttack))
+                        if let Ok(attack) = Offense::try_attack(
+                            PlayerAttacks::ChargedMelee,
+                            &mut context.resources.borrow_mut(),
+                            1,
+                        ) =>
+                    {
+                        context.hurtbox.bind_mut().set_attack(attack);
+                        context.timers.borrow_mut().charged_attack_anim.start();
+                        Response::Transition(State::chargedattack_right())
+                    }
+                    (_, Some(ModifierButton::ChargedAttack))
+                        if let Ok(attack) = Offense::try_attack(
+                            PlayerAttacks::ChargedMelee,
+                            &mut context.resources.borrow_mut(),
+                            1,
+                        ) =>
+                    {
+                        context.hurtbox.bind_mut().set_attack(attack);
+                        context.timers.borrow_mut().charged_attack_anim.start();
+                        Response::Transition(State::chargedattack_left())
                     }
 
                     // Parry
@@ -479,6 +530,30 @@ impl CharacterStateMachine {
                         Response::Transition(State::attacking_right())
                     }
 
+                    // ChargedAttack
+                    (Some(MoveButton::Left), Some(ModifierButton::ChargedAttack))
+                        if let Ok(attack) = Offense::try_attack(
+                            PlayerAttacks::ChargedMelee,
+                            &mut context.resources.borrow_mut(),
+                            1,
+                        ) =>
+                    {
+                        context.hurtbox.bind_mut().set_attack(attack);
+                        context.timers.borrow_mut().charged_attack_anim.start();
+                        Response::Transition(State::chargedattack_left())
+                    }
+                    (_, Some(ModifierButton::ChargedAttack))
+                        if let Ok(attack) = Offense::try_attack(
+                            PlayerAttacks::ChargedMelee,
+                            &mut context.resources.borrow_mut(),
+                            1,
+                        ) =>
+                    {
+                        context.hurtbox.bind_mut().set_attack(attack);
+                        context.timers.borrow_mut().charged_attack_anim.start();
+                        Response::Transition(State::chargedattack_right())
+                    }
+
                     // Parry
                     (Some(MoveButton::Right), Some(ModifierButton::Parry))
                         if context.timers.borrow().parry_anim.get_time_left() == 0.0 =>
@@ -610,6 +685,30 @@ impl CharacterStateMachine {
                         context.hurtbox.bind_mut().set_attack(attack);
                         context.timers.borrow_mut().attack_anim.start();
                         Response::Transition(State::attacking_left())
+                    }
+
+                    // Charged Attack
+                    (Some(MoveButton::Right), Some(ModifierButton::ChargedAttack))
+                        if let Ok(attack) = Offense::try_attack(
+                            PlayerAttacks::ChargedMelee,
+                            &mut context.resources.borrow_mut(),
+                            1,
+                        ) =>
+                    {
+                        context.hurtbox.bind_mut().set_attack(attack);
+                        context.timers.borrow_mut().charged_attack_anim.start();
+                        Response::Transition(State::chargedattack_right())
+                    }
+                    (_, Some(ModifierButton::ChargedAttack))
+                        if let Ok(attack) = Offense::try_attack(
+                            PlayerAttacks::ChargedMelee,
+                            &mut context.resources.borrow_mut(),
+                            1,
+                        ) =>
+                    {
+                        context.hurtbox.bind_mut().set_attack(attack);
+                        context.timers.borrow_mut().charged_attack_anim.start();
+                        Response::Transition(State::chargedattack_left())
                     }
 
                     // Parry
@@ -1186,7 +1285,30 @@ impl CharacterStateMachine {
         }
     }
 
-    // TODO: Chain attacking
+    #[state]
+    fn chargedattack_right(&mut self, event: &Event) -> Response<State> {
+        match event {
+            Event::TimerElapsed(inputs) => match (&inputs.0, &inputs.1) {
+                (Some(MoveButton::Right), _) => Response::Transition(State::move_right()),
+                (Some(MoveButton::Left), _) => Response::Transition(State::move_left()),
+                (None, _) => Response::Transition(State::idle_right()),
+            },
+            _ => Handled,
+        }
+    }
+
+    #[state]
+    fn chargedattack_left(&mut self, event: &Event) -> Response<State> {
+        match event {
+            Event::TimerElapsed(inputs) => match (&inputs.0, &inputs.1) {
+                (Some(MoveButton::Right), _) => Response::Transition(State::move_right()),
+                (Some(MoveButton::Left), _) => Response::Transition(State::move_left()),
+                (None, _) => Response::Transition(State::idle_left()),
+            },
+            _ => Handled,
+        }
+    }
+
     #[state]
     fn attack_right_2(&mut self, event: &Event) -> Response<State> {
         match event {
@@ -1201,7 +1323,6 @@ impl CharacterStateMachine {
         }
     }
 
-    // TODO: Chain attacking
     #[state]
     fn attack_left_2(&mut self, event: &Event) -> Response<State> {
         match event {

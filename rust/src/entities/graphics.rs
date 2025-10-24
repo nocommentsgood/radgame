@@ -32,7 +32,6 @@ impl Graphics {
 
     pub fn get_animation_length(&self, name: &str) -> f64 {
         let Some(anim) = self.animation_player.get_animation(name) else {
-            println!("Couldn't get animation: {name}");
             return 0.0;
         };
         anim.get_length() as f64

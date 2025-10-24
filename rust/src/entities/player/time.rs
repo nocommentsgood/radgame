@@ -20,6 +20,7 @@ pub struct PlayerTimers {
     pub coyote: Gd<Timer>,
     pub dodge_cooldown: Gd<Timer>,
     pub jump_limit: Gd<Timer>,
+    pub charged_attack_anim: Gd<Timer>,
 }
 
 impl PlayerTimers {
@@ -41,6 +42,7 @@ impl PlayerTimers {
             coyote: get(player, "Coyote"),
             dodge_cooldown: get(player, "DodgeCooldown"),
             jump_limit: get(player, "JumpLimit"),
+            charged_attack_anim: get(player, "ChargedAttack"),
         };
         this.dodge_anim
             .set_wait_time(graphics.get_animation_length("dodge_right"));
@@ -54,11 +56,13 @@ impl PlayerTimers {
             .set_wait_time(graphics.get_animation_length("parry_right"));
         this.hurt_anim
             .set_wait_time(graphics.get_animation_length("hurt_right"));
+        this.charged_attack_anim
+            .set_wait_time(graphics.get_animation_length("chargedattack_right"));
         this
     }
 
     #[allow(clippy::too_many_arguments)]
-    pub fn connect_signals<A, B, C, D, E, F, G, L>(
+    pub fn connect_signals<A, B, C, D, E, F, G, L, M>(
         &mut self,
         on_walljump: A,
         on_dodge_anim: B,
@@ -68,6 +72,7 @@ impl PlayerTimers {
         on_hurt_anim: F,
         on_parry_anim: G,
         on_jump_limit: L,
+        on_charged_attack_anim: M,
     ) where
         A: FnMut() + 'static,
         B: FnMut() + 'static,
@@ -77,6 +82,7 @@ impl PlayerTimers {
         F: FnMut() + 'static,
         G: FnMut() + 'static,
         L: FnMut() + 'static,
+        M: FnMut() + 'static,
     {
         self.wall_jump.signals().timeout().connect(on_walljump);
         self.dodge_anim.signals().timeout().connect(on_dodge_anim);
@@ -92,5 +98,9 @@ impl PlayerTimers {
         self.hurt_anim.signals().timeout().connect(on_hurt_anim);
         self.parry_anim.signals().timeout().connect(on_parry_anim);
         self.jump_limit.signals().timeout().connect(on_jump_limit);
+        self.charged_attack_anim
+            .signals()
+            .timeout()
+            .connect(on_charged_attack_anim);
     }
 }

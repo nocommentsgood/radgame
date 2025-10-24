@@ -239,6 +239,11 @@ impl MainCharacter {
         self.transition_sm(&Event::TimerElapsed(input));
     }
 
+    fn on_charged_att_anim_timeout(&mut self) {
+        let input = InputHandler::handle(&Input::singleton(), self);
+        self.transition_sm(&Event::TimerElapsed(input));
+    }
+
     fn parried(&mut self) -> bool {
         if let State::ParryRight {} | State::ParryLeft {} = self.state.state() {
             if self.timer.borrow_mut().perfect_parry.get_time_left() > 0.0 {
@@ -308,6 +313,10 @@ impl MainCharacter {
             {
                 let mut this = this.clone();
                 move || this.bind_mut().on_jump_limit_timeout()
+            },
+            {
+                let mut this = this.clone();
+                move || this.bind_mut().on_charged_att_anim_timeout()
             },
         );
     }
