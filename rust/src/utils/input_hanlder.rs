@@ -6,7 +6,7 @@ use godot::{
 use crate::entities::{entity_stats::Stat, player::main_character::MainCharacter};
 
 // The time that has passed since the player began holding the attack button.
-// TODO: Maybe use a `!Sync` `!Send` type.
+// TODO: Maybe use a Mutex.
 static mut CHARGE_ATTACK_TIME: f32 = 0.0;
 
 /// Horizontal movement buttons.
@@ -25,8 +25,10 @@ pub enum ModifierButton {
     JumpAttack,
     Heal,
     Parry,
-    Spell,
     ChargedAttack,
+    Ability1,
+    Ability2,
+    Ability3,
 }
 
 /// Player inputs, used by the state machine.
@@ -89,17 +91,24 @@ impl InputHandler {
             }
         }
 
-        if input.is_action_just_pressed("ability") {
-            inputs.1 = Some(ModifierButton::Spell);
-            println!("TODO: Implement ability usage.");
+        if input.is_action_just_pressed("ability_1") {
+            inputs.1 = Some(ModifierButton::Ability1);
+        }
+
+        if input.is_action_pressed("ability_2") {
+            inputs.1 = Some(ModifierButton::Ability2);
+        }
+
+        if input.is_action_pressed("ability_3") {
+            inputs.1 = Some(ModifierButton::Ability3)
         }
 
         if input.is_action_just_pressed("rotate_abilities_right") {
-            dbg!(player.ability_comp.quick.rotate_right(1));
+            player.ability_comp.rotate_right();
         }
 
         if input.is_action_just_pressed("rotate_abilities_left") {
-            dbg!(player.ability_comp.quick.rotate_left(1));
+            player.ability_comp.rotate_left();
         }
 
         if input.is_action_pressed("dodge") {

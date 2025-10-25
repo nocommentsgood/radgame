@@ -1,3 +1,15 @@
+use godot::{
+    builtin::Vector2,
+    classes::{Node, Node2D, PackedScene, Timer},
+    obj::{Gd, Inherits},
+    tools::load,
+};
+
+use crate::{
+    entities::{hit_reg::Hurtbox, movements::Direction, player::abilities::JumpPlatform},
+    utils::input_hanlder::ModifierButton,
+};
+
 #[derive(Clone, Copy, Debug)]
 struct Resource {
     amount: i64,
@@ -92,7 +104,7 @@ pub enum Resistance {
     Elemental(Element, i64),
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub enum Buff {
     Physical(i64),
     Elemental(Element, i64),
@@ -112,12 +124,13 @@ impl Attack {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum PlayerAttacks {
     SimpleMelee,
     ChargedMelee,
     FireSpell,
     FireMelee,
+    TwinPillar,
 }
 
 impl PlayerAttacks {
@@ -151,6 +164,23 @@ impl PlayerAttacks {
                 resource_cost: vec![AttackResourceCost::Mana(20)],
                 parryable: false,
             },
+
+            PlayerAttacks::TwinPillar => Attack {
+                damage: Damage(player_level * 5),
+                kind: AttackKind::ProjectileSpell(Element::Lightning),
+                resource_cost: vec![AttackResourceCost::Mana(10)],
+                parryable: false,
+            },
+        }
+    }
+
+    pub fn try_get_scene(&self) -> Result<Gd<PackedScene>, ()> {
+        if let PlayerAttacks::TwinPillar = self {
+            let scene =
+                godot::tools::load("res://entities/player/abilities/twin_pillar_ability.tscn");
+            Ok(scene)
+        } else {
+            Err(())
         }
     }
 }
@@ -208,13 +238,21 @@ impl Defense {
     }
 }
 
+pub enum HotSpellIndexer {
+    Ability1 = 0,
+    Ability2 = 1,
+    Ability3 = 2,
+}
+
+#[derive(Clone, Debug)]
 pub struct Offense {
     buffs: Vec<Buff>,
+    hot_spells: [Option<PlayerAttacks>; 3],
 }
 
 impl Offense {
-    pub fn new(buffs: Vec<Buff>) -> Self {
-        Self { buffs }
+    pub fn new(buffs: Vec<Buff>, hot_spells: [Option<PlayerAttacks>; 3]) -> Self {
+        Self { buffs, hot_spells }
     }
 
     pub fn apply_buffs(&self, attack: &mut Attack) -> Damage {
@@ -241,6 +279,10 @@ impl Offense {
         }
 
         Damage(amount)
+    }
+
+    pub fn get_spell(&self, idx: HotSpellIndexer) -> Option<PlayerAttacks> {
+        self.hot_spells[idx as usize].as_ref().copied()
     }
 
     pub fn try_attack(
@@ -310,7 +352,7 @@ impl CombatResources {
             self.stam_counter += delta;
             if self.stam_counter > 3.0 {
                 self.stam_counter = 0.0;
-                self.stam.0.increase(1);
+                self.stam.0.increase(5);
             }
         }
     }
@@ -339,6 +381,67 @@ impl CombatResources {
     }
 }
 
+#[derive(Clone, Copy, Debug)]
+pub enum Ability {
+    JumpPlatform,
+    TwinPillar,
+}
+impl Ability {
+    pub fn execute(&self, spawn_pos: Vector2, move_dir: Direction) -> Gd<impl Inherits<Node2D>> {
+        match self {
+            Ability::JumpPlatform => {
+                let mut plat =
+                    load::<PackedScene>("uid://cul64aw83q0sm").instantiate_as::<JumpPlatform>();
+                match move_dir {
+                    crate::entities::movements::Direction::Right => {
+                        plat.set_constant_linear_velocity(Vector2::new(100.0, 0.0));
+                        plat.set_position(spawn_pos + Vector2::new(40.0, 0.0));
+                        plat.bind_mut().target = spawn_pos + Vector2::new(100.0, 0.0);
+                        plat.bind_mut().velocity =
+                            spawn_pos.direction_to(spawn_pos + Vector2::new(100.0, 0.0));
+                    }
+                    crate::entities::movements::Direction::Left => {
+                        plat.set_constant_linear_velocity(Vector2::new(-100.0, 0.0));
+                        plat.set_position(spawn_pos + Vector2::new(-40.0, 0.0));
+                        plat.bind_mut().target = spawn_pos + Vector2::new(-100.0, 0.0);
+                        plat.bind_mut().velocity =
+                            spawn_pos.direction_to(spawn_pos + Vector2::new(-100.0, 0.0));
+                    }
+                }
+                plat.bind_mut().start = spawn_pos;
+                plat.upcast()
+            }
+
+            Ability::TwinPillar => {
+                let mut ability =
+                    load::<PackedScene>("uid://dnfo3s5ywpq6m").instantiate_as::<Node2D>();
+
+                let attack = Attack {
+                    damage: Damage(5),
+                    kind: AttackKind::ProjectileSpell(Element::Lightning),
+                    resource_cost: vec![AttackResourceCost::Mana(5)],
+                    parryable: false,
+                };
+
+                let mut right_pillar = ability.get_node_as::<Hurtbox>("RightPillar");
+                let mut left_pillar = ability.get_node_as::<Hurtbox>("LeftPillar");
+
+                right_pillar.bind_mut().set_attack(attack.clone());
+                left_pillar.bind_mut().set_attack(attack);
+
+                let mut timer = ability.get_node_as::<Timer>("Timer");
+
+                ability.set_position(spawn_pos);
+                let mut ab = ability.clone();
+
+                timer.signals().timeout().connect(move || ab.queue_free());
+                timer.start();
+                ability
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod test {
 
@@ -358,6 +461,11 @@ mod test {
             Self {
                 offense: Offense {
                     buffs: vec![Buff::Physical(5), Buff::Elemental(Element::Fire, 5)],
+                    hot_spells: [
+                        Some(PlayerAttacks::TwinPillar),
+                        Some(PlayerAttacks::FireSpell),
+                        None,
+                    ],
                 },
                 defense: Defense {
                     resistances: vec![
