@@ -10,11 +10,15 @@ use statig::prelude::StateMachine;
 use super::physics;
 use crate::{
     entities::{
-        damage::{CombatResources, Defense, Element, Heal, Health, Mana, Resistance, Stamina},
+        damage::{
+            Buff, CombatResources, Defense, Element, Heal, Health, Mana, Offense, PlayerAttacks,
+            Resistance, Stamina,
+        },
         enemies::projectile::Projectile,
         entity_stats::{EntityStats, Stat, StatModifier, StatVal},
         graphics::Graphics,
         hit_reg::{self, Hitbox, Hurtbox},
+        movements::Direction,
         player::{
             abilities::AbilityComp,
             character_state_machine::{self as csm},
@@ -60,7 +64,7 @@ pub struct MainCharacter {
     #[init(node = "RightWallCast")]
     right_wall_cast: OnReady<Gd<RayCast2D>>,
 
-    #[init(val = AbilityComp::new_test())]
+    #[init(val = AbilityComp::new())]
     pub ability_comp: AbilityComp,
 
     #[init(node = "ItemComponent")]
@@ -71,6 +75,12 @@ pub struct MainCharacter {
 
     #[init(node = "ShakyPlayerCamera")]
     pub camera: OnReady<Gd<PlayerCamera>>,
+
+    #[init(val = Offense::new(
+        vec![Buff::Physical(2)],
+        [Some(PlayerAttacks::TwinPillar), None, None],
+        ))]
+    off: Offense,
 
     #[init(val = Defense::new(vec![Resistance::Physical(5), Resistance::Elemental(Element::Fire, 10)]))]
     pub def: Defense,
@@ -268,6 +278,7 @@ impl MainCharacter {
             self.timer.clone(),
             self.resources.clone(),
             self.hit_reg.hurtbox.clone(),
+            self.off.clone(),
         );
         self.state.handle_with_context(event, &mut context);
         let new = *self.state.state();
@@ -352,5 +363,9 @@ impl MainCharacter {
     /// Transitions state machine from `disabled` to `idle`.
     pub fn force_enabled(&mut self) {
         self.transition_sm(&csm::Event::ForceEnabled);
+    }
+
+    pub fn get_direction(&mut self) -> Direction {
+        self.movements.get_direction()
     }
 }

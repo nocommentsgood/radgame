@@ -5,7 +5,7 @@ use statig::blocking::*;
 
 use crate::{
     entities::{
-        damage::{CombatResources, Offense, PlayerAttacks},
+        damage::{CombatResources, HotSpellIndexer, Offense, PlayerAttacks},
         hit_reg::Hurtbox,
         player::time::PlayerTimers,
     },
@@ -16,6 +16,7 @@ pub struct SMContext {
     timers: Rc<RefCell<PlayerTimers>>,
     resources: Rc<RefCell<CombatResources>>,
     hurtbox: Gd<Hurtbox>,
+    off: Offense,
 }
 
 impl SMContext {
@@ -23,16 +24,20 @@ impl SMContext {
         timers: Rc<RefCell<PlayerTimers>>,
         resources: Rc<RefCell<CombatResources>>,
         hurtbox: Gd<Hurtbox>,
+        off: Offense,
     ) -> Self {
         Self {
             timers,
             resources,
             hurtbox,
+            off,
         }
     }
 }
 #[derive(Default, Debug, Clone)]
-pub struct CharacterStateMachine;
+pub struct CharacterStateMachine {
+    pub test: f32,
+}
 
 // Animation player uses the implementation of `Display` for animation names.
 impl std::fmt::Display for State {
@@ -195,6 +200,18 @@ impl CharacterStateMachine {
                         context.hurtbox.bind_mut().set_attack(attack);
                         context.timers.borrow_mut().attack_anim.start();
                         Response::Transition(State::attacking_right())
+                    }
+
+                    // Spell
+                    (_, Some(ModifierButton::Ability1)) => {
+                        if let Some(att) = context.off.get_spell(HotSpellIndexer::Ability1)
+                            && let Ok(scene) = att.try_get_scene()
+                            && let Ok(data) =
+                                Offense::try_attack(att, &mut context.resources.borrow_mut(), 1)
+                        {
+                            println!("Casting twin pillar");
+                        }
+                        todo!()
                     }
 
                     // Charged Attack

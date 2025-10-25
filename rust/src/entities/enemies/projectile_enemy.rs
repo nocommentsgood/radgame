@@ -47,7 +47,7 @@ pub struct NewProjectileEnemy {
     #[init(val = OnReady::new(|| Defense::new(vec![Resistance::Physical(5)])))]
     def: OnReady<Defense>,
 
-    #[init(val = OnReady::new(|| Offense::new(vec![Buff::Elemental(Element::Magic, 2)])))]
+    #[init(val = OnReady::new(|| Offense::new(vec![Buff::Elemental(Element::Magic, 2)], [None, None, None])))]
     pub off: OnReady<Offense>,
 
     node: Base<Node2D>,
