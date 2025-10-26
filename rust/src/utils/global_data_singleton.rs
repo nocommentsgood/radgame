@@ -1,11 +1,16 @@
 use godot::prelude::*;
 
-use crate::{entities::entity_stats::StatModifier, world::item::GameItem};
+use crate::{
+    entities::{entity_stats::StatModifier, player::main_character::MainCharacter},
+    world::item::GameItem,
+};
 
 #[derive(GodotClass)]
 #[class(init, base = Object)]
 pub struct GlobalData {
     pub paths: PathData,
+    pub player_pos: Vector2,
+    pub player: Option<Gd<MainCharacter>>,
     #[init(val = SignalHandler::new_alloc())]
     pub sigs: Gd<SignalHandler>,
     base: Base<Object>,
@@ -21,6 +26,10 @@ impl GlobalData {
             .get_singleton(&Self::class_name().to_string_name())
             .unwrap()
             .cast::<Self>()
+    }
+
+    pub fn get_player_mut(&mut self) -> Option<&mut Gd<MainCharacter>> {
+        self.player.as_mut()
     }
 }
 

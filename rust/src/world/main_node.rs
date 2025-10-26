@@ -66,6 +66,12 @@ impl INode for Main {
             .node_removed()
             .connect_other(&self.to_gd(), Self::on_player_exited_tree);
     }
+
+    fn process(&mut self, _delta: f32) {
+        let path = GlobalData::singleton().bind().paths.player.clone().unwrap();
+        let player = self.base().get_node_as::<Node2D>(&path);
+        GlobalData::singleton().bind_mut().player_pos = player.get_global_position();
+    }
 }
 
 #[godot_api]
@@ -81,6 +87,7 @@ impl Main {
                 .paths
                 .player
                 .replace(player.get_path().to_string());
+            GlobalData::singleton().bind_mut().player.replace(player);
         }
     }
 
