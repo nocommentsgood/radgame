@@ -242,7 +242,6 @@ impl NewProjectileEnemy {
                 hurtbox.bind_mut().set_attack(attack);
                 inst.set_global_position(pos);
                 inst.bind_mut().target = target;
-                // inst.bind_mut().velocity = target;
                 self.base_mut().add_sibling(&inst);
             }
         }

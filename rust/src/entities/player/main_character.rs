@@ -11,8 +11,8 @@ use super::physics;
 use crate::{
     entities::{
         damage::{
-            Buff, CombatResources, Defense, Element, Heal, Health, Mana, Offense, PlayerAttacks,
-            Resistance, Stamina,
+            Buff, CombatResources, Defense, Element, Heal, Health, Mana, Offense, Resistance,
+            Spell, Stamina,
         },
         enemies::projectile::Projectile,
         entity_stats::{EntityStats, Stat, StatModifier, StatVal},
@@ -20,7 +20,6 @@ use crate::{
         hit_reg::{self, Hitbox, Hurtbox},
         movements::Direction,
         player::{
-            abilities::AbilityComp,
             character_state_machine::{self as csm},
             item_component::ItemComponent,
             shaky_player_camera::{PlayerCamera, TraumaLevel},
@@ -64,9 +63,6 @@ pub struct MainCharacter {
     #[init(node = "RightWallCast")]
     right_wall_cast: OnReady<Gd<RayCast2D>>,
 
-    #[init(val = AbilityComp::new())]
-    pub ability_comp: AbilityComp,
-
     #[init(node = "ItemComponent")]
     pub item_comp: OnReady<Gd<ItemComponent>>,
 
@@ -78,7 +74,7 @@ pub struct MainCharacter {
 
     #[init(val = Offense::new(
         vec![Buff::Physical(2)],
-        [Some(PlayerAttacks::TwinPillar), None, None],
+        [Some(Spell::TwinPillar), None, None],
         ))]
     off: Offense,
 

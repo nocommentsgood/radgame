@@ -103,14 +103,6 @@ impl InputHandler {
             inputs.1 = Some(ModifierButton::Ability3)
         }
 
-        if input.is_action_just_pressed("rotate_abilities_right") {
-            player.ability_comp.rotate_right();
-        }
-
-        if input.is_action_just_pressed("rotate_abilities_left") {
-            player.ability_comp.rotate_left();
-        }
-
         if input.is_action_pressed("dodge") {
             inputs.1 = Some(ModifierButton::Dodge);
         }

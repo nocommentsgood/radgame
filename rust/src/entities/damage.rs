@@ -1,14 +1,10 @@
 use godot::{
-    builtin::Vector2,
-    classes::{Node, Node2D, PackedScene, Timer},
-    obj::{Gd, Inherits},
+    classes::{Node2D, PackedScene},
+    obj::Gd,
     tools::load,
 };
 
-use crate::{
-    entities::{hit_reg::Hurtbox, movements::Direction, player::abilities::JumpPlatform},
-    utils::input_hanlder::ModifierButton,
-};
+use crate::{entities::hit_reg::Hurtbox, utils::global_data_singleton::GlobalData};
 
 #[derive(Clone, Copy, Debug)]
 struct Resource {
@@ -119,6 +115,9 @@ pub struct Attack {
 }
 
 impl Attack {
+    pub fn cost(&self) -> &[AttackResourceCost] {
+        &self.resource_cost
+    }
     pub fn is_parryable(&self) -> bool {
         self.parryable
     }
@@ -130,7 +129,6 @@ pub enum PlayerAttacks {
     ChargedMelee,
     FireSpell,
     FireMelee,
-    TwinPillar,
 }
 
 impl PlayerAttacks {
@@ -164,29 +162,12 @@ impl PlayerAttacks {
                 resource_cost: vec![AttackResourceCost::Mana(20)],
                 parryable: false,
             },
-
-            PlayerAttacks::TwinPillar => Attack {
-                damage: Damage(player_level * 5),
-                kind: AttackKind::ProjectileSpell(Element::Lightning),
-                resource_cost: vec![AttackResourceCost::Mana(10)],
-                parryable: false,
-            },
-        }
-    }
-
-    pub fn try_get_scene(&self) -> Result<Gd<PackedScene>, ()> {
-        if let PlayerAttacks::TwinPillar = self {
-            let scene =
-                godot::tools::load("res://entities/player/abilities/twin_pillar_ability.tscn");
-            Ok(scene)
-        } else {
-            Err(())
         }
     }
 }
 
 #[derive(Debug, Clone, Copy)]
-enum AttackResourceCost {
+pub enum AttackResourceCost {
     Stamina(i64),
     Mana(i64),
 }
@@ -238,24 +219,60 @@ impl Defense {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
+pub enum Spell {
+    TwinPillar,
+}
+
+impl Spell {
+    pub fn attack(&self, player_level: i64) -> Attack {
+        match self {
+            Spell::TwinPillar => Attack {
+                damage: Damage(player_level * 5),
+                kind: AttackKind::ProjectileSpell(Element::Lightning),
+                resource_cost: vec![AttackResourceCost::Mana(10)],
+                parryable: false,
+            },
+        }
+    }
+
+    pub fn init_scene(&self) -> Gd<Node2D> {
+        match self {
+            Spell::TwinPillar => {
+                // BUG: Scene doesn't align with player's position.
+                let player_pos = GlobalData::singleton().bind().player_pos;
+                let attack = self.attack(1);
+                let mut scene =
+                    load::<PackedScene>("uid://dnfo3s5ywpq6m").instantiate_as::<Node2D>();
+                let mut left = scene.get_node_as::<Hurtbox>("LeftPillar");
+                let mut right = scene.get_node_as::<Hurtbox>("RightPillar");
+                left.bind_mut().set_attack(attack.clone());
+                right.bind_mut().set_attack(attack);
+                scene.set_global_position(player_pos);
+                scene
+            }
+        }
+    }
+}
+
 pub enum HotSpellIndexer {
-    Ability1 = 0,
-    Ability2 = 1,
-    Ability3 = 2,
+    Ability1,
+    Ability2,
+    Ability3,
 }
 
 #[derive(Clone, Debug)]
 pub struct Offense {
     buffs: Vec<Buff>,
-    hot_spells: [Option<PlayerAttacks>; 3],
+    hot_spells: [Option<Spell>; 3],
 }
 
 impl Offense {
-    pub fn new(buffs: Vec<Buff>, hot_spells: [Option<PlayerAttacks>; 3]) -> Self {
+    pub fn new(buffs: Vec<Buff>, hot_spells: [Option<Spell>; 3]) -> Self {
         Self { buffs, hot_spells }
     }
 
-    pub fn apply_buffs(&self, attack: &mut Attack) -> Damage {
+    pub fn apply_buffs(&self, attack: &mut Attack) {
         let mut amount = attack.damage.0;
 
         for buff in &self.buffs {
@@ -278,11 +295,19 @@ impl Offense {
             }
         }
 
-        Damage(amount)
+        // TODO: This function should just update the attack's damage, not return the damage.
+        attack.damage.0 = amount;
     }
 
-    pub fn get_spell(&self, idx: HotSpellIndexer) -> Option<PlayerAttacks> {
-        self.hot_spells[idx as usize].as_ref().copied()
+    pub fn try_get_spell(&self, idx: HotSpellIndexer) -> Option<Spell> {
+        self.hot_spells[idx as usize]
+    }
+
+    pub fn check_resources(
+        costs: &[AttackResourceCost],
+        resource: &mut CombatResources,
+    ) -> Result<(), ()> {
+        resource.handle_attack_cost(costs)
     }
 
     pub fn try_attack(
@@ -381,73 +406,12 @@ impl CombatResources {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
-pub enum Ability {
-    JumpPlatform,
-    TwinPillar,
-}
-impl Ability {
-    pub fn execute(&self, spawn_pos: Vector2, move_dir: Direction) -> Gd<impl Inherits<Node2D>> {
-        match self {
-            Ability::JumpPlatform => {
-                let mut plat =
-                    load::<PackedScene>("uid://cul64aw83q0sm").instantiate_as::<JumpPlatform>();
-                match move_dir {
-                    crate::entities::movements::Direction::Right => {
-                        plat.set_constant_linear_velocity(Vector2::new(100.0, 0.0));
-                        plat.set_position(spawn_pos + Vector2::new(40.0, 0.0));
-                        plat.bind_mut().target = spawn_pos + Vector2::new(100.0, 0.0);
-                        plat.bind_mut().velocity =
-                            spawn_pos.direction_to(spawn_pos + Vector2::new(100.0, 0.0));
-                    }
-                    crate::entities::movements::Direction::Left => {
-                        plat.set_constant_linear_velocity(Vector2::new(-100.0, 0.0));
-                        plat.set_position(spawn_pos + Vector2::new(-40.0, 0.0));
-                        plat.bind_mut().target = spawn_pos + Vector2::new(-100.0, 0.0);
-                        plat.bind_mut().velocity =
-                            spawn_pos.direction_to(spawn_pos + Vector2::new(-100.0, 0.0));
-                    }
-                }
-                plat.bind_mut().start = spawn_pos;
-                plat.upcast()
-            }
-
-            Ability::TwinPillar => {
-                let mut ability =
-                    load::<PackedScene>("uid://dnfo3s5ywpq6m").instantiate_as::<Node2D>();
-
-                let attack = Attack {
-                    damage: Damage(5),
-                    kind: AttackKind::ProjectileSpell(Element::Lightning),
-                    resource_cost: vec![AttackResourceCost::Mana(5)],
-                    parryable: false,
-                };
-
-                let mut right_pillar = ability.get_node_as::<Hurtbox>("RightPillar");
-                let mut left_pillar = ability.get_node_as::<Hurtbox>("LeftPillar");
-
-                right_pillar.bind_mut().set_attack(attack.clone());
-                left_pillar.bind_mut().set_attack(attack);
-
-                let mut timer = ability.get_node_as::<Timer>("Timer");
-
-                ability.set_position(spawn_pos);
-                let mut ab = ability.clone();
-
-                timer.signals().timeout().connect(move || ab.queue_free());
-                timer.start();
-                ability
-            }
-        }
-    }
-}
-
 #[cfg(test)]
 mod test {
 
     use super::{
         Buff, CombatResources, Defense, Element, Heal, Health, Mana, Offense, PlayerAttacks,
-        Resistance, Stamina,
+        Resistance, Spell, Stamina,
     };
 
     struct Dummy {
@@ -461,11 +425,7 @@ mod test {
             Self {
                 offense: Offense {
                     buffs: vec![Buff::Physical(5), Buff::Elemental(Element::Fire, 5)],
-                    hot_spells: [
-                        Some(PlayerAttacks::TwinPillar),
-                        Some(PlayerAttacks::FireSpell),
-                        None,
-                    ],
+                    hot_spells: [Some(Spell::TwinPillar), None, None],
                 },
                 defense: Defense {
                     resistances: vec![
@@ -506,8 +466,8 @@ mod test {
         if let Ok(mut attack) =
             Offense::try_attack(PlayerAttacks::SimpleMelee, &mut dummy.resource, 1)
         {
-            let damage = dummy.offense.apply_buffs(&mut attack);
-            assert_eq!(damage.0, 15);
+            dummy.offense.apply_buffs(&mut attack);
+            assert_eq!(attack.damage.0, 15);
         }
 
         dummy.offense.buffs.push(Buff::Physical(1));
@@ -515,8 +475,8 @@ mod test {
         if let Ok(mut attack) =
             Offense::try_attack(PlayerAttacks::SimpleMelee, &mut dummy.resource, 1)
         {
-            let damage = dummy.offense.apply_buffs(&mut attack);
-            assert_eq!(damage.0, 16);
+            dummy.offense.apply_buffs(&mut attack);
+            assert_eq!(attack.damage.0, 16);
         }
 
         if let Ok(mut attack) =
@@ -525,8 +485,8 @@ mod test {
             // base attack damage = 10
             // kind = ElementalMelee(Element::Fire)
             // buffs = Physical(1), Physical(5), Elemental::Fire(3)
-            let damage = dummy.offense.apply_buffs(&mut attack);
-            assert_eq!(damage.0, 21);
+            dummy.offense.apply_buffs(&mut attack);
+            assert_eq!(attack.damage.0, 21);
         }
     }
 

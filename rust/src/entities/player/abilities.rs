@@ -1,13 +1,9 @@
-use std::collections::VecDeque;
-
 use godot::{
     builtin::Vector2,
     classes::{IStaticBody2D, StaticBody2D, Timer},
     obj::{Base, Gd, OnReady, WithBaseField},
     prelude::{GodotClass, godot_api},
 };
-
-use crate::entities::damage::Ability;
 
 #[derive(GodotClass, Debug)]
 #[class(init, base=StaticBody2D)]
@@ -72,30 +68,5 @@ impl JumpPlatform {
         self.velocity = cur_pos.direction_to(self.start);
         let lin_vel = self.base().get_constant_linear_velocity() * -1.0;
         self.base_mut().set_constant_linear_velocity(lin_vel);
-    }
-}
-
-#[derive(Default, Clone, Debug)]
-pub struct AbilityComp {
-    /// The player's quick abilities. Limited to a capacity of 3 abilities.
-    quick: VecDeque<Ability>,
-}
-
-impl AbilityComp {
-    pub fn new() -> Self {
-        let v = vec![Ability::JumpPlatform, Ability::TwinPillar];
-        Self { quick: v.into() }
-    }
-
-    pub fn get_current(&self) -> Ability {
-        *self.quick.front().unwrap()
-    }
-
-    pub fn rotate_right(&mut self) {
-        self.quick.rotate_right(1);
-    }
-
-    pub fn rotate_left(&mut self) {
-        self.quick.rotate_left(1);
     }
 }
