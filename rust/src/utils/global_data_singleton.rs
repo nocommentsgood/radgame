@@ -1,7 +1,9 @@
 use godot::prelude::*;
 
 use crate::{
-    entities::{entity_stats::StatModifier, player::main_character::MainCharacter},
+    entities::{
+        entity_stats::StatModifier, movements::Direction, player::main_character::MainCharacter,
+    },
     world::item::GameItem,
 };
 
@@ -11,6 +13,7 @@ pub struct GlobalData {
     pub paths: PathData,
     pub player_pos: Vector2,
     pub player: Option<Gd<MainCharacter>>,
+    pub player_dir: Direction,
     #[init(val = SignalHandler::new_alloc())]
     pub sigs: Gd<SignalHandler>,
     base: Base<Object>,

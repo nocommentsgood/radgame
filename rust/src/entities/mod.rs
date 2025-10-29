@@ -3,5 +3,5 @@ mod enemies;
 pub mod entity_stats;
 pub mod graphics;
 pub mod hit_reg;
-mod movements;
+pub mod movements;
 pub mod player;
