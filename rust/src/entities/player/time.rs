@@ -21,6 +21,8 @@ pub struct PlayerTimers {
     pub dodge_cooldown: Gd<Timer>,
     pub jump_limit: Gd<Timer>,
     pub charged_attack_anim: Gd<Timer>,
+    pub spell_cooldown: Gd<Timer>,
+    pub cast_spell_anim: Gd<Timer>,
 }
 
 impl PlayerTimers {
@@ -43,6 +45,8 @@ impl PlayerTimers {
             dodge_cooldown: get(player, "DodgeCooldown"),
             jump_limit: get(player, "JumpLimit"),
             charged_attack_anim: get(player, "ChargedAttack"),
+            spell_cooldown: get(player, "SpellCooldown"),
+            cast_spell_anim: get(player, "CastSpellAnimation"),
         };
         this.dodge_anim
             .set_wait_time(graphics.get_animation_length("dodge_right"));
@@ -62,7 +66,7 @@ impl PlayerTimers {
     }
 
     #[allow(clippy::too_many_arguments)]
-    pub fn connect_signals<A, B, C, D, E, F, G, L, M>(
+    pub fn connect_signals<A, B, C, D, E, F, G, H, I, J>(
         &mut self,
         on_walljump: A,
         on_dodge_anim: B,
@@ -71,8 +75,9 @@ impl PlayerTimers {
         on_healing_anim: E,
         on_hurt_anim: F,
         on_parry_anim: G,
-        on_jump_limit: L,
-        on_charged_attack_anim: M,
+        on_jump_limit: H,
+        on_charged_attack_anim: I,
+        on_cast_spell_anim: J,
     ) where
         A: FnMut() + 'static,
         B: FnMut() + 'static,
@@ -81,8 +86,9 @@ impl PlayerTimers {
         E: FnMut() + 'static,
         F: FnMut() + 'static,
         G: FnMut() + 'static,
-        L: FnMut() + 'static,
-        M: FnMut() + 'static,
+        H: FnMut() + 'static,
+        I: FnMut() + 'static,
+        J: FnMut() + 'static,
     {
         self.wall_jump.signals().timeout().connect(on_walljump);
         self.dodge_anim.signals().timeout().connect(on_dodge_anim);
@@ -102,5 +108,9 @@ impl PlayerTimers {
             .signals()
             .timeout()
             .connect(on_charged_attack_anim);
+        self.cast_spell_anim
+            .signals()
+            .timeout()
+            .connect(on_cast_spell_anim);
     }
 }

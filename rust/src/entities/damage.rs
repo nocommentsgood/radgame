@@ -1,10 +1,16 @@
 use godot::{
     classes::{Node2D, PackedScene},
-    obj::Gd,
+    obj::{Gd, NewAlloc},
     tools::load,
 };
 
-use crate::{entities::hit_reg::Hurtbox, utils::global_data_singleton::GlobalData};
+use crate::{
+    entities::{
+        hit_reg::Hurtbox,
+        movements::{Direction, MoveLeft, MoveRight},
+    },
+    utils::global_data_singleton::GlobalData,
+};
 
 #[derive(Clone, Copy, Debug)]
 struct Resource {
@@ -222,6 +228,7 @@ impl Defense {
 #[derive(Debug, Clone, Copy)]
 pub enum Spell {
     TwinPillar,
+    ProjectileSpell,
 }
 
 impl Spell {
@@ -233,13 +240,19 @@ impl Spell {
                 resource_cost: vec![AttackResourceCost::Mana(10)],
                 parryable: false,
             },
+
+            Spell::ProjectileSpell => Attack {
+                damage: Damage(player_level * 15),
+                kind: AttackKind::ProjectileSpell(Element::Poison),
+                resource_cost: vec![AttackResourceCost::Mana(20)],
+                parryable: false,
+            },
         }
     }
 
     pub fn init_scene(&self) -> Gd<Node2D> {
         match self {
             Spell::TwinPillar => {
-                // BUG: Scene doesn't align with player's position.
                 let player_pos = GlobalData::singleton().bind().player_pos;
                 let attack = self.attack(1);
                 let mut scene =
@@ -249,6 +262,33 @@ impl Spell {
                 left.bind_mut().set_attack(attack.clone());
                 right.bind_mut().set_attack(attack);
                 scene.set_global_position(player_pos);
+                scene
+            }
+
+            Spell::ProjectileSpell => {
+                let dir = GlobalData::singleton().bind().player_dir;
+                let dir_node: Gd<Node2D> = match dir {
+                    Direction::Right => {
+                        let mut right = MoveRight::new_alloc();
+                        right.bind_mut().speed = 350.0;
+                        right.upcast()
+                    }
+                    Direction::Left => {
+                        let mut left = MoveLeft::new_alloc();
+                        left.bind_mut().set_speed(350.0);
+                        left.upcast()
+                    }
+                };
+
+                let player_pos = GlobalData::singleton().bind().player_pos;
+                let attack = self.attack(1);
+                let mut scene =
+                    load::<PackedScene>("res://entities/player/abilities/projectile_spell.tscn")
+                        .instantiate_as::<Node2D>();
+                let mut hurtbox = scene.get_node_as::<Hurtbox>("Hurtbox");
+                hurtbox.bind_mut().set_attack(attack);
+                scene.set_global_position(player_pos);
+                scene.add_child(&dir_node);
                 scene
             }
         }
@@ -295,11 +335,10 @@ impl Offense {
             }
         }
 
-        // TODO: This function should just update the attack's damage, not return the damage.
         attack.damage.0 = amount;
     }
 
-    pub fn try_get_spell(&self, idx: HotSpellIndexer) -> Option<Spell> {
+    pub fn get_spell(&self, idx: HotSpellIndexer) -> Option<Spell> {
         self.hot_spells[idx as usize]
     }
 

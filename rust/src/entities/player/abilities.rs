@@ -9,7 +9,6 @@ use godot::{
 #[class(init, base=StaticBody2D)]
 pub struct JumpPlatform {
     pub velocity: Vector2,
-    pub target: Vector2,
     pub start: Vector2,
     collision_count: u32,
     #[init(node = "FreeTimer")]

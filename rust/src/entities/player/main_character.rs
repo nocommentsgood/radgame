@@ -74,7 +74,7 @@ pub struct MainCharacter {
 
     #[init(val = Offense::new(
         vec![Buff::Physical(2)],
-        [Some(Spell::TwinPillar), None, None],
+        [Some(Spell::ProjectileSpell), Some(Spell::TwinPillar), None],
         ))]
     off: Offense,
 
@@ -250,6 +250,11 @@ impl MainCharacter {
         self.transition_sm(&Event::TimerElapsed(input));
     }
 
+    fn on_cast_spell_anim_timeout(&mut self) {
+        let input = InputHandler::handle(&Input::singleton(), self);
+        self.transition_sm(&Event::TimerElapsed(input));
+    }
+
     fn parried(&mut self) -> bool {
         if let State::ParryRight {} | State::ParryLeft {} = self.state.state() {
             if self.timer.borrow_mut().perfect_parry.get_time_left() > 0.0 {
@@ -324,6 +329,10 @@ impl MainCharacter {
             {
                 let mut this = this.clone();
                 move || this.bind_mut().on_charged_att_anim_timeout()
+            },
+            {
+                let mut this = this.clone();
+                move || this.bind_mut().on_cast_spell_anim_timeout()
             },
         );
     }

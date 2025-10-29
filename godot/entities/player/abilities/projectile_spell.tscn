@@ -1,0 +1,22 @@
+[gd_scene load_steps=3 format=3 uid="uid://ct3jct6wy7yr0"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_t1vh2"]
+size = Vector2(50, 50)
+
+[sub_resource type="PlaceholderTexture2D" id="PlaceholderTexture2D_4ot8p"]
+size = Vector2(50, 50)
+
+[node name="Node2D" type="Node2D"]
+
+[node name="Hurtbox" type="Hurtbox" parent="."]
+collision_layer = 16
+collision_mask = 8
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Hurtbox"]
+shape = SubResource("RectangleShape2D_t1vh2")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+texture = SubResource("PlaceholderTexture2D_4ot8p")
+
+[node name="FreeTimer" type="FreeTimer" parent="."]
+wait_time = 2.0

@@ -70,8 +70,6 @@ impl InputHandler {
         }
 
         if input.is_action_just_released("attack") {
-            println!("Resetting time");
-
             // Safety: Only used on the Main thread.
             unsafe {
                 if CHARGE_ATTACK_TIME >= 2.0 {

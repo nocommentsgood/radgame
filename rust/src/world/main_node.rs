@@ -7,13 +7,10 @@ use godot::{
 use super::map::Map;
 
 use crate::{
-    entities::{
-        movements::Direction,
-        player::{
-            item_component::ItemComponent,
-            main_character::MainCharacter,
-            shaky_player_camera::{CameraData, PlayerCamera},
-        },
+    entities::player::{
+        item_component::ItemComponent,
+        main_character::MainCharacter,
+        shaky_player_camera::{CameraData, PlayerCamera},
     },
     utils::global_data_singleton::GlobalData,
     world::item::{GameItem, GameItemSignalHandler},
@@ -74,7 +71,7 @@ impl INode for Main {
         let path = GlobalData::singleton().bind().paths.player.clone().unwrap();
         let mut player = self.base().get_node_as::<MainCharacter>(&path);
         GlobalData::singleton().bind_mut().player_pos = player.get_global_position();
-        GlobalData::singleton().bind_mut().player_dir = player.bind_mut().movements.get_direction();
+        GlobalData::singleton().bind_mut().player_dir = player.bind_mut().get_direction();
     }
 }
 
