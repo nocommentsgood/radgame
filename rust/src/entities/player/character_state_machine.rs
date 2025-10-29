@@ -9,7 +9,10 @@ use crate::{
         hit_reg::Hurtbox,
         player::time::PlayerTimers,
     },
-    utils::input_hanlder::{Inputs, ModifierButton, MoveButton},
+    utils::{
+        global_data_singleton::GlobalData,
+        input_hanlder::{Inputs, ModifierButton, MoveButton},
+    },
 };
 
 pub struct SMContext {
@@ -35,9 +38,7 @@ impl SMContext {
     }
 }
 #[derive(Default, Debug, Clone)]
-pub struct CharacterStateMachine {
-    pub test: f32,
-}
+pub struct CharacterStateMachine;
 
 // Animation player uses the implementation of `Display` for animation names.
 impl std::fmt::Display for State {
@@ -77,6 +78,8 @@ impl std::fmt::Display for State {
             State::HealingLeft {} => write!(f, "heal"),
             State::ParryLeft {} => write!(f, "parry"),
             State::AirAttackLeft {} | State::MoveLeftAirAttack {} => write!(f, "airattack"),
+
+            State::CastSpellLeft {} | State::CastSpellRight {} => write!(f, "cast_spell"),
         }
     }
 }
@@ -203,15 +206,29 @@ impl CharacterStateMachine {
                     }
 
                     // Spell
-                    (_, Some(ModifierButton::Ability1)) => {
-                        if let Some(att) = context.off.get_spell(HotSpellIndexer::Ability1)
-                            && let Ok(scene) = att.try_get_scene()
-                            && let Ok(data) =
-                                Offense::try_attack(att, &mut context.resources.borrow_mut(), 1)
-                        {
-                            println!("Casting twin pillar");
-                        }
-                        todo!()
+                    (_, Some(ModifierButton::Ability1))
+                        if context.timers.borrow().spell_cooldown.get_time_left() == 0.0
+                            && Self::try_cast_spell(context, HotSpellIndexer::Ability1).is_ok() =>
+                    {
+                        context.timers.borrow_mut().spell_cooldown.start();
+                        context.timers.borrow_mut().cast_spell_anim.start();
+                        Response::Transition(State::cast_spell_right())
+                    }
+                    (_, Some(ModifierButton::Ability2))
+                        if context.timers.borrow().spell_cooldown.get_time_left() == 0.0
+                            && Self::try_cast_spell(context, HotSpellIndexer::Ability2).is_ok() =>
+                    {
+                        context.timers.borrow_mut().spell_cooldown.start();
+                        context.timers.borrow_mut().cast_spell_anim.start();
+                        Response::Transition(State::cast_spell_right())
+                    }
+                    (_, Some(ModifierButton::Ability3))
+                        if context.timers.borrow().spell_cooldown.get_time_left() == 0.0
+                            && Self::try_cast_spell(context, HotSpellIndexer::Ability3).is_ok() =>
+                    {
+                        context.timers.borrow_mut().spell_cooldown.start();
+                        context.timers.borrow_mut().cast_spell_anim.start();
+                        Response::Transition(State::cast_spell_right())
                     }
 
                     // Charged Attack
@@ -381,6 +398,32 @@ impl CharacterStateMachine {
                         Response::Transition(State::attacking_left())
                     }
 
+                    // Spell
+                    (_, Some(ModifierButton::Ability1))
+                        if context.timers.borrow().spell_cooldown.get_time_left() == 0.0
+                            && Self::try_cast_spell(context, HotSpellIndexer::Ability1).is_ok() =>
+                    {
+                        context.timers.borrow_mut().spell_cooldown.start();
+                        context.timers.borrow_mut().cast_spell_anim.start();
+                        Response::Transition(State::cast_spell_left())
+                    }
+                    (_, Some(ModifierButton::Ability2))
+                        if context.timers.borrow().spell_cooldown.get_time_left() == 0.0
+                            && Self::try_cast_spell(context, HotSpellIndexer::Ability2).is_ok() =>
+                    {
+                        context.timers.borrow_mut().spell_cooldown.start();
+                        context.timers.borrow_mut().cast_spell_anim.start();
+                        Response::Transition(State::cast_spell_left())
+                    }
+                    (_, Some(ModifierButton::Ability3))
+                        if context.timers.borrow().spell_cooldown.get_time_left() == 0.0
+                            && Self::try_cast_spell(context, HotSpellIndexer::Ability3).is_ok() =>
+                    {
+                        context.timers.borrow_mut().spell_cooldown.start();
+                        context.timers.borrow_mut().cast_spell_anim.start();
+                        Response::Transition(State::cast_spell_left())
+                    }
+
                     // Charged Attack
                     (Some(MoveButton::Right), Some(ModifierButton::ChargedAttack))
                         if let Ok(attack) = Offense::try_attack(
@@ -547,6 +590,32 @@ impl CharacterStateMachine {
                         Response::Transition(State::attacking_right())
                     }
 
+                    // Spell
+                    (_, Some(ModifierButton::Ability1))
+                        if context.timers.borrow().spell_cooldown.get_time_left() == 0.0
+                            && Self::try_cast_spell(context, HotSpellIndexer::Ability1).is_ok() =>
+                    {
+                        context.timers.borrow_mut().spell_cooldown.start();
+                        context.timers.borrow_mut().cast_spell_anim.start();
+                        Response::Transition(State::cast_spell_right())
+                    }
+                    (_, Some(ModifierButton::Ability2))
+                        if context.timers.borrow().spell_cooldown.get_time_left() == 0.0
+                            && Self::try_cast_spell(context, HotSpellIndexer::Ability2).is_ok() =>
+                    {
+                        context.timers.borrow_mut().spell_cooldown.start();
+                        context.timers.borrow_mut().cast_spell_anim.start();
+                        Response::Transition(State::cast_spell_right())
+                    }
+                    (_, Some(ModifierButton::Ability3))
+                        if context.timers.borrow().spell_cooldown.get_time_left() == 0.0
+                            && Self::try_cast_spell(context, HotSpellIndexer::Ability3).is_ok() =>
+                    {
+                        context.timers.borrow_mut().spell_cooldown.start();
+                        context.timers.borrow_mut().cast_spell_anim.start();
+                        Response::Transition(State::cast_spell_right())
+                    }
+
                     // ChargedAttack
                     (Some(MoveButton::Left), Some(ModifierButton::ChargedAttack))
                         if let Ok(attack) = Offense::try_attack(
@@ -702,6 +771,32 @@ impl CharacterStateMachine {
                         context.hurtbox.bind_mut().set_attack(attack);
                         context.timers.borrow_mut().attack_anim.start();
                         Response::Transition(State::attacking_left())
+                    }
+
+                    // Spell
+                    (_, Some(ModifierButton::Ability1))
+                        if context.timers.borrow().spell_cooldown.get_time_left() == 0.0
+                            && Self::try_cast_spell(context, HotSpellIndexer::Ability1).is_ok() =>
+                    {
+                        context.timers.borrow_mut().spell_cooldown.start();
+                        context.timers.borrow_mut().cast_spell_anim.start();
+                        Response::Transition(State::cast_spell_left())
+                    }
+                    (_, Some(ModifierButton::Ability2))
+                        if context.timers.borrow().spell_cooldown.get_time_left() == 0.0
+                            && Self::try_cast_spell(context, HotSpellIndexer::Ability2).is_ok() =>
+                    {
+                        context.timers.borrow_mut().spell_cooldown.start();
+                        context.timers.borrow_mut().cast_spell_anim.start();
+                        Response::Transition(State::cast_spell_left())
+                    }
+                    (_, Some(ModifierButton::Ability3))
+                        if context.timers.borrow().spell_cooldown.get_time_left() == 0.0
+                            && Self::try_cast_spell(context, HotSpellIndexer::Ability3).is_ok() =>
+                    {
+                        context.timers.borrow_mut().spell_cooldown.start();
+                        context.timers.borrow_mut().cast_spell_anim.start();
+                        Response::Transition(State::cast_spell_left())
                     }
 
                     // Charged Attack
@@ -1652,6 +1747,53 @@ impl CharacterStateMachine {
             Event::Hurt => Response::Transition(State::falling_left()),
 
             _ => Handled,
+        }
+    }
+
+    #[state]
+    fn cast_spell_right(event: &Event) -> Response<State> {
+        match event {
+            Event::TimerElapsed(inputs) => match (&inputs.0, &inputs.1) {
+                (None, _) => Response::Transition(State::idle_right()),
+                (Some(MoveButton::Left), _) => Response::Transition(State::move_left()),
+                (Some(MoveButton::Right), _) => Response::Transition(State::move_right()),
+            },
+            _ => Handled,
+        }
+    }
+
+    #[state]
+    fn cast_spell_left(event: &Event) -> Response<State> {
+        match event {
+            Event::TimerElapsed(inputs) => match (&inputs.0, &inputs.1) {
+                (None, _) => Response::Transition(State::idle_left()),
+                (Some(MoveButton::Left), _) => Response::Transition(State::move_left()),
+                (Some(MoveButton::Right), _) => Response::Transition(State::move_right()),
+            },
+            _ => Handled,
+        }
+    }
+
+    fn try_cast_spell(context: &mut SMContext, hot_spell_index: HotSpellIndexer) -> Result<(), ()> {
+        let spell = context.off.get_spell(hot_spell_index);
+        if let Some(spell) = spell {
+            let mut attack = spell.attack(1);
+            if Offense::check_resources(attack.cost(), &mut context.resources.borrow_mut()).is_ok()
+            {
+                let scene = spell.init_scene();
+                context.off.apply_buffs(&mut attack);
+                GlobalData::singleton()
+                    .bind_mut()
+                    .get_player_mut()
+                    .unwrap()
+                    .add_sibling(&scene);
+                context.timers.borrow_mut().spell_cooldown.start();
+                Ok(())
+            } else {
+                Err(())
+            }
+        } else {
+            Err(())
         }
     }
 }

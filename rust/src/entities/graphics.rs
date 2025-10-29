@@ -21,11 +21,17 @@ impl Graphics {
         }
     }
 
-    pub fn update<T: State<impl IntoStateMachine> + Display>(
+    pub fn update<T: State<impl IntoStateMachine> + Display + PartialEq>(
         &mut self,
         state: &T,
         dir: &Direction,
     ) {
+        // Do not have an animation for casting a spell.
+        if state.to_string() == "cast_spell" {
+            // TODO: Tween player sprite or add shader for casting spells.
+            return;
+        }
+
         let anim = format!("{}_{}", state, dir);
         self.animation_player.play_ex().name(&anim).done();
     }
