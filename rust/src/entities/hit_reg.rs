@@ -7,7 +7,6 @@ use godot::{
 
 use crate::entities::combat::offense::Attack;
 
-// TODO: Add resistances here.
 #[derive(GodotClass)]
 #[class(init, base = Area2D)]
 pub struct Hitbox {

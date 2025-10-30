@@ -25,23 +25,14 @@ pub fn hit_ceiling(ent: &mut Gd<impl Inherits<CharacterBody2D>>, movement: &mut 
 
 /// Whether the entity is or was previously in an airborne state.
 fn is_airborne(frame: &PhysicsFrame) -> bool {
-    (matches!(
-        frame.state,
-        State::FallingRight {}
-            | State::MoveFallingLeft {}
-            | State::MoveFallingRight {}
-            | State::FallingLeft {}
-    ) || matches!(
-        frame.previous_state,
-        State::JumpingLeft {}
-            | State::JumpingRight {}
-            | State::MoveJumpingRight {}
-            | State::MoveJumpingLeft {}
-            | State::AirAttackRight {}
-            | State::AirAttackLeft {}
-            | State::MoveLeftAirAttack {}
-            | State::MoveRightAirAttack {}
-    ))
+    (matches!(frame.state, State::Falling {} | State::MoveFalling {})
+        || matches!(
+            frame.previous_state,
+            State::Jumping {}
+                | State::MoveJumping {}
+                | State::AirAttack {}
+                | State::MovingAirAttack {}
+        ))
 }
 
 #[derive(Default, Clone, Copy)]
@@ -60,46 +51,100 @@ pub struct Movement {
 }
 
 impl Movement {
+    pub fn new_handle(&mut self, state: &State, dir: Direction) {
+        match (state, &dir) {
+            (State::Idle {}, _) => {
+                self.velocity = Vector2::ZERO;
+            }
+
+            (State::Run {}, Direction::Right) => {
+                self.velocity.x = self.speeds.running * Vector2::RIGHT.x;
+                dbg!(&self.velocity);
+            }
+            (State::Run {}, Direction::Left) => {
+                self.velocity.x = self.speeds.running * Vector2::LEFT.x;
+                dbg!(&self.velocity);
+            }
+
+            _ => (),
+        }
+    }
+
     /// Applies accelerated movement depending on current state.
     pub fn handle_acceleration(&mut self, state: &State) {
         match state {
-            State::WallGrabLeft {} | State::WallGrabRight {} => {
+            State::WallGrab {} => {
                 self.velocity.y = 50.0;
             }
 
-            State::MoveFallingLeft {} | State::MoveLeftAirAttack {} => {
-                self.velocity.x = self.speeds.running * Vector2::LEFT.x;
+            State::MoveFalling {} => {
+                let dir = self.get_direction();
+                match dir {
+                    Direction::Right => self.velocity.x = self.speeds.running * Vector2::RIGHT.x,
+                    Direction::Left => self.velocity.x = self.speeds.running * Vector2::LEFT.x,
+                }
             }
-            State::MoveFallingRight {} | State::MoveRightAirAttack {} => {
-                self.velocity.x = self.speeds.running * Vector2::RIGHT.x;
+
+            State::MovingAirAttack {} => {
+                let dir = self.get_direction();
+                match dir {
+                    Direction::Right => {
+                        self.velocity.x = self.speeds.running * Vector2::RIGHT.x;
+                    }
+                    Direction::Left => {
+                        self.velocity.x = self.speeds.running * Vector2::LEFT.x;
+                    }
+                }
             }
-            State::DodgingLeft {} => {
-                self.velocity.x = self.speeds.dodging * Vector2::LEFT.x;
+            State::Dodging {} => {
+                let dir = self.get_direction();
+                match dir {
+                    Direction::Right => {
+                        self.velocity.x = self.speeds.dodging * Vector2::RIGHT.x;
+                    }
+
+                    Direction::Left => {
+                        self.velocity.x = self.speeds.dodging * Vector2::LEFT.x;
+                    }
+                }
             }
-            State::DodgingRight {} => {
-                self.velocity.x = self.speeds.dodging * Vector2::RIGHT.x;
+            State::Run {} => (),
+            State::Jumping {} => {
+                let dir = self.get_direction();
+                match dir {
+                    Direction::Right => {
+                        self.velocity.y = self.speeds.jumping * Vector2::UP.y;
+                        self.velocity.x = 0.0;
+                    }
+                    Direction::Left => {
+                        self.velocity.y = self.speeds.jumping * Vector2::UP.y;
+                        self.velocity.x = 0.0;
+                    }
+                }
             }
-            State::MoveLeft {} => {
-                self.velocity.x = self.speeds.running * Vector2::LEFT.x;
+            State::MoveJumping {} => {
+                let dir = self.get_direction();
+                match dir {
+                    Direction::Right => {
+                        self.velocity.x = self.speeds.running * Vector2::RIGHT.x;
+                        self.velocity.y = self.speeds.jumping * Vector2::UP.y;
+                    }
+                    Direction::Left => {
+                        self.velocity.x = self.speeds.running * Vector2::LEFT.x;
+                        self.velocity.y = self.speeds.jumping * Vector2::UP.y;
+                    }
+                }
             }
-            State::MoveRight {} => {
-                self.velocity.x = self.speeds.running * Vector2::RIGHT.x;
-            }
-            State::JumpingRight {} => {
-                self.velocity.y = self.speeds.jumping * Vector2::UP.y;
-                self.velocity.x = 0.0;
-            }
-            State::JumpingLeft {} => {
-                self.velocity.y = self.speeds.jumping * Vector2::UP.y;
-                self.velocity.x = 0.0;
-            }
-            State::MoveJumpingRight {} => {
-                self.velocity.x = self.speeds.running * Vector2::RIGHT.x;
-                self.velocity.y = self.speeds.jumping * Vector2::UP.y;
-            }
-            State::MoveJumpingLeft {} => {
-                self.velocity.x = self.speeds.running * Vector2::LEFT.x;
-                self.velocity.y = self.speeds.jumping * Vector2::UP.y;
+            State::AirDash {} => {
+                let dir = self.get_direction();
+                match dir {
+                    Direction::Right => {
+                        self.velocity.x = self.speeds.dodging * 3.0 * Vector2::RIGHT.x;
+                    }
+                    Direction::Left => {
+                        self.velocity.x = self.speeds.dodging * 3.0 * Vector2::LEFT.x;
+                    }
+                }
             }
             _ => self.velocity.x = 0.0,
         }
@@ -126,7 +171,7 @@ impl Movement {
         const GRAVITY: f32 = 1500.0;
         const TERMINAL_VELOCITY: f32 = 500.0;
 
-        if !frame.on_floor_only {
+        if !frame.on_floor_only && (frame.state != State::AirDash {}) {
             self.early_gravity += frame.delta;
 
             if self.velocity.y < TERMINAL_VELOCITY {
@@ -154,12 +199,7 @@ impl Movement {
     }
 
     pub fn wall_grab(frame: &PhysicsFrame, input: &Inputs) -> bool {
-        if frame.on_wall_only
-            && !matches!(
-                frame.state,
-                State::WallGrabLeft {} | State::WallGrabRight {}
-            )
-        {
+        if frame.on_wall_only && !matches!(frame.state, State::WallGrab {}) {
             match input.0 {
                 Some(crate::utils::input_hanlder::MoveButton::Left) => frame.left_wall_colliding,
                 Some(crate::utils::input_hanlder::MoveButton::Right) => frame.right_wall_colliding,

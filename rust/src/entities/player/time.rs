@@ -61,7 +61,7 @@ impl PlayerTimers {
         this.hurt_anim
             .set_wait_time(graphics.get_animation_length("hurt_right"));
         this.charged_attack_anim
-            .set_wait_time(graphics.get_animation_length("chargedattack_right"));
+            .set_wait_time(graphics.get_animation_length("chargedattack"));
         this
     }
 

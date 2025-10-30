@@ -1,4 +1,7 @@
-use std::{cell, rc};
+use std::{
+    cell::{self, RefCell},
+    rc::{self, Rc},
+};
 
 use godot::{
     classes::{Area2D, CharacterBody2D, ICharacterBody2D, Input, RayCast2D},
@@ -48,7 +51,9 @@ pub struct MainCharacter {
     pub state: StateMachine<csm::CharacterStateMachine>,
 
     pub stats: EntityStats,
-    movements: physics::Movement,
+
+    #[init(val = Rc::new(RefCell::new(physics::Movement::default())))]
+    movements: rc::Rc<cell::RefCell<physics::Movement>>,
     base: Base<CharacterBody2D>,
 
     #[init(val = OnReady::from_base_fn(|this| {
@@ -92,7 +97,7 @@ pub struct MainCharacter {
 #[godot_api]
 impl ICharacterBody2D for MainCharacter {
     fn ready(&mut self) {
-        self.movements.speeds = physics::Speeds {
+        self.movements.borrow_mut().speeds = physics::Speeds {
             running: 180.0,
             jumping: 300.0,
             dodging: 250.0,
@@ -133,7 +138,7 @@ impl ICharacterBody2D for MainCharacter {
 
         self.init_timers();
 
-        self.previous_state = State::IdleRight {};
+        self.previous_state = State::Idle {};
     }
 
     fn physics_process(&mut self, delta: f32) {
@@ -158,11 +163,11 @@ impl ICharacterBody2D for MainCharacter {
             self.transition_sm(&Event::InputChanged(input));
         }
 
-        if self.movements.not_on_floor(&frame) {
+        if self.movements.borrow().not_on_floor(&frame) {
             self.transition_sm(&Event::FailedFloorCheck(input));
         }
 
-        if self.movements.landed(&frame) {
+        if self.movements.borrow_mut().landed(&frame) {
             self.transition_sm(&Event::Landed(input));
         }
 
@@ -170,15 +175,18 @@ impl ICharacterBody2D for MainCharacter {
             self.transition_sm(&Event::GrabbedWall(input));
         }
 
-        self.movements.apply_gravity(frame);
-        self.movements.handle_acceleration(self.state.state());
-        self.update_camera(self.movements.velocity);
+        self.movements.borrow_mut().apply_gravity(frame);
+        self.movements
+            .borrow_mut()
+            .handle_acceleration(self.state.state());
+        // self.update_camera(self.movements.borrow().velocity);
 
-        let v = self.movements.velocity;
+        let v = self.movements.borrow().velocity;
+        self.update_camera(v);
         self.base_mut().set_velocity(v);
         self.base_mut().move_and_slide();
 
-        if physics::hit_ceiling(&mut self.to_gd(), &mut self.movements) {
+        if physics::hit_ceiling(&mut self.to_gd(), &mut self.movements.borrow_mut()) {
             self.transition_sm(&Event::HitCeiling(input));
         }
     }
@@ -257,7 +265,7 @@ impl MainCharacter {
     }
 
     fn parried(&mut self) -> bool {
-        if let State::ParryRight {} | State::ParryLeft {} = self.state.state() {
+        if let State::Parry {} = self.state.state() {
             if self.timer.borrow_mut().perfect_parry.get_time_left() > 0.0 {
                 println!("Perfect parry");
                 true
@@ -281,13 +289,18 @@ impl MainCharacter {
             self.resources.clone(),
             self.hit_reg.hurtbox.clone(),
             self.off.clone(),
+            self.movements.clone(),
         );
         self.state.handle_with_context(event, &mut context);
         let new = *self.state.state();
         if prev != new {
-            self.movements.handle_acceleration(self.state.state());
-            self.graphics
-                .update(self.state.state(), &self.movements.get_direction());
+            self.movements
+                .borrow_mut()
+                .handle_acceleration(self.state.state());
+            self.graphics.update(
+                self.state.state(),
+                &self.movements.borrow_mut().get_direction(),
+            );
         }
     }
 
@@ -339,10 +352,10 @@ impl MainCharacter {
     }
 
     fn update_camera(&mut self, previous_velocity: Vector2) {
-        if previous_velocity != self.movements.velocity {
-            if self.movements.velocity.x > 5.0 {
+        if previous_velocity != self.movements.borrow().velocity {
+            if self.movements.borrow().velocity.x > 5.0 {
                 self.camera.bind_mut().set_right(Some(true));
-            } else if self.movements.velocity.x < -5.0 {
+            } else if self.movements.borrow().velocity.x < -5.0 {
                 self.camera.bind_mut().set_right(Some(false));
             }
         }
@@ -372,6 +385,6 @@ impl MainCharacter {
     }
 
     pub fn get_direction(&mut self) -> Direction {
-        self.movements.get_direction()
+        self.movements.borrow_mut().get_direction()
     }
 }
