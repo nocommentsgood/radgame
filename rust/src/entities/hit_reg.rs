@@ -5,7 +5,7 @@ use godot::{
     prelude::{GodotClass, godot_api},
 };
 
-use crate::entities::damage::Attack;
+use crate::entities::combat::offense::Attack;
 
 // TODO: Add resistances here.
 #[derive(GodotClass)]
@@ -23,7 +23,7 @@ impl Hitbox {
 #[derive(GodotClass)]
 #[class(init, base=Area2D)]
 pub struct Hurtbox {
-    pub attack: Option<super::damage::Attack>,
+    pub attack: Option<Attack>,
     base: Base<Area2D>,
 }
 

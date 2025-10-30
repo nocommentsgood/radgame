@@ -1,8 +1,9 @@
 use super::{enemy_state_machine::State, projectile::Projectile};
 use crate::entities::{
-    damage::{
-        Buff, CombatResources, Defense, Element, Heal, Health, Mana, Offense, PlayerAttacks,
-        Resistance, Stamina,
+    combat::{
+        defense::{Defense, Resistance},
+        offense::{Buff, Element, Offense, PlayerAttacks},
+        resources::{CombatResources, Heal, Health, Mana, Stamina},
     },
     enemies::{enemy_context as ctx, enemy_state_machine as esm, physics, time},
     graphics::Graphics,

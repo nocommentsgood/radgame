@@ -10,9 +10,10 @@ use statig::prelude::StateMachine;
 use super::physics;
 use crate::{
     entities::{
-        damage::{
-            Buff, CombatResources, Defense, Element, Heal, Health, Mana, Offense, Resistance,
-            Spell, Stamina,
+        combat::{
+            defense::{Defense, Resistance},
+            offense::{Buff, Element, Offense, Spell},
+            resources::{CombatResources, Heal, Health, Mana, Stamina},
         },
         enemies::projectile::Projectile,
         entity_stats::{EntityStats, Stat, StatModifier, StatVal},

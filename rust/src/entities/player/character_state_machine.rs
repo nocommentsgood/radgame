@@ -5,7 +5,10 @@ use statig::blocking::*;
 
 use crate::{
     entities::{
-        damage::{CombatResources, HotSpellIndexer, Offense, PlayerAttacks},
+        combat::{
+            offense::{HotSpellIndexer, Offense, PlayerAttacks},
+            resources::CombatResources,
+        },
         hit_reg::Hurtbox,
         player::time::PlayerTimers,
     },

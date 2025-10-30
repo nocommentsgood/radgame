@@ -1,3 +1,4 @@
+pub mod combat;
 mod damage;
 mod enemies;
 pub mod entity_stats;
