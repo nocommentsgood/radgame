@@ -297,11 +297,11 @@ impl MainCharacter {
             self.movements
                 .borrow_mut()
                 .handle_acceleration(self.state.state());
-            self.graphics.update(
-                self.state.state(),
-                &self.movements.borrow_mut().get_direction(),
-            );
         }
+        self.graphics.update(
+            self.state.state(),
+            &self.movements.borrow_mut().get_direction(),
+        );
     }
 
     /// Sets timer lengths, timer callbacks, and adds timers as children of the player.

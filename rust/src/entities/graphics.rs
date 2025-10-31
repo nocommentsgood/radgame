@@ -11,6 +11,7 @@ use crate::entities::movements::Direction;
 pub struct Graphics {
     sprite: Gd<Sprite2D>,
     pub animation_player: Gd<AnimationPlayer>,
+    previous_animation: String,
 }
 
 impl Graphics {
@@ -18,6 +19,7 @@ impl Graphics {
         Self {
             sprite: node.get_node_as::<Sprite2D>("Sprite2D"),
             animation_player: node.get_node_as::<AnimationPlayer>("AnimationPlayer"),
+            previous_animation: "".to_string(),
         }
     }
 
@@ -31,9 +33,11 @@ impl Graphics {
             // TODO: Tween player sprite or add shader for casting spells.
             return;
         }
-
         let anim = format!("{}_{}", state, dir);
-        self.animation_player.play_ex().name(&anim).done();
+        if anim != self.previous_animation {
+            self.animation_player.play_ex().name(&anim).done();
+            self.previous_animation = anim;
+        }
     }
 
     pub fn get_animation_length(&self, name: &str) -> f64 {
