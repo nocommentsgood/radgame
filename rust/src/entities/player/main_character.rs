@@ -176,9 +176,9 @@ impl ICharacterBody2D for MainCharacter {
         }
 
         self.movements.borrow_mut().apply_gravity(frame);
-        self.movements
-            .borrow_mut()
-            .handle_acceleration(self.state.state());
+        // self.movements
+        //     .borrow_mut()
+        //     .handle_acceleration(self.state.state());
         // self.update_camera(self.movements.borrow().velocity);
 
         let v = self.movements.borrow().velocity;
@@ -283,7 +283,6 @@ impl MainCharacter {
     /// Transitions the state machine, checking and returning if the previous state is equal to the
     /// current state.
     pub fn transition_sm(&mut self, event: &Event) {
-        let prev = *self.state.state();
         let mut context = csm::SMContext::new(
             self.timer.clone(),
             self.resources.clone(),
@@ -292,12 +291,6 @@ impl MainCharacter {
             self.movements.clone(),
         );
         self.state.handle_with_context(event, &mut context);
-        let new = *self.state.state();
-        if prev != new {
-            self.movements
-                .borrow_mut()
-                .handle_acceleration(self.state.state());
-        }
         self.graphics.update(
             self.state.state(),
             &self.movements.borrow_mut().get_direction(),

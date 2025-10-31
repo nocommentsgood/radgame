@@ -51,103 +51,35 @@ pub struct Movement {
 }
 
 impl Movement {
-    pub fn new_handle(&mut self, state: &State, dir: Direction) {
-        match (state, &dir) {
-            (State::Idle {}, _) => {
-                self.velocity = Vector2::ZERO;
-            }
-
-            (State::Run {}, Direction::Right) => {
-                self.velocity.x = self.speeds.running * Vector2::RIGHT.x;
-                dbg!(&self.velocity);
-            }
-            (State::Run {}, Direction::Left) => {
-                self.velocity.x = self.speeds.running * Vector2::LEFT.x;
-                dbg!(&self.velocity);
-            }
-
-            _ => (),
-        }
+    pub fn run_right(&mut self) {
+        self.velocity.x = self.speeds.running * Vector2::RIGHT.x;
+    }
+    pub fn run_left(&mut self) {
+        self.velocity.x = self.speeds.running * Vector2::LEFT.x;
+    }
+    pub fn dodge_right(&mut self) {
+        self.velocity.x = self.speeds.dodging * Vector2::RIGHT.x;
+    }
+    pub fn dodge_left(&mut self) {
+        self.velocity.x = self.speeds.dodging * Vector2::LEFT.x;
+    }
+    pub fn stop_x(&mut self) {
+        self.velocity.x = 0.0;
     }
 
-    /// Applies accelerated movement depending on current state.
-    pub fn handle_acceleration(&mut self, state: &State) {
-        match state {
-            State::WallGrab {} => {
-                self.velocity.y = 50.0;
-            }
+    pub fn jump(&mut self) {
+        self.velocity.x = 0.0;
+        self.velocity.y = Vector2::UP.y * self.speeds.jumping;
+    }
 
-            State::MoveFalling {} => {
-                let dir = self.get_direction();
-                match dir {
-                    Direction::Right => self.velocity.x = self.speeds.running * Vector2::RIGHT.x,
-                    Direction::Left => self.velocity.x = self.speeds.running * Vector2::LEFT.x,
-                }
-            }
+    pub fn jump_left(&mut self) {
+        self.velocity.x = self.speeds.running * Vector2::LEFT.x;
+        self.velocity.y = self.speeds.jumping * Vector2::UP.y;
+    }
 
-            State::MovingAirAttack {} => {
-                let dir = self.get_direction();
-                match dir {
-                    Direction::Right => {
-                        self.velocity.x = self.speeds.running * Vector2::RIGHT.x;
-                    }
-                    Direction::Left => {
-                        self.velocity.x = self.speeds.running * Vector2::LEFT.x;
-                    }
-                }
-            }
-            State::Dodging {} => {
-                let dir = self.get_direction();
-                match dir {
-                    Direction::Right => {
-                        self.velocity.x = self.speeds.dodging * Vector2::RIGHT.x;
-                    }
-
-                    Direction::Left => {
-                        self.velocity.x = self.speeds.dodging * Vector2::LEFT.x;
-                    }
-                }
-            }
-            State::Run {} => (),
-            State::Jumping {} => {
-                let dir = self.get_direction();
-                match dir {
-                    Direction::Right => {
-                        self.velocity.y = self.speeds.jumping * Vector2::UP.y;
-                        self.velocity.x = 0.0;
-                    }
-                    Direction::Left => {
-                        self.velocity.y = self.speeds.jumping * Vector2::UP.y;
-                        self.velocity.x = 0.0;
-                    }
-                }
-            }
-            State::MoveJumping {} => {
-                let dir = self.get_direction();
-                match dir {
-                    Direction::Right => {
-                        self.velocity.x = self.speeds.running * Vector2::RIGHT.x;
-                        self.velocity.y = self.speeds.jumping * Vector2::UP.y;
-                    }
-                    Direction::Left => {
-                        self.velocity.x = self.speeds.running * Vector2::LEFT.x;
-                        self.velocity.y = self.speeds.jumping * Vector2::UP.y;
-                    }
-                }
-            }
-            State::AirDash {} => {
-                let dir = self.get_direction();
-                match dir {
-                    Direction::Right => {
-                        self.velocity.x = self.speeds.dodging * 3.0 * Vector2::RIGHT.x;
-                    }
-                    Direction::Left => {
-                        self.velocity.x = self.speeds.dodging * 3.0 * Vector2::LEFT.x;
-                    }
-                }
-            }
-            _ => self.velocity.x = 0.0,
-        }
+    pub fn jump_right(&mut self) {
+        self.velocity.x = self.speeds.running * Vector2::RIGHT.x;
+        self.velocity.y = self.speeds.jumping * Vector2::UP.y;
     }
 
     pub fn get_direction(&mut self) -> Direction {
