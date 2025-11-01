@@ -19,6 +19,20 @@ use crate::{
     },
 };
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+// Prevents the SM from switching states due to irrelavent timers emitting their `timeout` signal.
+pub enum Timers {
+    DodgeAnimation,
+    AttackAnimation,
+    Attack2Animation,
+    HealingAnimation,
+    HurtAnimation,
+    ParryAnimation,
+    JumpLimit,
+    ChargedAttack,
+    CastSpellAnimation,
+}
+
 pub struct SMContext {
     timers: Rc<RefCell<PlayerTimers>>,
     resources: Rc<RefCell<CombatResources>>,
@@ -79,7 +93,7 @@ impl Default for State {
 #[derive(Debug, Default, PartialEq, Clone)]
 pub enum Event {
     InputChanged(Inputs),
-    TimerElapsed(Inputs),
+    TimerElapsed(Timers, Inputs),
     FailedFloorCheck(Inputs),
     Landed(Inputs),
     HitCeiling(Inputs),
@@ -172,7 +186,9 @@ impl CharacterStateMachine {
     #[state]
     fn dodging(&mut self, event: &Event, context: &mut SMContext) -> Response<State> {
         match event {
-            Event::TimerElapsed(inputs) => Self::unchecked_handle_movement(inputs, context),
+            Event::TimerElapsed(timer, inputs) if *timer == Timers::DodgeAnimation => {
+                Self::unchecked_handle_movement(inputs, context)
+            }
             Event::FailedFloorCheck(inputs) => Self::check_falling(inputs, context),
             Event::ForceDisabled => Response::Transition(State::forced_disabled()),
             _ => Handled,
@@ -211,7 +227,9 @@ impl CharacterStateMachine {
                     _ => Self::check_falling(inputs, context),
                 }
             }
-            Event::TimerElapsed(inputs) => Self::check_falling(inputs, context),
+            Event::TimerElapsed(timer, inputs) if *timer == Timers::JumpLimit => {
+                Self::check_falling(inputs, context)
+            }
             Event::Landed(inputs) => Self::unchecked_handle_movement(inputs, context),
             Event::HitCeiling(inputs) => Self::check_falling(inputs, context),
             Event::ForceDisabled => Response::Transition(State::forced_disabled()),
@@ -247,46 +265,48 @@ impl CharacterStateMachine {
     #[state]
     fn attacking(&mut self, event: &Event, context: &mut SMContext) -> Response<State> {
         match event {
-            Event::TimerElapsed(inputs) => match (&inputs.0, &inputs.1) {
-                (Some(MoveButton::Left), Some(ModifierButton::Attack))
-                    if context.timers.borrow().attack_2_anim.get_time_left() == 0.0
-                        && let Ok(attack) = Offense::try_attack(
-                            PlayerAttacks::ChargedMelee,
-                            &mut context.resources.borrow_mut(),
-                            1,
-                        ) =>
-                {
-                    context.hurtbox.bind_mut().set_attack(attack);
-                    context.timers.borrow_mut().attack_2_anim.start();
-                    Response::Transition(State::chain_attack())
-                }
-                (Some(MoveButton::Right), Some(ModifierButton::Attack))
-                    if context.timers.borrow().attack_2_anim.get_time_left() == 0.0
-                        && let Ok(attack) = Offense::try_attack(
-                            PlayerAttacks::ChargedMelee,
-                            &mut context.resources.borrow_mut(),
-                            1,
-                        ) =>
-                {
-                    context.hurtbox.bind_mut().set_attack(attack);
-                    context.timers.borrow_mut().attack_2_anim.start();
-                    Response::Transition(State::chain_attack())
-                }
-                (None, Some(ModifierButton::Attack))
-                    if context.timers.borrow().attack_2_anim.get_time_left() == 0.0
-                        && let Ok(attack) = Offense::try_attack(
-                            PlayerAttacks::ChargedMelee,
-                            &mut context.resources.borrow_mut(),
-                            1,
-                        ) =>
-                {
-                    context.hurtbox.bind_mut().set_attack(attack);
-                    context.timers.borrow_mut().attack_2_anim.start();
-                    Response::Transition(State::chain_attack())
-                }
+            Event::TimerElapsed(timer, inputs) if *timer == Timers::AttackAnimation => {
+                match (&inputs.0, &inputs.1) {
+                    (Some(MoveButton::Left), Some(ModifierButton::Attack))
+                        if context.timers.borrow().attack_2_anim.get_time_left() == 0.0
+                            && let Ok(attack) = Offense::try_attack(
+                                PlayerAttacks::ChargedMelee,
+                                &mut context.resources.borrow_mut(),
+                                1,
+                            ) =>
+                    {
+                        context.hurtbox.bind_mut().set_attack(attack);
+                        context.timers.borrow_mut().attack_2_anim.start();
+                        Response::Transition(State::chain_attack())
+                    }
+                    (Some(MoveButton::Right), Some(ModifierButton::Attack))
+                        if context.timers.borrow().attack_2_anim.get_time_left() == 0.0
+                            && let Ok(attack) = Offense::try_attack(
+                                PlayerAttacks::ChargedMelee,
+                                &mut context.resources.borrow_mut(),
+                                1,
+                            ) =>
+                    {
+                        context.hurtbox.bind_mut().set_attack(attack);
+                        context.timers.borrow_mut().attack_2_anim.start();
+                        Response::Transition(State::chain_attack())
+                    }
+                    (None, Some(ModifierButton::Attack))
+                        if context.timers.borrow().attack_2_anim.get_time_left() == 0.0
+                            && let Ok(attack) = Offense::try_attack(
+                                PlayerAttacks::ChargedMelee,
+                                &mut context.resources.borrow_mut(),
+                                1,
+                            ) =>
+                    {
+                        context.hurtbox.bind_mut().set_attack(attack);
+                        context.timers.borrow_mut().attack_2_anim.start();
+                        Response::Transition(State::chain_attack())
+                    }
 
-                _ => Self::unchecked_handle_movement(inputs, context),
-            },
+                    _ => Self::unchecked_handle_movement(inputs, context),
+                }
+            }
 
             Event::Hurt => Response::Transition(State::hurt()),
             Event::ForceDisabled => Response::Transition(State::forced_disabled()),
@@ -297,7 +317,9 @@ impl CharacterStateMachine {
     #[state]
     fn chargedattack(&mut self, event: &Event, context: &mut SMContext) -> Response<State> {
         match event {
-            Event::TimerElapsed(inputs) => Self::unchecked_handle_movement(inputs, context),
+            Event::TimerElapsed(timer, inputs) if *timer == Timers::ChargedAttack => {
+                Self::unchecked_handle_movement(inputs, context)
+            }
             _ => Handled,
         }
     }
@@ -305,7 +327,9 @@ impl CharacterStateMachine {
     #[state]
     fn chain_attack(&mut self, event: &Event, context: &mut SMContext) -> Response<State> {
         match event {
-            Event::TimerElapsed(inputs) => Self::unchecked_handle_movement(inputs, context),
+            Event::TimerElapsed(timer, inputs) if *timer == Timers::Attack2Animation => {
+                Self::unchecked_handle_movement(inputs, context)
+            }
             Event::Hurt => Response::Transition(State::hurt()),
             Event::ForceDisabled => Response::Transition(State::forced_disabled()),
             _ => Handled,
@@ -315,7 +339,9 @@ impl CharacterStateMachine {
     #[state]
     fn hurt(&mut self, event: &Event, context: &mut SMContext) -> Response<State> {
         match event {
-            Event::TimerElapsed(inputs) => Self::unchecked_handle_movement(inputs, context),
+            Event::TimerElapsed(timer, inputs) if *timer == Timers::HurtAnimation => {
+                Self::unchecked_handle_movement(inputs, context)
+            }
             Event::ForceDisabled => Response::Transition(State::forced_disabled()),
             _ => Handled,
         }
@@ -324,17 +350,21 @@ impl CharacterStateMachine {
     #[state]
     fn air_attack(&mut self, event: &Event, context: &mut SMContext) -> Response<State> {
         match event {
-            Event::TimerElapsed(inputs) => match (&inputs.0, &inputs.1) {
-                (Some(MoveButton::Right), Some(ModifierButton::Attack)) => {
-                    Response::Transition(State::moving_air_attack())
-                }
-                (Some(MoveButton::Left), Some(ModifierButton::Attack)) => {
-                    Response::Transition(State::moving_air_attack())
-                }
-                (None, Some(ModifierButton::Attack)) => Response::Transition(State::air_attack()),
+            Event::TimerElapsed(timer, inputs) if *timer == Timers::AttackAnimation => {
+                match (&inputs.0, &inputs.1) {
+                    (Some(MoveButton::Right), Some(ModifierButton::Attack)) => {
+                        Response::Transition(State::moving_air_attack())
+                    }
+                    (Some(MoveButton::Left), Some(ModifierButton::Attack)) => {
+                        Response::Transition(State::moving_air_attack())
+                    }
+                    (None, Some(ModifierButton::Attack)) => {
+                        Response::Transition(State::air_attack())
+                    }
 
-                _ => Self::check_falling(inputs, context),
-            },
+                    _ => Self::check_falling(inputs, context),
+                }
+            }
             Event::Landed(inputs) => Self::unchecked_handle_movement(inputs, context),
             Event::ForceDisabled => Response::Transition(State::forced_disabled()),
             _ => Handled,
@@ -344,16 +374,20 @@ impl CharacterStateMachine {
     #[state]
     fn moving_air_attack(&mut self, event: &Event, context: &mut SMContext) -> Response<State> {
         match event {
-            Event::TimerElapsed(inputs) => match (&inputs.0, &inputs.1) {
-                (Some(MoveButton::Right), Some(ModifierButton::Attack)) => {
-                    Response::Transition(State::moving_air_attack())
+            Event::TimerElapsed(timer, inputs) if *timer == Timers::AttackAnimation => {
+                match (&inputs.0, &inputs.1) {
+                    (Some(MoveButton::Right), Some(ModifierButton::Attack)) => {
+                        Response::Transition(State::moving_air_attack())
+                    }
+                    (Some(MoveButton::Left), Some(ModifierButton::Attack)) => {
+                        Response::Transition(State::moving_air_attack())
+                    }
+                    (None, Some(ModifierButton::Attack)) => {
+                        Response::Transition(State::air_attack())
+                    }
+                    _ => Self::check_falling(inputs, context),
                 }
-                (Some(MoveButton::Left), Some(ModifierButton::Attack)) => {
-                    Response::Transition(State::moving_air_attack())
-                }
-                (None, Some(ModifierButton::Attack)) => Response::Transition(State::air_attack()),
-                _ => Self::check_falling(inputs, context),
-            },
+            }
             Event::Landed(inputs) => Self::unchecked_handle_movement(inputs, context),
             Event::ForceDisabled => Response::Transition(State::forced_disabled()),
             _ => Handled,
@@ -363,7 +397,7 @@ impl CharacterStateMachine {
     #[state]
     fn healing(&mut self, event: &Event, context: &mut SMContext) -> Response<State> {
         match event {
-            Event::TimerElapsed(inputs) => {
+            Event::TimerElapsed(timer, inputs) if *timer == Timers::HealingAnimation => {
                 context.resources.borrow_mut().heal();
                 Self::unchecked_handle_movement(inputs, context)
             }
@@ -375,7 +409,9 @@ impl CharacterStateMachine {
     #[state]
     fn parry(&mut self, event: &Event, context: &mut SMContext) -> Response<State> {
         match event {
-            Event::TimerElapsed(inputs) => Self::unchecked_handle_movement(inputs, context),
+            Event::TimerElapsed(timer, inputs) if *timer == Timers::ParryAnimation => {
+                Self::unchecked_handle_movement(inputs, context)
+            }
             Event::ForceDisabled => Response::Transition(State::forced_disabled()),
             _ => Handled,
         }
@@ -427,7 +463,9 @@ impl CharacterStateMachine {
     #[state]
     fn air_dash(event: &Event, context: &mut SMContext) -> Response<State> {
         match event {
-            Event::TimerElapsed(inputs) => Self::check_falling(inputs, context),
+            Event::TimerElapsed(timer, inputs) if *timer == Timers::DodgeAnimation => {
+                Self::check_falling(inputs, context)
+            }
 
             // TODO: Check wallgrab
             Event::Landed(inputs) => Self::unchecked_handle_movement(inputs, context),

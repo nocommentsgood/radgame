@@ -24,7 +24,7 @@ use crate::{
         hit_reg::{self, Hitbox, Hurtbox},
         movements::Direction,
         player::{
-            character_state_machine::{self as csm},
+            character_state_machine::{self as csm, Timers},
             item_component::ItemComponent,
             shaky_player_camera::{PlayerCamera, TraumaLevel},
             time::PlayerTimers,
@@ -218,50 +218,50 @@ impl MainCharacter {
 
     fn on_parry_timeout(&mut self) {
         let input = InputHandler::handle(&Input::singleton(), self);
-        self.transition_sm(&Event::TimerElapsed(input));
+        self.transition_sm(&Event::TimerElapsed(Timers::ParryAnimation, input));
     }
 
     // TODO: Chain attacking.
     fn on_attack_timeout(&mut self) {
         let input = InputHandler::handle(&Input::singleton(), self);
-        self.transition_sm(&Event::TimerElapsed(input));
+        self.transition_sm(&Event::TimerElapsed(Timers::AttackAnimation, input));
     }
 
     fn on_attack_2_timeout(&mut self) {
         let input = InputHandler::handle(&Input::singleton(), self);
-        self.transition_sm(&Event::TimerElapsed(input));
+        self.transition_sm(&Event::TimerElapsed(Timers::Attack2Animation, input));
     }
 
     fn on_healing_timeout(&mut self) {
         self.timer.borrow_mut().healing_cooldown.start();
         let input = InputHandler::handle(&Input::singleton(), self);
-        self.transition_sm(&Event::TimerElapsed(input));
+        self.transition_sm(&Event::TimerElapsed(Timers::HealingAnimation, input));
     }
 
     fn on_dodge_animation_timeout(&mut self) {
         self.timer.borrow_mut().dodge_cooldown.start();
         let input = InputHandler::handle(&Input::singleton(), self);
-        self.transition_sm(&Event::TimerElapsed(input));
+        self.transition_sm(&Event::TimerElapsed(Timers::DodgeAnimation, input));
     }
 
     fn on_hurt_animation_timeout(&mut self) {
         let input = InputHandler::handle(&Input::singleton(), self);
-        self.transition_sm(&Event::TimerElapsed(input));
+        self.transition_sm(&Event::TimerElapsed(Timers::HurtAnimation, input));
     }
 
     fn on_jump_limit_timeout(&mut self) {
         let input = InputHandler::handle(&Input::singleton(), self);
-        self.transition_sm(&Event::TimerElapsed(input));
+        self.transition_sm(&Event::TimerElapsed(Timers::JumpLimit, input));
     }
 
     fn on_charged_att_anim_timeout(&mut self) {
         let input = InputHandler::handle(&Input::singleton(), self);
-        self.transition_sm(&Event::TimerElapsed(input));
+        self.transition_sm(&Event::TimerElapsed(Timers::ChargedAttack, input));
     }
 
     fn on_cast_spell_anim_timeout(&mut self) {
         let input = InputHandler::handle(&Input::singleton(), self);
-        self.transition_sm(&Event::TimerElapsed(input));
+        self.transition_sm(&Event::TimerElapsed(Timers::CastSpellAnimation, input));
     }
 
     fn parried(&mut self) -> bool {
