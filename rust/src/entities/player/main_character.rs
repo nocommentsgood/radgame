@@ -100,7 +100,7 @@ impl ICharacterBody2D for MainCharacter {
         self.movements.borrow_mut().speeds = physics::Speeds {
             running: 180.0,
             jumping: 300.0,
-            dodging: 250.0,
+            dodging: 800.0,
         };
 
         self.timer
@@ -175,13 +175,13 @@ impl ICharacterBody2D for MainCharacter {
             self.transition_sm(&Event::GrabbedWall(input));
         }
 
-        self.movements.borrow_mut().apply_gravity(frame);
-        // self.movements
-        //     .borrow_mut()
-        //     .handle_acceleration(self.state.state());
-        // self.update_camera(self.movements.borrow().velocity);
+        if self.state.state() != (&State::Jumping {}) {
+            self.movements.borrow_mut().apply_gravity(frame);
+        }
 
-        let v = self.movements.borrow().velocity;
+        let v = self.movements.borrow().velocity();
+        // dbg!(&v);
+        // dbg!(&self.state.state());
         self.update_camera(v);
         self.base_mut().set_velocity(v);
         self.base_mut().move_and_slide();
@@ -345,10 +345,10 @@ impl MainCharacter {
     }
 
     fn update_camera(&mut self, previous_velocity: Vector2) {
-        if previous_velocity != self.movements.borrow().velocity {
-            if self.movements.borrow().velocity.x > 5.0 {
+        if previous_velocity != self.movements.borrow().velocity() {
+            if self.movements.borrow().velocity().x > 5.0 {
                 self.camera.bind_mut().set_right(Some(true));
-            } else if self.movements.borrow().velocity.x < -5.0 {
+            } else if self.movements.borrow().velocity().x < -5.0 {
                 self.camera.bind_mut().set_right(Some(false));
             }
         }

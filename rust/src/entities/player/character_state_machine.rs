@@ -1,6 +1,6 @@
 use std::{cell::RefCell, rc::Rc};
 
-use godot::{builtin::Vector2, obj::Gd};
+use godot::obj::Gd;
 use statig::blocking::*;
 
 use crate::{
@@ -54,7 +54,7 @@ impl std::fmt::Display for State {
             State::Idle {} | State::WallGrab {} | State::ForcedDisabled {} => write!(f, "idle"),
             State::Run {} => write!(f, "run"),
             State::Dodging {} => write!(f, "dodge"),
-            State::Jumping {} | State::MoveJumping {} => write!(f, "jumping"),
+            State::Jumping {} => write!(f, "jumping"),
             State::Falling {} => write!(f, "falling"),
             State::Attacking {} => write!(f, "attack"),
             State::Chargedattack {} => write!(f, "chargedattack"),
@@ -66,7 +66,6 @@ impl std::fmt::Display for State {
             State::CastSpell {} => write!(f, "cast_spell"),
             State::MovingAirAttack {} => write!(f, "airattack"),
             State::AirDash {} => write!(f, "air_dash"),
-            State::MoveFalling {} => write!(f, "falling"),
         }
     }
 }
@@ -125,7 +124,7 @@ impl CharacterStateMachine {
                     Self::unchecked_handle_movement(inputs, context)
                 }
             }
-            Event::FailedFloorCheck(inputs) => Self::check_falling(inputs),
+            Event::FailedFloorCheck(inputs) => Self::check_falling(inputs, context),
             Event::Hurt => {
                 context.timers.borrow_mut().hurt_anim.start();
                 Response::Transition(State::hurt())
@@ -163,7 +162,7 @@ impl CharacterStateMachine {
                     Self::unchecked_handle_movement(inputs, context)
                 }
             }
-            Event::FailedFloorCheck(inputs) => Self::check_falling(inputs),
+            Event::FailedFloorCheck(inputs) => Self::check_falling(inputs, context),
             Event::Hurt => Response::Transition(State::hurt()),
             Event::ForceDisabled => Response::Transition(State::forced_disabled()),
             _ => Handled,
@@ -174,43 +173,7 @@ impl CharacterStateMachine {
     fn dodging(&mut self, event: &Event, context: &mut SMContext) -> Response<State> {
         match event {
             Event::TimerElapsed(inputs) => Self::unchecked_handle_movement(inputs, context),
-            Event::FailedFloorCheck(inputs) => Self::check_falling(inputs),
-            Event::ForceDisabled => Response::Transition(State::forced_disabled()),
-            _ => Handled,
-        }
-    }
-
-    #[state]
-    fn move_jumping(&mut self, event: &Event, context: &mut SMContext) -> Response<State> {
-        match event {
-            Event::GrabbedWall(inputs) => match (&inputs.0, inputs.1) {
-                (Some(MoveButton::Right), _) => Response::Transition(State::wall_grab()),
-                (_, _) => Handled,
-            },
-
-            Event::InputChanged(inputs) => {
-                if let Ok(res) = Self::check_air_attack(inputs, context) {
-                    return res;
-                }
-                match (&inputs.0, &inputs.1) {
-                    (_, Some(ModifierButton::Dodge))
-                        if context.timers.borrow().dodge_cooldown.get_time_left() == 0.0 =>
-                    {
-                        context.timers.borrow_mut().dodge_cooldown.start();
-                        Response::Transition(State::air_dash())
-                    }
-
-                    (Some(MoveButton::Left), Some(ModifierButton::Jump)) => {
-                        Response::Transition(State::move_jumping())
-                    }
-                    (None, Some(ModifierButton::Jump)) => Response::Transition(State::jumping()),
-
-                    _ => Self::check_falling(inputs),
-                }
-            }
-            Event::TimerElapsed(inputs) => Self::check_falling(inputs),
-            Event::Landed(inputs) => Self::unchecked_handle_movement(inputs, context),
-            Event::HitCeiling(inputs) => Self::check_falling(inputs),
+            Event::FailedFloorCheck(inputs) => Self::check_falling(inputs, context),
             Event::ForceDisabled => Response::Transition(State::forced_disabled()),
             _ => Handled,
         }
@@ -219,31 +182,38 @@ impl CharacterStateMachine {
     #[state]
     fn jumping(&mut self, event: &Event, context: &mut SMContext) -> Response<State> {
         match event {
-            Event::GrabbedWall(inputs) => match (&inputs.0, inputs.1) {
-                (Some(MoveButton::Right), _) => Response::Transition(State::wall_grab()),
-                (_, _) => Handled,
-            },
+            Event::GrabbedWall(inputs) => {
+                context.movement.borrow_mut().wall_grab_velocity();
+                match (&inputs.0, inputs.1) {
+                    (Some(MoveButton::Right | MoveButton::Left), _) => {
+                        Response::Transition(State::wall_grab())
+                    }
+                    (_, _) => Handled,
+                }
+            }
 
             Event::InputChanged(inputs) => {
                 if let Ok(res) = Self::check_air_attack(inputs, context) {
                     return res;
                 }
+                if let Ok(res) = Self::check_air_dash(inputs, context) {
+                    return res;
+                }
                 match (&inputs.0, &inputs.1) {
                     (Some(MoveButton::Left), Some(ModifierButton::Jump)) => {
-                        context.movement.borrow_mut().velocity.x = Vector2::LEFT.x;
-                        Response::Transition(State::move_jumping())
+                        context.movement.borrow_mut().jump_left();
+                        Handled
                     }
                     (Some(MoveButton::Right), Some(ModifierButton::Jump)) => {
-                        context.movement.borrow_mut().velocity.x = Vector2::RIGHT.x;
-                        Response::Transition(State::move_jumping())
+                        context.movement.borrow_mut().jump_right();
+                        Handled
                     }
-
-                    _ => Self::check_falling(inputs),
+                    _ => Self::check_falling(inputs, context),
                 }
             }
-            Event::TimerElapsed(inputs) => Self::check_falling(inputs),
+            Event::TimerElapsed(inputs) => Self::check_falling(inputs, context),
             Event::Landed(inputs) => Self::unchecked_handle_movement(inputs, context),
-            Event::HitCeiling(inputs) => Self::check_falling(inputs),
+            Event::HitCeiling(inputs) => Self::check_falling(inputs, context),
             Event::ForceDisabled => Response::Transition(State::forced_disabled()),
             _ => Handled,
         }
@@ -253,35 +223,19 @@ impl CharacterStateMachine {
     fn falling(&mut self, event: &Event, context: &mut SMContext) -> Response<State> {
         match event {
             Event::GrabbedWall(inputs) => match (&inputs.0, inputs.1) {
-                (Some(MoveButton::Right), _) => Response::Transition(State::wall_grab()),
-                (_, _) => Handled,
-            },
-            Event::InputChanged(inputs) => {
-                if let Ok(res) = Self::check_air_attack(inputs, context) {
-                    res
-                } else {
-                    Self::check_falling(inputs)
+                (Some(MoveButton::Right | MoveButton::Left), _) => {
+                    context.movement.borrow_mut().wall_grab_velocity();
+                    Response::Transition(State::wall_grab())
                 }
-            }
-            Event::Landed(inputs) => Self::unchecked_handle_movement(inputs, context),
-            Event::ForceDisabled => Response::Transition(State::forced_disabled()),
-            _ => Handled,
-        }
-    }
-
-    /// Player is falling and providing positive X axis movement.
-    #[state]
-    fn move_falling(&mut self, event: &Event, context: &mut SMContext) -> Response<State> {
-        match event {
-            Event::GrabbedWall(inputs) => match (&inputs.0, inputs.1) {
-                (Some(MoveButton::Right), _) => Response::Transition(State::wall_grab()),
                 (_, _) => Handled,
             },
             Event::InputChanged(inputs) => {
                 if let Ok(res) = Self::check_air_attack(inputs, context) {
                     res
+                } else if let Ok(res) = Self::check_air_dash(inputs, context) {
+                    res
                 } else {
-                    Self::check_falling(inputs)
+                    Self::check_falling(inputs, context)
                 }
             }
             Event::Landed(inputs) => Self::unchecked_handle_movement(inputs, context),
@@ -379,7 +333,7 @@ impl CharacterStateMachine {
                 }
                 (None, Some(ModifierButton::Attack)) => Response::Transition(State::air_attack()),
 
-                _ => Self::check_falling(inputs),
+                _ => Self::check_falling(inputs, context),
             },
             Event::Landed(inputs) => Self::unchecked_handle_movement(inputs, context),
             Event::ForceDisabled => Response::Transition(State::forced_disabled()),
@@ -398,7 +352,7 @@ impl CharacterStateMachine {
                     Response::Transition(State::moving_air_attack())
                 }
                 (None, Some(ModifierButton::Attack)) => Response::Transition(State::air_attack()),
-                _ => Self::check_falling(inputs),
+                _ => Self::check_falling(inputs, context),
             },
             Event::Landed(inputs) => Self::unchecked_handle_movement(inputs, context),
             Event::ForceDisabled => Response::Transition(State::forced_disabled()),
@@ -443,9 +397,17 @@ impl CharacterStateMachine {
                     if context.timers.borrow().wall_jump.get_time_left() == 0.0 =>
                 {
                     context.timers.borrow_mut().wall_jump.start();
-                    Response::Transition(State::move_jumping())
+                    context.movement.borrow_mut().jump_right();
+                    Response::Transition(State::jumping())
                 }
-                (Some(MoveButton::Right), _) => Response::Transition(State::move_falling()),
+                (Some(MoveButton::Right), Some(ModifierButton::Jump))
+                    if context.timers.borrow().wall_jump.get_time_left() == 0.0 =>
+                {
+                    context.timers.borrow_mut().wall_jump.start();
+                    context.movement.borrow_mut().jump_left();
+                    Response::Transition(State::jumping())
+                }
+                (Some(MoveButton::Right), _) => Response::Transition(State::falling()),
                 _ => Response::Transition(State::falling()),
             },
             Event::Landed(inputs) => Self::unchecked_handle_movement(inputs, context),
@@ -463,9 +425,12 @@ impl CharacterStateMachine {
     }
 
     #[state]
-    fn air_dash(event: &Event) -> Response<State> {
+    fn air_dash(event: &Event, context: &mut SMContext) -> Response<State> {
         match event {
-            Event::TimerElapsed(inputs) => Self::check_falling(inputs),
+            Event::TimerElapsed(inputs) => Self::check_falling(inputs, context),
+
+            // TODO: Check wallgrab
+            Event::Landed(inputs) => Self::unchecked_handle_movement(inputs, context),
             _ => Handled,
         }
     }
@@ -564,12 +529,12 @@ impl CharacterStateMachine {
                 (Some(MoveButton::Right), Some(ModifierButton::Jump)) => {
                     context.movement.borrow_mut().jump_right();
                     context.timers.borrow_mut().jump_limit.start();
-                    Ok(Response::Transition(State::move_jumping()))
+                    Ok(Response::Transition(State::jumping()))
                 }
                 (Some(MoveButton::Left), Some(ModifierButton::Jump)) => {
                     context.movement.borrow_mut().jump_left();
                     context.timers.borrow_mut().jump_limit.start();
-                    Ok(Response::Transition(State::move_jumping()))
+                    Ok(Response::Transition(State::jumping()))
                 }
                 (None, Some(ModifierButton::Jump)) => {
                     context.movement.borrow_mut().jump();
@@ -740,11 +705,42 @@ impl CharacterStateMachine {
         }
     }
 
-    fn check_falling(inputs: &Inputs) -> Response<State> {
+    fn check_air_dash(inputs: &Inputs, context: &mut SMContext) -> Result<Response<State>, ()> {
         match (&inputs.0, &inputs.1) {
-            (Some(MoveButton::Left), _) => Response::Transition(State::move_falling()),
-            (Some(MoveButton::Right), _) => Response::Transition(State::move_falling()),
-            (None, _) => Response::Transition(State::falling()),
+            (Some(MoveButton::Left), Some(ModifierButton::Dodge))
+                if context.timers.borrow().dodge_cooldown.get_time_left() == 0.0 =>
+            {
+                context.timers.borrow_mut().dodge_cooldown.start();
+                context.timers.borrow_mut().dodge_anim.start();
+                context.movement.borrow_mut().dodge_left();
+                Ok(Response::Transition(State::air_dash()))
+            }
+            (Some(MoveButton::Right), Some(ModifierButton::Dodge))
+                if context.timers.borrow().dodge_cooldown.get_time_left() == 0.0 =>
+            {
+                context.movement.borrow_mut().dodge_right();
+                context.timers.borrow_mut().dodge_cooldown.start();
+                context.timers.borrow_mut().dodge_anim.start();
+                Ok(Response::Transition(State::air_dash()))
+            }
+            _ => Err(()),
+        }
+    }
+
+    fn check_falling(inputs: &Inputs, context: &mut SMContext) -> Response<State> {
+        match (&inputs.0, &inputs.1) {
+            (Some(MoveButton::Left), _) => {
+                context.movement.borrow_mut().run_left();
+                Response::Transition(State::falling())
+            }
+            (Some(MoveButton::Right), _) => {
+                context.movement.borrow_mut().run_right();
+                Response::Transition(State::falling())
+            }
+            (None, _) => {
+                context.movement.borrow_mut().stop_x();
+                Response::Transition(State::falling())
+            }
         }
     }
 

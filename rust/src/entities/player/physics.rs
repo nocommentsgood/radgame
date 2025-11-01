@@ -25,13 +25,10 @@ pub fn hit_ceiling(ent: &mut Gd<impl Inherits<CharacterBody2D>>, movement: &mut 
 
 /// Whether the entity is or was previously in an airborne state.
 fn is_airborne(frame: &PhysicsFrame) -> bool {
-    (matches!(frame.state, State::Falling {} | State::MoveFalling {})
+    (matches!(frame.state, State::Falling {} | State::AirDash {})
         || matches!(
             frame.previous_state,
-            State::Jumping {}
-                | State::MoveJumping {}
-                | State::AirAttack {}
-                | State::MovingAirAttack {}
+            State::Jumping {} | State::AirAttack {} | State::MovingAirAttack {}
         ))
 }
 
@@ -44,7 +41,7 @@ pub struct Speeds {
 
 #[derive(Default, Clone, Copy)]
 pub struct Movement {
-    pub velocity: Vector2,
+    velocity: Vector2,
     early_gravity: f32,
     direction: Direction,
     pub speeds: Speeds,
@@ -65,6 +62,11 @@ impl Movement {
     }
     pub fn stop_x(&mut self) {
         self.velocity.x = 0.0;
+    }
+
+    pub fn wall_grab_velocity(&mut self) {
+        self.stop_x();
+        self.velocity.y = 0.0;
     }
 
     pub fn jump(&mut self) {
@@ -93,6 +95,10 @@ impl Movement {
         }
     }
 
+    pub fn velocity(&self) -> Vector2 {
+        self.velocity
+    }
+
     pub fn bounce_off_ceiling(&mut self, collision: Gd<KinematicCollision2D>) {
         self.velocity = self
             .velocity
@@ -103,7 +109,9 @@ impl Movement {
         const GRAVITY: f32 = 1500.0;
         const TERMINAL_VELOCITY: f32 = 500.0;
 
-        if !frame.on_floor_only && (frame.state != State::AirDash {}) {
+        if !frame.on_floor_only
+            && (frame.state != State::WallGrab {} || frame.state != State::AirDash {})
+        {
             self.early_gravity += frame.delta;
 
             if self.velocity.y < TERMINAL_VELOCITY {
