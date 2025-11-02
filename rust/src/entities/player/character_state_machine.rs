@@ -74,11 +74,9 @@ impl std::fmt::Display for State {
             State::Chargedattack {} => write!(f, "chargedattack"),
             State::ChainAttack {} => write!(f, "chainattack"),
             State::Hurt {} => write!(f, "hurt"),
-            State::AirAttack {} => write!(f, "airattack"),
             State::Healing {} => write!(f, "heal"),
             State::Parry {} => write!(f, "parry"),
             State::CastSpell {} => write!(f, "cast_spell"),
-            State::MovingAirAttack {} => write!(f, "airattack"),
             State::AirDash {} => write!(f, "air_dash"),
         }
     }
@@ -135,7 +133,7 @@ impl CharacterStateMachine {
                 if let Ok(res) = Self::check_parry(inputs, context) {
                     res
                 } else {
-                    Self::unchecked_handle_movement(inputs, context)
+                    Self::check_movement_state(inputs, context)
                 }
             }
             Event::FailedFloorCheck(inputs) => Self::check_falling(inputs, context),
@@ -173,7 +171,7 @@ impl CharacterStateMachine {
                 if let Ok(res) = Self::check_parry(inputs, context) {
                     res
                 } else {
-                    Self::unchecked_handle_movement(inputs, context)
+                    Self::check_movement_state(inputs, context)
                 }
             }
             Event::FailedFloorCheck(inputs) => Self::check_falling(inputs, context),
@@ -187,7 +185,7 @@ impl CharacterStateMachine {
     fn dodging(&mut self, event: &Event, context: &mut SMContext) -> Response<State> {
         match event {
             Event::TimerElapsed(timer, inputs) if *timer == Timers::DodgeAnimation => {
-                Self::unchecked_handle_movement(inputs, context)
+                Self::check_movement_state(inputs, context)
             }
             Event::FailedFloorCheck(inputs) => Self::check_falling(inputs, context),
             Event::ForceDisabled => Response::Transition(State::forced_disabled()),
@@ -209,10 +207,10 @@ impl CharacterStateMachine {
             }
 
             Event::InputChanged(inputs) => {
-                if let Ok(res) = Self::check_air_attack(inputs, context) {
+                if let Ok(res) = Self::check_air_dash(inputs, context) {
                     return res;
                 }
-                if let Ok(res) = Self::check_air_dash(inputs, context) {
+                if let Ok(res) = Self::check_attacking(inputs, context) {
                     return res;
                 }
                 match (&inputs.0, &inputs.1) {
@@ -230,7 +228,7 @@ impl CharacterStateMachine {
             Event::TimerElapsed(timer, inputs) if *timer == Timers::JumpLimit => {
                 Self::check_falling(inputs, context)
             }
-            Event::Landed(inputs) => Self::unchecked_handle_movement(inputs, context),
+            Event::Landed(inputs) => Self::check_movement_state(inputs, context),
             Event::HitCeiling(inputs) => Self::check_falling(inputs, context),
             Event::ForceDisabled => Response::Transition(State::forced_disabled()),
             _ => Handled,
@@ -248,15 +246,16 @@ impl CharacterStateMachine {
                 (_, _) => Handled,
             },
             Event::InputChanged(inputs) => {
-                if let Ok(res) = Self::check_air_attack(inputs, context) {
-                    res
-                } else if let Ok(res) = Self::check_air_dash(inputs, context) {
+                if let Ok(res) = Self::check_air_dash(inputs, context) {
+                    return res;
+                }
+                if let Ok(res) = Self::check_attacking(inputs, context) {
                     res
                 } else {
                     Self::check_falling(inputs, context)
                 }
             }
-            Event::Landed(inputs) => Self::unchecked_handle_movement(inputs, context),
+            Event::Landed(inputs) => Self::check_movement_state(inputs, context),
             Event::ForceDisabled => Response::Transition(State::forced_disabled()),
             _ => Handled,
         }
@@ -304,10 +303,11 @@ impl CharacterStateMachine {
                         Response::Transition(State::chain_attack())
                     }
 
-                    _ => Self::unchecked_handle_movement(inputs, context),
+                    _ => Self::check_movement_state(inputs, context),
                 }
             }
-
+            Event::InputChanged(inputs) => Self::handled_movement_input(inputs, context),
+            Event::Landed(inputs) => Self::check_movement_state(inputs, context),
             Event::Hurt => Response::Transition(State::hurt()),
             Event::ForceDisabled => Response::Transition(State::forced_disabled()),
             _ => Handled,
@@ -318,7 +318,7 @@ impl CharacterStateMachine {
     fn chargedattack(&mut self, event: &Event, context: &mut SMContext) -> Response<State> {
         match event {
             Event::TimerElapsed(timer, inputs) if *timer == Timers::ChargedAttack => {
-                Self::unchecked_handle_movement(inputs, context)
+                Self::check_movement_state(inputs, context)
             }
             _ => Handled,
         }
@@ -328,7 +328,7 @@ impl CharacterStateMachine {
     fn chain_attack(&mut self, event: &Event, context: &mut SMContext) -> Response<State> {
         match event {
             Event::TimerElapsed(timer, inputs) if *timer == Timers::Attack2Animation => {
-                Self::unchecked_handle_movement(inputs, context)
+                Self::check_movement_state(inputs, context)
             }
             Event::Hurt => Response::Transition(State::hurt()),
             Event::ForceDisabled => Response::Transition(State::forced_disabled()),
@@ -340,55 +340,8 @@ impl CharacterStateMachine {
     fn hurt(&mut self, event: &Event, context: &mut SMContext) -> Response<State> {
         match event {
             Event::TimerElapsed(timer, inputs) if *timer == Timers::HurtAnimation => {
-                Self::unchecked_handle_movement(inputs, context)
+                Self::check_movement_state(inputs, context)
             }
-            Event::ForceDisabled => Response::Transition(State::forced_disabled()),
-            _ => Handled,
-        }
-    }
-
-    #[state]
-    fn air_attack(&mut self, event: &Event, context: &mut SMContext) -> Response<State> {
-        match event {
-            Event::TimerElapsed(timer, inputs) if *timer == Timers::AttackAnimation => {
-                match (&inputs.0, &inputs.1) {
-                    (Some(MoveButton::Right), Some(ModifierButton::Attack)) => {
-                        Response::Transition(State::moving_air_attack())
-                    }
-                    (Some(MoveButton::Left), Some(ModifierButton::Attack)) => {
-                        Response::Transition(State::moving_air_attack())
-                    }
-                    (None, Some(ModifierButton::Attack)) => {
-                        Response::Transition(State::air_attack())
-                    }
-
-                    _ => Self::check_falling(inputs, context),
-                }
-            }
-            Event::Landed(inputs) => Self::unchecked_handle_movement(inputs, context),
-            Event::ForceDisabled => Response::Transition(State::forced_disabled()),
-            _ => Handled,
-        }
-    }
-
-    #[state]
-    fn moving_air_attack(&mut self, event: &Event, context: &mut SMContext) -> Response<State> {
-        match event {
-            Event::TimerElapsed(timer, inputs) if *timer == Timers::AttackAnimation => {
-                match (&inputs.0, &inputs.1) {
-                    (Some(MoveButton::Right), Some(ModifierButton::Attack)) => {
-                        Response::Transition(State::moving_air_attack())
-                    }
-                    (Some(MoveButton::Left), Some(ModifierButton::Attack)) => {
-                        Response::Transition(State::moving_air_attack())
-                    }
-                    (None, Some(ModifierButton::Attack)) => {
-                        Response::Transition(State::air_attack())
-                    }
-                    _ => Self::check_falling(inputs, context),
-                }
-            }
-            Event::Landed(inputs) => Self::unchecked_handle_movement(inputs, context),
             Event::ForceDisabled => Response::Transition(State::forced_disabled()),
             _ => Handled,
         }
@@ -399,7 +352,7 @@ impl CharacterStateMachine {
         match event {
             Event::TimerElapsed(timer, inputs) if *timer == Timers::HealingAnimation => {
                 context.resources.borrow_mut().heal();
-                Self::unchecked_handle_movement(inputs, context)
+                Self::check_movement_state(inputs, context)
             }
             Event::ForceDisabled => Response::Transition(State::forced_disabled()),
             _ => Handled,
@@ -410,7 +363,7 @@ impl CharacterStateMachine {
     fn parry(&mut self, event: &Event, context: &mut SMContext) -> Response<State> {
         match event {
             Event::TimerElapsed(timer, inputs) if *timer == Timers::ParryAnimation => {
-                Self::unchecked_handle_movement(inputs, context)
+                Self::check_movement_state(inputs, context)
             }
             Event::ForceDisabled => Response::Transition(State::forced_disabled()),
             _ => Handled,
@@ -446,7 +399,7 @@ impl CharacterStateMachine {
                 (Some(MoveButton::Right), _) => Response::Transition(State::falling()),
                 _ => Response::Transition(State::falling()),
             },
-            Event::Landed(inputs) => Self::unchecked_handle_movement(inputs, context),
+            Event::Landed(inputs) => Self::check_movement_state(inputs, context),
             Event::Hurt => Response::Transition(State::falling()),
             _ => Handled,
         }
@@ -455,7 +408,7 @@ impl CharacterStateMachine {
     #[state]
     fn cast_spell(event: &Event, context: &mut SMContext) -> Response<State> {
         match event {
-            Event::InputChanged(inputs) => Self::unchecked_handle_movement(inputs, context),
+            Event::InputChanged(inputs) => Self::check_movement_state(inputs, context),
             _ => Handled,
         }
     }
@@ -468,7 +421,7 @@ impl CharacterStateMachine {
             }
 
             // TODO: Check wallgrab
-            Event::Landed(inputs) => Self::unchecked_handle_movement(inputs, context),
+            Event::Landed(inputs) => Self::check_movement_state(inputs, context),
             _ => Handled,
         }
     }
@@ -622,7 +575,6 @@ impl CharacterStateMachine {
                         1,
                     ) =>
             {
-                context.movement.borrow_mut().stop_x();
                 context.hurtbox.bind_mut().set_attack(attack);
                 context.timers.borrow_mut().attack_anim.start();
                 Ok(Response::Transition(State::attacking()))
@@ -634,7 +586,6 @@ impl CharacterStateMachine {
                     1,
                 ) && context.timers.borrow().attack_anim.get_time_left() == 0.0 =>
             {
-                context.movement.borrow_mut().stop_x();
                 context.hurtbox.bind_mut().set_attack(attack);
                 context.timers.borrow_mut().attack_anim.start();
                 Ok(Response::Transition(State::attacking()))
@@ -646,7 +597,6 @@ impl CharacterStateMachine {
                     1,
                 ) && context.timers.borrow().attack_anim.get_time_left() == 0.0 =>
             {
-                context.movement.borrow_mut().stop_x();
                 context.hurtbox.bind_mut().set_attack(attack);
                 context.timers.borrow_mut().attack_anim.start();
                 Ok(Response::Transition(State::attacking()))
@@ -725,24 +675,6 @@ impl CharacterStateMachine {
         }
     }
 
-    fn check_air_attack(inputs: &Inputs, _context: &mut SMContext) -> Result<Response<State>, ()> {
-        match (&inputs.0, &inputs.1) {
-            (Some(MoveButton::Left), Some(ModifierButton::Attack | ModifierButton::JumpAttack)) => {
-                Ok(Response::Transition(State::moving_air_attack()))
-            }
-
-            (
-                Some(MoveButton::Right),
-                Some(ModifierButton::Attack | ModifierButton::JumpAttack),
-            ) => Ok(Response::Transition(State::moving_air_attack())),
-
-            (None, Some(ModifierButton::Attack | ModifierButton::JumpAttack)) => {
-                Ok(Response::Transition(State::air_attack()))
-            }
-            _ => Err(()),
-        }
-    }
-
     fn check_air_dash(inputs: &Inputs, context: &mut SMContext) -> Result<Response<State>, ()> {
         match (&inputs.0, &inputs.1) {
             (Some(MoveButton::Left), Some(ModifierButton::Dodge))
@@ -782,7 +714,8 @@ impl CharacterStateMachine {
         }
     }
 
-    fn unchecked_handle_movement(inputs: &Inputs, context: &mut SMContext) -> Response<State> {
+    /// Transitions the SM after checking movement input.
+    fn check_movement_state(inputs: &Inputs, context: &mut SMContext) -> Response<State> {
         match (&inputs.0, &inputs.1) {
             (Some(MoveButton::Left), _) => {
                 context.movement.borrow_mut().run_left();
@@ -795,6 +728,24 @@ impl CharacterStateMachine {
             (_, _) => {
                 context.movement.borrow_mut().stop_x();
                 Response::Transition(State::idle())
+            }
+        }
+    }
+
+    /// Checks inputs and updates velocity without changing state.
+    fn handled_movement_input(inputs: &Inputs, context: &mut SMContext) -> Response<State> {
+        match (&inputs.0, &inputs.1) {
+            (Some(MoveButton::Left), _) => {
+                context.movement.borrow_mut().run_left();
+                Handled
+            }
+            (Some(MoveButton::Right), _) => {
+                context.movement.borrow_mut().run_right();
+                Handled
+            }
+            (_, _) => {
+                context.movement.borrow_mut().stop_x();
+                Handled
             }
         }
     }

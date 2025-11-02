@@ -28,7 +28,7 @@ fn is_airborne(frame: &PhysicsFrame) -> bool {
     (matches!(frame.state, State::Falling {} | State::AirDash {})
         || matches!(
             frame.previous_state,
-            State::Jumping {} | State::AirAttack {} | State::MovingAirAttack {}
+            State::Jumping {} // | State::AirAttack {} | State::MovingAirAttack {}
         ))
 }
 
@@ -113,7 +113,6 @@ impl Movement {
             && (frame.state != State::WallGrab {} || frame.state != State::AirDash {})
         {
             self.early_gravity += frame.delta;
-
             if self.velocity.y < TERMINAL_VELOCITY {
                 if self.early_gravity >= 0.8 {
                     self.velocity.y += GRAVITY * frame.delta;

@@ -159,6 +159,7 @@ impl ICharacterBody2D for MainCharacter {
         let input = DevInputHandler::handle_unhandled(&Input::singleton(), self);
 
         if self.inputs != input {
+            dbg!(&input);
             self.inputs = input;
             self.transition_sm(&Event::InputChanged(input));
         }
@@ -175,7 +176,7 @@ impl ICharacterBody2D for MainCharacter {
             self.transition_sm(&Event::GrabbedWall(input));
         }
 
-        if self.state.state() != (&State::Jumping {}) {
+        if self.state.state() == (&State::Jumping {}) {
             self.movements.borrow_mut().apply_gravity(frame);
         }
 

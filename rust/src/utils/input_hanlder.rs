@@ -22,7 +22,6 @@ pub enum ModifierButton {
     Dodge,
     Jump,
     Attack,
-    JumpAttack,
     Heal,
     Parry,
     ChargedAttack,
@@ -57,7 +56,6 @@ impl InputHandler {
         if input.is_action_just_pressed("attack") {
             inputs.1 = Some(ModifierButton::Attack);
         }
-
         if input.is_action_pressed("attack") {
             let delta = player.base().get_physics_process_delta_time() as f32;
 
@@ -68,8 +66,9 @@ impl InputHandler {
                 }
             }
         }
-
-        if input.is_action_just_released("attack") {
+        if input.is_action_pressed("jump") {
+            inputs.1 = Some(ModifierButton::Jump);
+        } else if input.is_action_just_released("attack") {
             // Safety: Only used on the Main thread.
             unsafe {
                 if CHARGE_ATTACK_TIME >= 2.0 {
@@ -79,37 +78,17 @@ impl InputHandler {
                     CHARGE_ATTACK_TIME = 0.0;
                 }
             }
-        }
-
-        if input.is_action_pressed("jump") {
-            if inputs.1.is_some_and(|btn| btn == ModifierButton::Attack) {
-                inputs.1 = Some(ModifierButton::JumpAttack);
-            } else {
-                inputs.1 = Some(ModifierButton::Jump);
-            }
-        }
-
-        if input.is_action_just_pressed("ability_1") {
+        } else if input.is_action_just_pressed("ability_1") {
             inputs.1 = Some(ModifierButton::Ability1);
-        }
-
-        if input.is_action_pressed("ability_2") {
+        } else if input.is_action_pressed("ability_2") {
             inputs.1 = Some(ModifierButton::Ability2);
-        }
-
-        if input.is_action_pressed("ability_3") {
+        } else if input.is_action_pressed("ability_3") {
             inputs.1 = Some(ModifierButton::Ability3)
-        }
-
-        if input.is_action_pressed("dodge") {
+        } else if input.is_action_pressed("dodge") {
             inputs.1 = Some(ModifierButton::Dodge);
-        }
-
-        if input.is_action_just_pressed("heal") {
+        } else if input.is_action_just_pressed("heal") {
             inputs.1 = Some(ModifierButton::Heal);
-        }
-
-        if input.is_action_pressed("parry") {
+        } else if input.is_action_pressed("parry") {
             {
                 inputs.1 = Some(ModifierButton::Parry);
             }
