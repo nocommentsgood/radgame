@@ -32,7 +32,11 @@ pub enum ModifierButton {
 
 /// Player inputs, used by the state machine.
 #[derive(Default, Clone, PartialEq, Eq, Debug, Copy)]
-pub struct Inputs(pub Option<MoveButton>, pub Option<ModifierButton>);
+pub struct Inputs(
+    pub Option<MoveButton>,
+    pub Option<ModifierButton>,
+    pub Option<ModifierButton>,
+);
 
 #[derive(Default, Clone)]
 pub struct InputHandler;
@@ -54,7 +58,11 @@ impl InputHandler {
         let mut inputs = Self::get_movement(input);
 
         if input.is_action_just_pressed("attack") {
-            inputs.1 = Some(ModifierButton::Attack);
+            if inputs.1.is_some() {
+                inputs.2 = Some(ModifierButton::Attack);
+            } else {
+                inputs.1 = Some(ModifierButton::Attack)
+            }
         }
         if input.is_action_pressed("attack") {
             let delta = player.base().get_physics_process_delta_time() as f32;
@@ -67,7 +75,11 @@ impl InputHandler {
             }
         }
         if input.is_action_pressed("jump") {
-            inputs.1 = Some(ModifierButton::Jump);
+            if inputs.1.is_some() {
+                inputs.2 = Some(ModifierButton::Jump);
+            } else {
+                inputs.1 = Some(ModifierButton::Jump)
+            }
         } else if input.is_action_just_released("attack") {
             // Safety: Only used on the Main thread.
             unsafe {

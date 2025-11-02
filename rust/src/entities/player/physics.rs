@@ -105,10 +105,18 @@ impl Movement {
             .bounce(collision.get_normal().normalized_or_zero())
     }
 
-    pub fn handle_grav(&mut self, frame: PhysicsFrame) {
+    pub fn apply_gravity(&mut self, frame: &PhysicsFrame) {
         const GRAVITY: f32 = 1500.0;
         const TERMINAL_VELOCITY: f32 = 500.0;
-        if self.early_gravity > 0.0 && frame.state != (State::Jumping {}) {
+
+        if frame.state == (State::Jumping {}) {
+            self.early_gravity += frame.delta;
+        }
+
+        if !frame.on_floor_only
+            && (frame.state != State::WallGrab {} || frame.state != State::AirDash {})
+        {
+            self.early_gravity += frame.delta;
             if self.velocity.y < TERMINAL_VELOCITY {
                 if self.early_gravity >= 0.8 {
                     self.velocity.y += GRAVITY * frame.delta;
@@ -118,46 +126,7 @@ impl Movement {
                     self.velocity.y += 2000.0 * frame.delta;
                 }
             }
-        } else {
-            self.velocity.y += GRAVITY * frame.delta;
         }
-    }
-
-    pub fn apply_gravity(&mut self, frame: &PhysicsFrame) {
-        const GRAVITY: f32 = 1500.0;
-        const TERMINAL_VELOCITY: f32 = 500.0;
-
-        if frame.state == (State::Jumping {}) {
-            self.early_gravity += frame.delta;
-            dbg!(self.early_gravity);
-        }
-        //     if self.velocity.y < TERMINAL_VELOCITY {
-        //         if self.early_gravity >= 0.8 {
-        //             self.velocity.y += GRAVITY * frame.delta;
-        //         } else if self.early_gravity < 0.8 && self.early_gravity >= 0.4 {
-        //             self.velocity.y += 1700.0 * frame.delta;
-        //         } else {
-        //             self.velocity.y += 2000.0 * frame.delta;
-        //         }
-        //     }
-        // } else {
-        //     self.velocity.y += GRAVITY * frame.delta;
-        // }
-
-        // if !frame.on_floor_only
-        //     && (frame.state != State::WallGrab {} || frame.state != State::AirDash {})
-        // {
-        //     self.early_gravity += frame.delta;
-        //     if self.velocity.y < TERMINAL_VELOCITY {
-        //         if self.early_gravity >= 0.8 {
-        //             self.velocity.y += GRAVITY * frame.delta;
-        //         } else if self.early_gravity < 0.8 && self.early_gravity >= 0.4 {
-        //             self.velocity.y += 1700.0 * frame.delta;
-        //         } else {
-        //             self.velocity.y += 2000.0 * frame.delta;
-        //         }
-        //     }
-        // }
     }
 
     /// Checks if the entity was airborne in the previous physics frame and if the entity has since
