@@ -9,6 +9,7 @@ use crate::{
             offense::{HotSpellIndexer, Offense, PlayerAttacks},
             resources::CombatResources,
         },
+        graphics::Graphics,
         hit_reg::Hurtbox,
         movements::Direction,
         player::{physics::Movement, time::PlayerTimers},
@@ -39,6 +40,7 @@ pub struct SMContext {
     hurtbox: Gd<Hurtbox>,
     off: Offense,
     movement: Rc<RefCell<Movement>>,
+    graphics: Rc<RefCell<Graphics>>,
 }
 
 impl SMContext {
@@ -48,6 +50,7 @@ impl SMContext {
         hurtbox: Gd<Hurtbox>,
         off: Offense,
         movement: Rc<RefCell<Movement>>,
+        graphics: Rc<RefCell<Graphics>>,
     ) -> Self {
         Self {
             timers,
@@ -55,6 +58,7 @@ impl SMContext {
             hurtbox,
             off,
             movement,
+            graphics,
         }
     }
 }
@@ -195,6 +199,7 @@ impl CharacterStateMachine {
 
     #[state]
     fn jumping(&mut self, event: &Event, context: &mut SMContext) -> Response<State> {
+        dbg!(&event);
         match event {
             Event::GrabbedWall(inputs) => {
                 context.movement.borrow_mut().wall_grab_velocity();

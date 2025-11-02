@@ -72,8 +72,8 @@ pub struct MainCharacter {
     #[init(node = "ItemComponent")]
     pub item_comp: OnReady<Gd<ItemComponent>>,
 
-    #[init(val = OnReady::from_base_fn(|this|{ Graphics::new(this)}))]
-    graphics: OnReady<Graphics>,
+    #[init(val = OnReady::from_base_fn(|this|{ Rc::new(RefCell::new(Graphics::new(this)))}))]
+    graphics: OnReady<rc::Rc<cell::RefCell<Graphics>>>,
 
     #[init(node = "ShakyPlayerCamera")]
     pub camera: OnReady<Gd<PlayerCamera>>,
@@ -99,14 +99,14 @@ impl ICharacterBody2D for MainCharacter {
     fn ready(&mut self) {
         self.movements.borrow_mut().speeds = physics::Speeds {
             running: 180.0,
-            jumping: 300.0,
+            jumping: 600.0,
             dodging: 800.0,
         };
 
         self.timer
             .init(rc::Rc::new(cell::RefCell::new(PlayerTimers::new(
                 &self.to_gd().upcast(),
-                &mut self.graphics,
+                &mut self.graphics.borrow_mut(),
             ))));
 
         let hitbox = self.base().get_node_as::<Hitbox>("Hitbox");
@@ -159,12 +159,13 @@ impl ICharacterBody2D for MainCharacter {
         let input = DevInputHandler::handle_unhandled(&Input::singleton(), self);
 
         if self.inputs != input {
-            dbg!(&input);
             self.inputs = input;
             self.transition_sm(&Event::InputChanged(input));
         }
 
-        if self.movements.borrow().not_on_floor(&frame) {
+        if self.movements.borrow().not_on_floor(&frame)
+            && self.state.state() != (&State::Jumping {})
+        {
             self.transition_sm(&Event::FailedFloorCheck(input));
         }
 
@@ -176,8 +177,8 @@ impl ICharacterBody2D for MainCharacter {
             self.transition_sm(&Event::GrabbedWall(input));
         }
 
-        if self.state.state() == (&State::Jumping {}) {
-            self.movements.borrow_mut().apply_gravity(frame);
+        if self.state.state() != (&State::Jumping {}) {
+            self.movements.borrow_mut().apply_gravity(&frame);
         }
 
         let v = self.movements.borrow().velocity();
@@ -290,9 +291,10 @@ impl MainCharacter {
             self.hit_reg.hurtbox.clone(),
             self.off.clone(),
             self.movements.clone(),
+            self.graphics.clone(),
         );
         self.state.handle_with_context(event, &mut context);
-        self.graphics.update(
+        self.graphics.borrow_mut().update(
             self.state.state(),
             &self.movements.borrow_mut().get_direction(),
         );
