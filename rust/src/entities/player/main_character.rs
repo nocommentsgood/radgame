@@ -99,7 +99,7 @@ impl ICharacterBody2D for MainCharacter {
     fn ready(&mut self) {
         self.movements.borrow_mut().speeds = physics::Speeds {
             running: 180.0,
-            jumping: 300.0,
+            jumping: 600.0,
             dodging: 800.0,
         };
 
@@ -164,7 +164,9 @@ impl ICharacterBody2D for MainCharacter {
             self.transition_sm(&Event::InputChanged(input));
         }
 
-        if self.movements.borrow().not_on_floor(&frame) {
+        if self.movements.borrow().not_on_floor(&frame)
+            && self.state.state() != (&State::Jumping {})
+        {
             self.transition_sm(&Event::FailedFloorCheck(input));
         }
 
@@ -176,9 +178,10 @@ impl ICharacterBody2D for MainCharacter {
             self.transition_sm(&Event::GrabbedWall(input));
         }
 
-        if self.state.state() == (&State::Jumping {}) {
-            self.movements.borrow_mut().apply_gravity(frame);
-        }
+        //if self.state.state() != (&State::Jumping {}) {
+        self.movements.borrow_mut().apply_gravity(&frame);
+        self.movements.borrow_mut().handle_grav(frame);
+        // }
 
         let v = self.movements.borrow().velocity();
         // dbg!(&v);

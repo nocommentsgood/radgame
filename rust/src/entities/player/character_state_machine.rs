@@ -195,6 +195,7 @@ impl CharacterStateMachine {
 
     #[state]
     fn jumping(&mut self, event: &Event, context: &mut SMContext) -> Response<State> {
+        dbg!(&event);
         match event {
             Event::GrabbedWall(inputs) => {
                 context.movement.borrow_mut().wall_grab_velocity();
