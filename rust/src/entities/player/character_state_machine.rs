@@ -210,32 +210,14 @@ impl CharacterStateMachine {
                 }
             }
             Event::InputChanged(inputs) => {
+                // dbg!(&inputs);
                 if let Ok(res) = Self::check_air_dash(inputs, context) {
                     return res;
                 }
+                if let Ok(res) = Self::handle_attacking(inputs, context) {
+                    return res;
+                }
                 match (&inputs.0, &inputs.1, &inputs.2) {
-                    (_, Some(ModifierButton::Attack), Some(ModifierButton::Jump))
-                        if context.timers.borrow().attack_anim.get_time_left() == 0.0
-                            && let Ok(attack) = Offense::try_attack(
-                                PlayerAttacks::SimpleMelee,
-                                &mut context.resources.borrow_mut(),
-                                1,
-                            ) =>
-                    {
-                        let anim =
-                            format!("attack_{}", context.movement.borrow_mut().get_direction());
-                        context
-                            .graphics
-                            .borrow_mut()
-                            .animation_player
-                            .play_ex()
-                            .name(&anim)
-                            .done();
-                        context.hurtbox.bind_mut().set_attack(attack);
-                        context.timers.borrow_mut().attack_anim.start();
-                        Handled
-                    }
-
                     (Some(MoveButton::Left), Some(ModifierButton::Jump), _) => {
                         context.movement.borrow_mut().jump_left();
                         Handled
@@ -271,7 +253,7 @@ impl CharacterStateMachine {
                 if let Ok(res) = Self::check_air_dash(inputs, context) {
                     return res;
                 }
-                if let Ok(res) = Self::check_attacking(inputs, context) {
+                if let Ok(res) = Self::handle_attacking(inputs, context) {
                     res
                 } else {
                     Self::check_falling(inputs, context)
@@ -769,6 +751,27 @@ impl CharacterStateMachine {
                 context.movement.borrow_mut().stop_x();
                 Handled
             }
+        }
+    }
+
+    fn handle_attacking(inputs: &Inputs, context: &mut SMContext) -> Result<Response<State>, ()> {
+        match (&inputs.0, &inputs.1, &inputs.2) {
+            (_, Some(ModifierButton::Attack), Some(ModifierButton::Jump))
+            | (None, Some(ModifierButton::Attack), None)
+                if context.timers.borrow().attack_anim.get_time_left() == 0.0
+                    && let Ok(attack) = Offense::try_attack(
+                        PlayerAttacks::SimpleMelee,
+                        &mut context.resources.borrow_mut(),
+                        1,
+                    ) =>
+            {
+                let anim = format!("attack_{}", context.movement.borrow_mut().get_direction());
+                context.graphics.borrow_mut().play_then_resume(&anim);
+                context.hurtbox.bind_mut().set_attack(attack);
+                context.timers.borrow_mut().attack_anim.start();
+                Ok(Handled)
+            }
+            _ => Err(()),
         }
     }
 }

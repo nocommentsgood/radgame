@@ -40,6 +40,12 @@ impl Graphics {
         }
     }
 
+    pub fn play_then_resume(&mut self, str: &str) {
+        let cur = self.animation_player.get_current_animation().to_string();
+        self.animation_player.play_ex().name(str).done();
+        self.animation_player.queue(&cur);
+    }
+
     pub fn get_animation_length(&self, name: &str) -> f64 {
         let Some(anim) = self.animation_player.get_animation(name) else {
             return 0.0;
