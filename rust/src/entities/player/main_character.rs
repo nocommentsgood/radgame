@@ -178,11 +178,15 @@ impl ICharacterBody2D for MainCharacter {
             self.transition_sm(&Event::GrabbedWall(input));
         }
 
-        if self.state.state() != (&State::Jumping {}) {
+        if !matches!(
+            self.state.state(),
+            &State::Jumping {} | &State::WallGrab {} | &State::AirDash {}
+        ) {
             self.movements.borrow_mut().apply_gravity(&frame);
         }
 
         let v = self.movements.borrow().velocity();
+        // dbg!(&self.state.state());
         self.update_camera(v);
         self.base_mut().set_velocity(v);
         self.base_mut().move_and_slide();

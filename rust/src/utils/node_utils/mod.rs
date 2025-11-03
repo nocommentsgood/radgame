@@ -8,7 +8,6 @@ pub trait ResetTimer {
 
 impl ResetTimer for Gd<Timer> {
     fn reset(&mut self) {
-        self.stop();
         self.start();
         self.stop();
     }

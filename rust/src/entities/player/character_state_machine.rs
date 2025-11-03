@@ -364,7 +364,7 @@ impl CharacterStateMachine {
                     Response::Transition(State::jumping())
                 }
                 (Some(MoveButton::Right), _) => Response::Transition(State::falling()),
-                _ => Response::Transition(State::falling()),
+                _ => Self::to_falling(inputs, context),
             },
             Event::Landed(inputs) => Self::to_moving(inputs, context),
             Event::Hurt => Response::Transition(State::falling()),
@@ -575,13 +575,13 @@ impl CharacterStateMachine {
             {
                 context.timers.borrow_mut().dodge_cooldown.start();
                 context.timers.borrow_mut().dodge_anim.start();
-                context.movement.borrow_mut().dodge_left();
+                context.movement.borrow_mut().air_dash_left();
                 Ok(Response::Transition(State::air_dash()))
             }
             (Some(MoveButton::Right), Some(ModifierButton::Dodge))
                 if context.timers.borrow().dodge_cooldown.get_time_left() == 0.0 =>
             {
-                context.movement.borrow_mut().dodge_right();
+                context.movement.borrow_mut().air_dash_right();
                 context.timers.borrow_mut().dodge_cooldown.start();
                 context.timers.borrow_mut().dodge_anim.start();
                 Ok(Response::Transition(State::air_dash()))
@@ -671,8 +671,12 @@ impl CharacterStateMachine {
     }
 
     fn handle_wall_grab(inputs: &Inputs, context: &mut SMContext) -> Response<State> {
-        match (&inputs.0, inputs.1) {
-            (Some(MoveButton::Right | MoveButton::Left), _) => {
+        match &inputs.0 {
+            Some(MoveButton::Left) => {
+                context.movement.borrow_mut().wall_grab_velocity();
+                Response::Transition(State::wall_grab())
+            }
+            Some(MoveButton::Right) => {
                 context.movement.borrow_mut().wall_grab_velocity();
                 Response::Transition(State::wall_grab())
             }

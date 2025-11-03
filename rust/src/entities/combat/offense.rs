@@ -70,6 +70,7 @@ impl PlayerAttacks {
             PlayerAttacks::SimpleMelee => Attack {
                 damage: Damage(player_level * 10),
                 kind: AttackKind::Melee,
+                // TODO: Stamina cost is 0 for testing.
                 resource_cost: vec![AttackResourceCost::Stamina(0)],
                 parryable: true,
             },
