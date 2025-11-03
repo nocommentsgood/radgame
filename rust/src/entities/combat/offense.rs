@@ -70,7 +70,7 @@ impl PlayerAttacks {
             PlayerAttacks::SimpleMelee => Attack {
                 damage: Damage(player_level * 10),
                 kind: AttackKind::Melee,
-                resource_cost: vec![AttackResourceCost::Stamina(5)],
+                resource_cost: vec![AttackResourceCost::Stamina(0)],
                 parryable: true,
             },
 
