@@ -26,10 +26,7 @@ pub fn hit_ceiling(ent: &mut Gd<impl Inherits<CharacterBody2D>>, movement: &mut 
 /// Whether the entity is or was previously in an airborne state.
 fn is_airborne(frame: &PhysicsFrame) -> bool {
     (matches!(frame.state, State::Falling {} | State::AirDash {})
-        || matches!(
-            frame.previous_state,
-            State::Jumping {} // | State::AirAttack {} | State::MovingAirAttack {}
-        ))
+        || matches!(frame.previous_state, State::Jumping {}))
 }
 
 #[derive(Default, Clone, Copy)]

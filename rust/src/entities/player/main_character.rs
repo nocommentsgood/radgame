@@ -33,6 +33,7 @@ use crate::{
     utils::{
         global_data_singleton::GlobalData,
         input_hanlder::{DevInputHandler, InputHandler, Inputs},
+        node_utils::ResetTimer,
     },
 };
 
@@ -99,7 +100,7 @@ impl ICharacterBody2D for MainCharacter {
     fn ready(&mut self) {
         self.movements.borrow_mut().speeds = physics::Speeds {
             running: 180.0,
-            jumping: 600.0,
+            jumping: 200.0,
             dodging: 800.0,
         };
 
@@ -137,7 +138,6 @@ impl ICharacterBody2D for MainCharacter {
         ]);
 
         self.init_timers();
-
         self.previous_state = State::Idle {};
     }
 
@@ -170,6 +170,7 @@ impl ICharacterBody2D for MainCharacter {
         }
 
         if self.movements.borrow_mut().landed(&frame) {
+            self.timer.borrow_mut().jump_limit.reset();
             self.transition_sm(&Event::Landed(input));
         }
 
@@ -182,8 +183,6 @@ impl ICharacterBody2D for MainCharacter {
         }
 
         let v = self.movements.borrow().velocity();
-        // dbg!(&v);
-        // dbg!(&self.state.state());
         self.update_camera(v);
         self.base_mut().set_velocity(v);
         self.base_mut().move_and_slide();

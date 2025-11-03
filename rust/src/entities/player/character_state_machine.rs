@@ -203,21 +203,25 @@ impl CharacterStateMachine {
             Event::GrabbedWall(inputs) => Self::handle_wall_grab(inputs, context),
             Event::InputChanged(inputs) => {
                 if let Ok(res) = Self::try_air_dash(inputs, context) {
-                    return res;
-                }
-                if let Ok(res) = Self::try_airborne_attack(inputs, context) {
-                    return res;
-                }
-                match (&inputs.0, &inputs.1, &inputs.2) {
-                    (Some(MoveButton::Left), Some(ModifierButton::Jump), _) => {
-                        context.movement.borrow_mut().jump_left();
-                        Handled
+                    res
+                } else if let Ok(res) = Self::try_airborne_attack(inputs, context) {
+                    res
+                } else {
+                    match (&inputs.0, &inputs.1) {
+                        (Some(MoveButton::Left), Some(ModifierButton::Jump)) => {
+                            context.movement.borrow_mut().jump_left();
+                            Handled
+                        }
+                        (Some(MoveButton::Right), Some(ModifierButton::Jump)) => {
+                            context.movement.borrow_mut().jump_right();
+                            Handled
+                        }
+                        (_, Some(ModifierButton::Jump)) => {
+                            context.movement.borrow_mut().jump();
+                            Handled
+                        }
+                        _ => Self::to_falling(inputs, context),
                     }
-                    (Some(MoveButton::Right), Some(ModifierButton::Jump), _) => {
-                        context.movement.borrow_mut().jump_right();
-                        Handled
-                    }
-                    _ => Self::to_falling(inputs, context),
                 }
             }
             Event::TimerElapsed(timer, inputs) if *timer == Timers::JumpLimit => {
@@ -236,12 +240,11 @@ impl CharacterStateMachine {
             Event::GrabbedWall(inputs) => Self::handle_wall_grab(inputs, context),
             Event::InputChanged(inputs) => {
                 if let Ok(res) = Self::try_air_dash(inputs, context) {
-                    return res;
-                }
-                if let Ok(res) = Self::try_airborne_attack(inputs, context) {
+                    res
+                } else if let Ok(res) = Self::try_airborne_attack(inputs, context) {
                     res
                 } else {
-                    Self::to_falling(inputs, context)
+                    Self::handled_movement_input(inputs, context)
                 }
             }
             Event::Landed(inputs) => Self::to_moving(inputs, context),
@@ -646,19 +649,22 @@ impl CharacterStateMachine {
     ) -> Result<Response<State>, ()> {
         match (&inputs.0, &inputs.1, &inputs.2) {
             (_, Some(ModifierButton::Attack), Some(ModifierButton::Jump))
-            | (_, Some(ModifierButton::Attack), None)
-                if context.timers.borrow().attack_anim.get_time_left() == 0.0
+            | (_, Some(ModifierButton::Attack), None) => {
+                if context.timers.borrow().air_attack_anim.get_time_left() == 0.0
                     && let Ok(attack) = Offense::try_attack(
                         PlayerAttacks::SimpleMelee,
                         &mut context.resources.borrow_mut(),
                         1,
-                    ) =>
-            {
-                let anim = format!("attack_{}", context.movement.borrow_mut().get_direction());
-                context.graphics.borrow_mut().play_then_resume(&anim);
-                context.hurtbox.bind_mut().set_attack(attack);
-                context.timers.borrow_mut().attack_anim.start();
-                Ok(Handled)
+                    )
+                {
+                    let anim = format!("attack_{}", context.movement.borrow_mut().get_direction());
+                    context.graphics.borrow_mut().play_then_resume(&anim);
+                    context.hurtbox.bind_mut().set_attack(attack);
+                    context.timers.borrow_mut().air_attack_anim.start();
+                    Ok(Handled)
+                } else {
+                    Ok(Handled)
+                }
             }
             _ => Err(()),
         }

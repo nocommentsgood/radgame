@@ -23,6 +23,7 @@ pub struct PlayerTimers {
     pub charged_attack_anim: Gd<Timer>,
     pub spell_cooldown: Gd<Timer>,
     pub cast_spell_anim: Gd<Timer>,
+    pub air_attack_anim: Gd<Timer>,
 }
 
 impl PlayerTimers {
@@ -47,6 +48,7 @@ impl PlayerTimers {
             charged_attack_anim: get(player, "ChargedAttack"),
             spell_cooldown: get(player, "SpellCooldown"),
             cast_spell_anim: get(player, "CastSpellAnimation"),
+            air_attack_anim: get(player, "AirAttackAnimation"),
         };
         this.dodge_anim
             .set_wait_time(graphics.get_animation_length("dodge_right"));
@@ -62,6 +64,8 @@ impl PlayerTimers {
             .set_wait_time(graphics.get_animation_length("hurt_right"));
         this.charged_attack_anim
             .set_wait_time(graphics.get_animation_length("chargedattack_right"));
+        this.air_attack_anim
+            .set_wait_time(graphics.get_animation_length("airattack_right"));
         this
     }
 
