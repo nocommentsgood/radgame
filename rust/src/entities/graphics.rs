@@ -40,6 +40,7 @@ impl Graphics {
         }
     }
 
+    /// Plays the provided animation, queuing the current animation to play next.
     pub fn play_then_resume(&mut self, str: &str) {
         let cur = self.animation_player.get_current_animation().to_string();
         self.animation_player.play_ex().name(str).done();

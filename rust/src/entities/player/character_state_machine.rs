@@ -208,6 +208,11 @@ impl CharacterStateMachine {
                     res
                 } else {
                     match (&inputs.0, &inputs.1) {
+                        (_, Some(ModifierButton::ReleasedJump(time))) => {
+                            context.movement.borrow_mut().apply_early_gravity(*time);
+                            Response::Transition(State::falling())
+                        }
+
                         (Some(MoveButton::Left), Some(ModifierButton::Jump)) => {
                             context.movement.borrow_mut().jump_left();
                             Handled

@@ -8,6 +8,7 @@ use crate::entities::{entity_stats::Stat, player::main_character::MainCharacter}
 // The time that has passed since the player began holding the attack button.
 // TODO: Maybe use a Mutex.
 static mut CHARGE_ATTACK_TIME: f32 = 0.0;
+static mut JUMPING_TIME: f32 = 0.0;
 
 /// Horizontal movement buttons.
 #[derive(Clone, PartialEq, Eq, Debug, Copy)]
@@ -17,10 +18,11 @@ pub enum MoveButton {
 }
 
 /// Action buttons.
-#[derive(Clone, PartialEq, Eq, Debug, Copy)]
+#[derive(Clone, PartialEq, Debug, Copy)]
 pub enum ModifierButton {
     Dodge,
     Jump,
+    ReleasedJump(f32),
     Attack,
     Heal,
     Parry,
@@ -31,7 +33,7 @@ pub enum ModifierButton {
 }
 
 /// Player inputs, used by the state machine.
-#[derive(Default, Clone, PartialEq, Eq, Debug, Copy)]
+#[derive(Default, Clone, PartialEq, Debug, Copy)]
 pub struct Inputs(
     pub Option<MoveButton>,
     pub Option<ModifierButton>,
@@ -75,10 +77,22 @@ impl InputHandler {
             }
         }
         if input.is_action_pressed("jump") {
+            let delta = player.base().get_physics_process_delta_time() as f32;
+
+            // Safety: Only used on the Main thread.
+            unsafe {
+                JUMPING_TIME += delta;
+            }
             if inputs.1.is_some() {
                 inputs.2 = Some(ModifierButton::Jump);
             } else {
                 inputs.1 = Some(ModifierButton::Jump)
+            }
+        } else if input.is_action_just_released("jump") {
+            // Safety: Only used on the Main thread.
+            unsafe {
+                inputs.1 = Some(ModifierButton::ReleasedJump(JUMPING_TIME));
+                JUMPING_TIME = 0.0;
             }
         } else if input.is_action_just_released("attack") {
             // Safety: Only used on the Main thread.
@@ -146,5 +160,38 @@ impl DevInputHandler {
             );
         }
         inputs
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use crate::utils::input_hanlder::Inputs;
+
+    static mut JUMP_TIME: f32 = 0.0;
+
+    // Miri test
+    // After experimenting, Miri finds UB only when the `static mut` is mutated from two different
+    // threads, which is expected. This was just for learning and confirming.
+    #[test]
+    fn test_mutable_static() {
+        let delta = 0.16;
+        for _ in 0..4 {
+            unsafe {
+                JUMP_TIME += delta;
+            }
+        }
+        let input = unsafe {
+            Inputs(
+                Some(super::MoveButton::Left),
+                Some(super::ModifierButton::ReleasedJump(JUMP_TIME)),
+                None,
+            )
+        };
+
+        test_receiving(input);
+    }
+
+    fn test_receiving(input: Inputs) {
+        dbg!(input);
     }
 }

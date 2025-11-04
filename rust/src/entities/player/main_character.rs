@@ -100,7 +100,7 @@ impl ICharacterBody2D for MainCharacter {
     fn ready(&mut self) {
         self.movements.borrow_mut().speeds = physics::Speeds {
             running: 180.0,
-            jumping: 200.0,
+            jumping: 450.0,
             dodging: 800.0,
         };
 
@@ -178,15 +178,11 @@ impl ICharacterBody2D for MainCharacter {
             self.transition_sm(&Event::GrabbedWall(input));
         }
 
-        if !matches!(
-            self.state.state(),
-            &State::Jumping {} | &State::WallGrab {} | &State::AirDash {}
-        ) {
+        if !matches!(self.state.state(), &State::WallGrab {} | &State::AirDash {}) {
             self.movements.borrow_mut().apply_gravity(&frame);
         }
 
         let v = self.movements.borrow().velocity();
-        // dbg!(&self.state.state());
         self.update_camera(v);
         self.base_mut().set_velocity(v);
         self.base_mut().move_and_slide();

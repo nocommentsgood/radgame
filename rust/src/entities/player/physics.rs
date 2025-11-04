@@ -111,27 +111,29 @@ impl Movement {
             .bounce(collision.get_normal().normalized_or_zero())
     }
 
+    #[allow(clippy::collapsible_if)]
     pub fn apply_gravity(&mut self, frame: &PhysicsFrame) {
-        const GRAVITY: f32 = 1500.0;
-        const TERMINAL_VELOCITY: f32 = 500.0;
+        const GRAVITY: f32 = 900.0;
+        const TERMINAL_VELOCITY: f32 = 1300.0;
 
         if frame.state == (State::Jumping {}) {
             self.early_gravity += frame.delta;
         }
-
-        if !frame.on_floor_only
-            && (frame.state != State::WallGrab {} || frame.state != State::AirDash {})
+        if matches!(frame.state, State::Jumping {} | State::Falling {})
+            && self.velocity.y < TERMINAL_VELOCITY
         {
-            self.early_gravity += frame.delta;
-            if self.velocity.y < TERMINAL_VELOCITY {
-                if self.early_gravity >= 0.8 {
-                    self.velocity.y += GRAVITY * frame.delta;
-                } else if self.early_gravity < 0.8 && self.early_gravity >= 0.4 {
-                    self.velocity.y += 1700.0 * frame.delta;
-                } else {
-                    self.velocity.y += 2000.0 * frame.delta;
-                }
-            }
+            self.velocity.y += GRAVITY * frame.delta;
+        }
+    }
+
+    // Jump was released early, apply more gravity.
+    pub fn apply_early_gravity(&mut self, time: f32) {
+        if time > 0.5 {
+            self.velocity.y = 300.0;
+        } else if self.early_gravity < 0.5 && self.early_gravity >= 0.08 {
+            self.velocity.y = 350.0;
+        } else {
+            self.velocity.y = 450.0;
         }
     }
 
