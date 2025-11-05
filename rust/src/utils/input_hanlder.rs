@@ -88,6 +88,25 @@ impl InputHandler {
             } else {
                 inputs.1 = Some(ModifierButton::Jump)
             }
+        }
+        if input.is_action_just_pressed("ability_1") {
+            if inputs.1.is_some() {
+                inputs.2 = Some(ModifierButton::Ability1);
+            } else {
+                inputs.1 = Some(ModifierButton::Ability1)
+            }
+        } else if input.is_action_pressed("ability_2") {
+            if inputs.1.is_some() {
+                inputs.2 = Some(ModifierButton::Ability2);
+            } else {
+                inputs.1 = Some(ModifierButton::Ability2);
+            }
+        } else if input.is_action_pressed("ability_3") {
+            if inputs.1.is_some() {
+                inputs.2 = Some(ModifierButton::Ability3)
+            } else {
+                inputs.1 = Some(ModifierButton::Ability3);
+            }
         } else if input.is_action_just_released("jump") {
             // Safety: Only used on the Main thread.
             unsafe {
@@ -104,12 +123,6 @@ impl InputHandler {
                     CHARGE_ATTACK_TIME = 0.0;
                 }
             }
-        } else if input.is_action_just_pressed("ability_1") {
-            inputs.1 = Some(ModifierButton::Ability1);
-        } else if input.is_action_pressed("ability_2") {
-            inputs.1 = Some(ModifierButton::Ability2);
-        } else if input.is_action_pressed("ability_3") {
-            inputs.1 = Some(ModifierButton::Ability3)
         } else if input.is_action_pressed("dodge") {
             inputs.1 = Some(ModifierButton::Dodge);
         } else if input.is_action_just_pressed("heal") {

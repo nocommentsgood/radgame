@@ -61,6 +61,10 @@ impl Movement {
         self.velocity.x = 0.0;
     }
 
+    pub fn stop_y(&mut self) {
+        self.velocity.y = 0.0;
+    }
+
     pub fn air_dash_right(&mut self) {
         self.velocity.y = 0.0;
         self.dodge_right();
