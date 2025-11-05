@@ -561,11 +561,13 @@ impl CharacterStateMachine {
 
     fn try_parry(inputs: &Inputs, context: &mut SMContext) -> Result<Response<State>, ()> {
         match (&inputs.0, &inputs.1) {
-            (_, Some(ModifierButton::Parry))
-                if context.timers.borrow().parry_anim.is_stopped() =>
-            {
+            (_, Some(ModifierButton::Parry)) if context.timers.borrow().parry_anim.is_stopped() => {
                 context.movement.borrow_mut().stop_x();
-                context.timers.borrow_mut().parry_anim.start();
+                let mut guard = context.timers.borrow_mut();
+                guard.parry_anim.start();
+                guard.perfect_parry.start();
+                guard.parry.start();
+                drop(guard);
                 Ok(Response::Transition(State::parry()))
             }
             _ => Err(()),

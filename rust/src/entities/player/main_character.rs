@@ -267,10 +267,10 @@ impl MainCharacter {
 
     fn parried(&mut self) -> bool {
         if let State::Parry {} = self.state.state() {
-            if self.timer.borrow_mut().perfect_parry.get_time_left() > 0.0 {
+            if self.timer.borrow().perfect_parry.get_time_left() > 0.0 {
                 println!("Perfect parry");
                 true
-            } else if self.timer.borrow_mut().parry.get_time_left() > 0.0 {
+            } else if self.timer.borrow().parry.get_time_left() > 0.0 {
                 println!("Normal parry");
                 true
             } else {
