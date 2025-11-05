@@ -143,7 +143,7 @@ impl ICharacterBody2D for MainCharacter {
 
     fn physics_process(&mut self, delta: f32) {
         if let Ok(mut borrow) = self.resources.try_borrow_mut() {
-            borrow.tick_resources(delta);
+            borrow.tick_resources(&delta);
         }
 
         let frame = physics::PhysicsFrame::new(

@@ -95,7 +95,7 @@ pub enum AttackResourceCost {
     Mana(i64),
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct CombatResources {
     health: Health,
     stam: Stamina,
@@ -135,12 +135,12 @@ impl CombatResources {
         self.health.heal();
     }
 
-    pub fn tick_resources(&mut self, delta: f32) {
+    pub fn tick_resources(&mut self, delta: &f32) {
         if self.mana.0.amount < self.mana.0.max {
             self.mana_counter += delta;
             if self.mana_counter >= 8.0 {
                 self.mana_counter = 0.0;
-                self.mana.0.increase(2);
+                self.mana.0.increase(10);
             }
         }
 

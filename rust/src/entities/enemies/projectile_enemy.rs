@@ -155,6 +155,10 @@ impl INode2D for NewProjectileEnemy {
             &Direction::from_vel(&self.movement.velocity()),
         );
     }
+
+    fn physics_process(&mut self, delta: f32) {
+        self.resources.tick_resources(&delta);
+    }
 }
 
 #[godot_api]
