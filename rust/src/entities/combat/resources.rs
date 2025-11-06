@@ -1,3 +1,5 @@
+use godot::{meta::ByValue, prelude::GodotConvert};
+
 use crate::entities::combat::offense::Damage;
 
 #[derive(Clone, Copy, Debug)]
@@ -56,8 +58,11 @@ impl Health {
         Self(Resource::new(amount, max), heal)
     }
 
-    pub fn take_damage(&mut self, damage: Damage) {
+    pub fn take_damage(&mut self, damage: Damage) -> (i64, i64) {
+        let cur = self.0.amount;
         self.0.decrease(damage.0);
+        let new = self.0.amount;
+        (cur, new)
     }
 
     pub fn is_dead(&self) -> bool {
@@ -70,6 +75,10 @@ impl Health {
 
     pub fn set_healing(&mut self, heal: Heal) {
         self.1 = heal;
+    }
+
+    pub fn max(&self) -> i64 {
+        self.0.max
     }
 
     pub fn amount(&self) -> i64 {
@@ -127,12 +136,15 @@ impl CombatResources {
         &self.stam
     }
 
-    pub fn take_damage(&mut self, damage: Damage) {
-        self.health.take_damage(damage);
+    pub fn take_damage(&mut self, damage: Damage) -> (i64, i64) {
+        self.health.take_damage(damage)
     }
 
-    pub fn heal(&mut self) {
+    pub fn heal(&mut self) -> (i64, i64) {
+        let cur = self.health.amount();
         self.health.heal();
+        let new = self.health.amount();
+        (cur, new)
     }
 
     pub fn tick_resources(&mut self, delta: &f32) {

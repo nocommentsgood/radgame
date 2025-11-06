@@ -1,7 +1,4 @@
-use std::{
-    cell::{self, RefCell},
-    rc::{self, Rc},
-};
+use std::{cell::RefCell, rc::Rc};
 
 use godot::{
     classes::{Area2D, CharacterBody2D, ICharacterBody2D, Input, RayCast2D},
@@ -47,14 +44,14 @@ pub struct MainCharacter {
     previous_state: State,
 
     #[init(val = OnReady::manual())]
-    pub timer: OnReady<rc::Rc<cell::RefCell<PlayerTimers>>>,
+    pub timer: OnReady<Rc<RefCell<PlayerTimers>>>,
 
     pub state: StateMachine<csm::CharacterStateMachine>,
 
     pub stats: EntityStats,
 
     #[init(val = Rc::new(RefCell::new(physics::Movement::default())))]
-    movements: rc::Rc<cell::RefCell<physics::Movement>>,
+    movements: Rc<RefCell<physics::Movement>>,
     base: Base<CharacterBody2D>,
 
     #[init(val = OnReady::from_base_fn(|this| {
@@ -74,7 +71,7 @@ pub struct MainCharacter {
     pub item_comp: OnReady<Gd<ItemComponent>>,
 
     #[init(val = OnReady::from_base_fn(|this|{ Rc::new(RefCell::new(Graphics::new(this)))}))]
-    graphics: OnReady<rc::Rc<cell::RefCell<Graphics>>>,
+    graphics: OnReady<Rc<RefCell<Graphics>>>,
 
     #[init(node = "ShakyPlayerCamera")]
     pub camera: OnReady<Gd<PlayerCamera>>,
@@ -90,9 +87,9 @@ pub struct MainCharacter {
 
     // statig SM lifetime support seems a bit limited, hence Rc<RefCell<T>>>. Could be user error
     // but may as well move on for now.
-    #[init(val = rc::Rc::new(cell::RefCell::new(CombatResources::new(
+    #[init(val = Rc::new(RefCell::new(CombatResources::new(
         Health::new(30, 30, Heal::new(5)), Stamina::new(30, 30), Mana::new(50, 50)))))]
-    resources: rc::Rc<cell::RefCell<CombatResources>>,
+    pub resources: Rc<RefCell<CombatResources>>,
 }
 
 #[godot_api]
@@ -104,11 +101,10 @@ impl ICharacterBody2D for MainCharacter {
             dodging: 800.0,
         };
 
-        self.timer
-            .init(rc::Rc::new(cell::RefCell::new(PlayerTimers::new(
-                &self.to_gd().upcast(),
-                &mut self.graphics.borrow_mut(),
-            ))));
+        self.timer.init(Rc::new(RefCell::new(PlayerTimers::new(
+            &self.to_gd().upcast(),
+            &mut self.graphics.borrow_mut(),
+        ))));
 
         let hitbox = self.base().get_node_as::<Hitbox>("Hitbox");
         hitbox
@@ -196,7 +192,7 @@ impl ICharacterBody2D for MainCharacter {
 #[godot_api]
 impl MainCharacter {
     #[signal]
-    pub fn player_health_changed(previous_health: u32, new_health: u32, damage_amount: u32);
+    pub fn player_health_changed(previous: i64, new: i64);
 
     fn on_area_entered_hitbox(&mut self, area: Gd<Area2D>) {
         let hurtbox = area.cast::<Hurtbox>();
@@ -209,7 +205,11 @@ impl MainCharacter {
             }
         } else {
             let damage = self.def.apply_resistances(attack);
-            self.resources.borrow_mut().take_damage(damage);
+            let res = self.resources.borrow_mut().take_damage(damage);
+            self.signals().player_health_changed().emit(res.0, res.1);
+            if self.resources.borrow().health().is_dead() {
+                self.on_death();
+            }
             self.camera
                 .bind_mut()
                 .add_trauma(TraumaLevel::from(damage.0));
@@ -234,7 +234,10 @@ impl MainCharacter {
     }
 
     fn on_healing_timeout(&mut self) {
-        self.timer.borrow_mut().healing_cooldown.start();
+        let change = self.resources.borrow_mut().heal();
+        self.signals()
+            .player_health_changed()
+            .emit(change.0, change.1);
         let input = InputHandler::handle(&Input::singleton(), self);
         self.transition_sm(&Event::TimerElapsed(Timers::HealingAnimation, input));
     }
@@ -381,5 +384,9 @@ impl MainCharacter {
 
     pub fn get_direction(&mut self) -> Direction {
         self.movements.borrow_mut().get_direction()
+    }
+
+    fn on_death(&mut self) {
+        self.base_mut().queue_free();
     }
 }

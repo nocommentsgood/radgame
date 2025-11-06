@@ -329,7 +329,7 @@ impl CharacterStateMachine {
     fn healing(&mut self, event: &Event, context: &mut SMContext) -> Response<State> {
         match event {
             Event::TimerElapsed(timer, inputs) if *timer == Timers::HealingAnimation => {
-                context.resources.borrow_mut().heal();
+                context.timers.borrow_mut().healing_cooldown.start();
                 Self::to_moving(inputs, context)
             }
             Event::ForceDisabled => Response::Transition(State::forced_disabled()),
@@ -527,6 +527,8 @@ impl CharacterStateMachine {
     fn try_healing(inputs: &Inputs, context: &mut SMContext) -> Result<Response<State>, ()> {
         if context.timers.borrow().healing_anim.is_stopped()
             && context.timers.borrow().healing_cooldown.is_stopped()
+            && context.resources.borrow().health().amount()
+                < context.resources.borrow().health().max()
         {
             match (&inputs.0, &inputs.1) {
                 (_, Some(ModifierButton::Heal)) => {
