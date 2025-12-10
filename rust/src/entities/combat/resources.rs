@@ -2,6 +2,12 @@ use godot::{meta::ByValue, prelude::GodotConvert};
 
 use crate::entities::combat::offense::Damage;
 
+pub enum ResourceChanged {
+    Stamina { previous: i64, new: i64 },
+    Mana { previous: i64, new: i64 },
+    Health { previous: i64, new: i64 },
+}
+
 #[derive(Clone, Copy, Debug)]
 pub struct Resource {
     amount: i64,
@@ -40,6 +46,10 @@ impl Stamina {
 
     pub fn amount(&self) -> i64 {
         self.0.amount
+    }
+
+    pub fn max(&self) -> i64 {
+        self.0.max
     }
 }
 
@@ -111,6 +121,7 @@ pub struct CombatResources {
     mana: Mana,
     stam_counter: f32,
     mana_counter: f32,
+    health_counter: f32,
 }
 
 impl CombatResources {
@@ -121,6 +132,7 @@ impl CombatResources {
             mana,
             stam_counter: 0.0,
             mana_counter: 0.0,
+            health_counter: 0.0,
         }
     }
 
@@ -147,12 +159,15 @@ impl CombatResources {
         (cur, new)
     }
 
-    pub fn tick_resources(&mut self, delta: &f32) {
+    pub fn tick_resources(&mut self, delta: &f32) -> Result<ResourceChanged, ()> {
         if self.mana.0.amount < self.mana.0.max {
             self.mana_counter += delta;
             if self.mana_counter >= 8.0 {
                 self.mana_counter = 0.0;
+                let previous = self.mana.amount();
                 self.mana.0.increase(10);
+                let new = self.mana.amount();
+                return Ok(ResourceChanged::Mana { previous, new });
             }
         }
 
@@ -160,8 +175,26 @@ impl CombatResources {
             self.stam_counter += delta;
             if self.stam_counter > 3.0 {
                 self.stam_counter = 0.0;
+                let previous = self.stamina().amount();
                 self.stam.0.increase(5);
+                let new = self.stamina().amount();
+                return Ok(ResourceChanged::Stamina { previous, new });
             }
+        }
+
+        if self.health.0.amount < self.health.0.max {
+            self.health_counter += delta;
+            if self.health_counter > 5.0 {
+                self.health_counter = 0.0;
+                let previous = self.health().amount();
+                self.health.0.increase(10);
+                let new = self.health().amount();
+                Ok(ResourceChanged::Health { previous, new })
+            } else {
+                Err(())
+            }
+        } else {
+            Err(())
         }
     }
 

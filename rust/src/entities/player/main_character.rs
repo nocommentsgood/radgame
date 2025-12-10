@@ -13,7 +13,7 @@ use crate::{
         combat::{
             defense::{Defense, Resistance},
             offense::{Buff, Element, Offense, Spell},
-            resources::{CombatResources, Heal, Health, Mana, Stamina},
+            resources::{CombatResources, Heal, Health, Mana, ResourceChanged, Stamina},
         },
         enemies::projectile::Projectile,
         entity_stats::{EntityStats, Stat, StatModifier, StatVal},
@@ -42,18 +42,14 @@ type Event = csm::Event;
 pub struct MainCharacter {
     inputs: Inputs,
     previous_state: State,
+    pub state: StateMachine<csm::CharacterStateMachine>,
+    pub stats: EntityStats,
+    base: Base<CharacterBody2D>,
 
     #[init(val = OnReady::manual())]
     pub timer: OnReady<Rc<RefCell<PlayerTimers>>>,
-
-    pub state: StateMachine<csm::CharacterStateMachine>,
-
-    pub stats: EntityStats,
-
     #[init(val = Rc::new(RefCell::new(physics::Movement::default())))]
     movements: Rc<RefCell<physics::Movement>>,
-    base: Base<CharacterBody2D>,
-
     #[init(val = OnReady::from_base_fn(|this| {
         hit_reg::HitReg::new(
             this.get_node_as::<Hitbox>("Hitbox"),
@@ -61,34 +57,28 @@ pub struct MainCharacter {
         )
         }))]
     hit_reg: OnReady<hit_reg::HitReg>,
-
     #[init(node = "LeftWallCast")]
     left_wall_cast: OnReady<Gd<RayCast2D>>,
     #[init(node = "RightWallCast")]
     right_wall_cast: OnReady<Gd<RayCast2D>>,
-
     #[init(node = "ItemComponent")]
     pub item_comp: OnReady<Gd<ItemComponent>>,
-
     #[init(val = OnReady::from_base_fn(|this|{ Rc::new(RefCell::new(Graphics::new(this)))}))]
     graphics: OnReady<Rc<RefCell<Graphics>>>,
-
     #[init(node = "ShakyPlayerCamera")]
     pub camera: OnReady<Gd<PlayerCamera>>,
-
     #[init(val = Offense::new(
         vec![Buff::Physical(2)],
         [Some(Spell::ProjectileSpell), Some(Spell::TwinPillar), None],
         ))]
     off: Offense,
-
     #[init(val = Defense::new(vec![Resistance::Physical(5), Resistance::Elemental(Element::Fire, 10)]))]
     pub def: Defense,
 
     // statig SM lifetime support seems a bit limited, hence Rc<RefCell<T>>>. Could be user error
     // but may as well move on for now.
     #[init(val = Rc::new(RefCell::new(CombatResources::new(
-        Health::new(30, 30, Heal::new(5)), Stamina::new(30, 30), Mana::new(50, 50)))))]
+        Health::new(30, 30, Heal::new(5)), Stamina::new(30, 50), Mana::new(50, 50)))))]
     pub resources: Rc<RefCell<CombatResources>>,
 }
 
@@ -138,10 +128,22 @@ impl ICharacterBody2D for MainCharacter {
     }
 
     fn physics_process(&mut self, delta: f32) {
-        if let Ok(mut borrow) = self.resources.try_borrow_mut() {
-            borrow.tick_resources(&delta);
+        let tick = self.resources.borrow_mut().tick_resources(&delta);
+        if let Ok(tick) = tick {
+            match tick {
+                ResourceChanged::Stamina { previous, new } => {
+                    self.signals().stamina_changed().emit(previous, new)
+                }
+                ResourceChanged::Mana { previous, new } => {
+                    self.signals().mana_changed().emit(previous, new)
+                }
+                ResourceChanged::Health { previous, new } => {
+                    self.signals().player_health_changed().emit(previous, new)
+                }
+            }
         }
 
+        // TODO: Get rid of this.
         let frame = physics::PhysicsFrame::new(
             *self.state.state(),
             self.previous_state,
@@ -193,6 +195,12 @@ impl ICharacterBody2D for MainCharacter {
 impl MainCharacter {
     #[signal]
     pub fn player_health_changed(previous: i64, new: i64);
+
+    #[signal]
+    pub fn stamina_changed(previous: i64, new: i64);
+
+    #[signal]
+    pub fn mana_changed(previous: i64, new: i64);
 
     fn on_area_entered_hitbox(&mut self, area: Gd<Area2D>) {
         let hurtbox = area.cast::<Hurtbox>();

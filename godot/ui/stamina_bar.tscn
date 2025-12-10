@@ -1,0 +1,31 @@
+[gd_scene load_steps=2 format=3 uid="uid://b2q4pybbie878"]
+
+[ext_resource type="Texture2D" uid="uid://brdp11ksamwg" path="res://assets/ui/hud/progress_red.png" id="1_bdkpb"]
+
+[node name="StaminaBar" type="StaminaBar"]
+offset = Vector2(15, 0)
+transform = Transform2D(1, 0, 0, 1, 15, 0)
+
+[node name="Control" type="Control" parent="."]
+layout_direction = 2
+layout_mode = 3
+anchors_preset = 0
+
+[node name="CenterContainer" type="CenterContainer" parent="Control"]
+layout_mode = 0
+offset_right = 18.0
+offset_bottom = 48.0
+
+[node name="TextureProgressBar" type="TextureProgressBar" parent="Control/CenterContainer"]
+self_modulate = Color(4.428029e-06, 0.8727051, 0.40484837, 1)
+layout_mode = 2
+size_flags_horizontal = 4
+min_value = 1.0
+max_value = 30.0
+value = 30.0
+fill_mode = 2
+nine_patch_stretch = true
+stretch_margin_top = 20
+stretch_margin_right = 12
+stretch_margin_bottom = 20
+texture_progress = ExtResource("1_bdkpb")

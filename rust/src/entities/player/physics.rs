@@ -115,7 +115,6 @@ impl Movement {
             .bounce(collision.get_normal().normalized_or_zero())
     }
 
-    #[allow(clippy::collapsible_if)]
     pub fn apply_gravity(&mut self, frame: &PhysicsFrame) {
         const GRAVITY: f32 = 900.0;
         const TERMINAL_VELOCITY: f32 = 1300.0;
