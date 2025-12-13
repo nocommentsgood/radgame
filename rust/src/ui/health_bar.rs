@@ -18,11 +18,10 @@ impl ICanvasLayer for HealthBar {
     fn ready(&mut self) {
         if let Some(player) = GlobalData::singleton().bind().player.as_ref() {
             let bind = player.bind();
-            let health = bind.resources.borrow().health().amount();
-            let max = bind.resources.borrow().health().max();
+            let health = bind.resources.health().amount();
+            let max = bind.resources.health().max();
             self.set_value(health as f64);
             self.health_bar.set_max(max as f64);
-
             player
                 .signals()
                 .player_health_changed()
@@ -54,11 +53,10 @@ impl ICanvasLayer for StaminaBar {
     fn ready(&mut self) {
         if let Some(player) = GlobalData::singleton().bind().player.as_ref() {
             let bind = player.bind();
-            let stam = bind.resources.borrow().stamina().amount();
-            let max = bind.resources.borrow().stamina().max();
+            let stam = bind.resources.stamina().amount();
+            let max = bind.resources.stamina().max();
             self.set_value(stam as f64);
             self.stamina_bar.set_max(max as f64);
-
             player
                 .signals()
                 .stamina_changed()

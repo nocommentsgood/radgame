@@ -1,5 +1,3 @@
-use std::{cell::RefCell, rc::Rc};
-
 use godot::{
     classes::{Area2D, CharacterBody2D, ICharacterBody2D, Input, RayCast2D},
     obj::WithBaseField,
@@ -47,9 +45,9 @@ pub struct MainCharacter {
     base: Base<CharacterBody2D>,
 
     #[init(val = OnReady::manual())]
-    pub timer: OnReady<Rc<RefCell<PlayerTimers>>>,
-    #[init(val = Rc::new(RefCell::new(physics::Movement::default())))]
-    movements: Rc<RefCell<physics::Movement>>,
+    pub timer: OnReady<PlayerTimers>,
+    #[init(val = physics::Movement::default())]
+    movements: physics::Movement,
     #[init(val = OnReady::from_base_fn(|this| {
         hit_reg::HitReg::new(
             this.get_node_as::<Hitbox>("Hitbox"),
@@ -63,8 +61,8 @@ pub struct MainCharacter {
     right_wall_cast: OnReady<Gd<RayCast2D>>,
     #[init(node = "ItemComponent")]
     pub item_comp: OnReady<Gd<ItemComponent>>,
-    #[init(val = OnReady::from_base_fn(|this|{ Rc::new(RefCell::new(Graphics::new(this)))}))]
-    graphics: OnReady<Rc<RefCell<Graphics>>>,
+    #[init(val = OnReady::from_base_fn(|this|{ Graphics::new(this)}))]
+    graphics: OnReady<Graphics>,
     #[init(node = "ShakyPlayerCamera")]
     pub camera: OnReady<Gd<PlayerCamera>>,
     #[init(val = Offense::new(
@@ -74,27 +72,24 @@ pub struct MainCharacter {
     off: Offense,
     #[init(val = Defense::new(vec![Resistance::Physical(5), Resistance::Elemental(Element::Fire, 10)]))]
     pub def: Defense,
-
-    // statig SM lifetime support seems a bit limited, hence Rc<RefCell<T>>>. Could be user error
-    // but may as well move on for now.
-    #[init(val = Rc::new(RefCell::new(CombatResources::new(
-        Health::new(30, 30, Heal::new(5)), Stamina::new(30, 50), Mana::new(50, 50)))))]
-    pub resources: Rc<RefCell<CombatResources>>,
+    #[init(val = CombatResources::new(
+        Health::new(30, 30, Heal::new(5)), Stamina::new(30, 50), Mana::new(50, 50)))]
+    pub resources: CombatResources,
 }
 
 #[godot_api]
 impl ICharacterBody2D for MainCharacter {
     fn ready(&mut self) {
-        self.movements.borrow_mut().speeds = physics::Speeds {
+        self.movements.speeds = physics::Speeds {
             running: 180.0,
             jumping: 450.0,
             dodging: 800.0,
         };
 
-        self.timer.init(Rc::new(RefCell::new(PlayerTimers::new(
+        self.timer.init(PlayerTimers::new(
             &self.to_gd().upcast(),
-            &mut self.graphics.borrow_mut(),
-        ))));
+            &mut self.graphics,
+        ));
 
         let hitbox = self.base().get_node_as::<Hitbox>("Hitbox");
         hitbox
@@ -128,7 +123,7 @@ impl ICharacterBody2D for MainCharacter {
     }
 
     fn physics_process(&mut self, delta: f32) {
-        let tick = self.resources.borrow_mut().tick_resources(&delta);
+        let tick = self.resources.tick_resources(&delta);
         if let Ok(tick) = tick {
             match tick {
                 ResourceChanged::Stamina { previous, new } => {
@@ -161,14 +156,12 @@ impl ICharacterBody2D for MainCharacter {
             self.transition_sm(&Event::InputChanged(input));
         }
 
-        if self.movements.borrow().not_on_floor(&frame)
-            && self.state.state() != (&State::Jumping {})
-        {
+        if self.movements.not_on_floor(&frame) && self.state.state() != (&State::Jumping {}) {
             self.transition_sm(&Event::FailedFloorCheck(input));
         }
 
-        if self.movements.borrow_mut().landed(&frame) {
-            self.timer.borrow_mut().jump_limit.reset();
+        if self.movements.landed(&frame) {
+            self.timer.jump_limit.reset();
             self.transition_sm(&Event::Landed(input));
         }
 
@@ -177,15 +170,15 @@ impl ICharacterBody2D for MainCharacter {
         }
 
         if !matches!(self.state.state(), &State::WallGrab {} | &State::AirDash {}) {
-            self.movements.borrow_mut().apply_gravity(&frame);
+            self.movements.apply_gravity(&frame);
         }
 
-        let v = self.movements.borrow().velocity();
+        let v = self.movements.velocity();
         self.update_camera(v);
         self.base_mut().set_velocity(v);
         self.base_mut().move_and_slide();
 
-        if physics::hit_ceiling(&mut self.to_gd(), &mut self.movements.borrow_mut()) {
+        if physics::hit_ceiling(&mut self.to_gd(), &mut self.movements) {
             self.transition_sm(&Event::HitCeiling(input));
         }
     }
@@ -213,9 +206,9 @@ impl MainCharacter {
             }
         } else {
             let damage = self.def.apply_resistances(attack);
-            let res = self.resources.borrow_mut().take_damage(damage);
+            let res = self.resources.take_damage(damage);
             self.signals().player_health_changed().emit(res.0, res.1);
-            if self.resources.borrow().health().is_dead() {
+            if self.resources.health().is_dead() {
                 self.on_death();
             }
             self.camera
@@ -242,7 +235,7 @@ impl MainCharacter {
     }
 
     fn on_healing_timeout(&mut self) {
-        let change = self.resources.borrow_mut().heal();
+        let change = self.resources.heal();
         self.signals()
             .player_health_changed()
             .emit(change.0, change.1);
@@ -251,7 +244,7 @@ impl MainCharacter {
     }
 
     fn on_dodge_animation_timeout(&mut self) {
-        self.timer.borrow_mut().dodge_cooldown.start();
+        self.timer.dodge_cooldown.start();
         let input = InputHandler::handle(&Input::singleton(), self);
         self.transition_sm(&Event::TimerElapsed(Timers::DodgeAnimation, input));
     }
@@ -278,10 +271,10 @@ impl MainCharacter {
 
     fn parried(&mut self) -> bool {
         if let State::Parry {} = self.state.state() {
-            if self.timer.borrow().perfect_parry.get_time_left() > 0.0 {
+            if self.timer.perfect_parry.get_time_left() > 0.0 {
                 println!("Perfect parry");
                 true
-            } else if self.timer.borrow().parry.get_time_left() > 0.0 {
+            } else if self.timer.parry.get_time_left() > 0.0 {
                 println!("Normal parry");
                 true
             } else {
@@ -292,28 +285,24 @@ impl MainCharacter {
         }
     }
 
-    /// Transitions the state machine, checking and returning if the previous state is equal to the
-    /// current state.
     pub fn transition_sm(&mut self, event: &Event) {
         let mut context = csm::SMContext::new(
-            self.timer.clone(),
-            self.resources.clone(),
+            &mut self.timer,
+            &mut self.resources,
             self.hit_reg.hurtbox.clone(),
-            self.off.clone(),
-            self.movements.clone(),
-            self.graphics.clone(),
+            &self.off,
+            &mut self.movements,
+            &mut self.graphics,
         );
         self.state.handle_with_context(event, &mut context);
-        self.graphics.borrow_mut().update(
-            self.state.state(),
-            &self.movements.borrow_mut().get_direction(),
-        );
+        self.graphics
+            .update(self.state.state(), &self.movements.get_direction());
     }
 
     /// Sets timer lengths, timer callbacks, and adds timers as children of the player.
     fn init_timers(&mut self) {
         let this = &self.to_gd();
-        self.timer.borrow_mut().connect_signals(
+        self.timer.connect_signals(
             {
                 let mut this = this.clone();
                 move || this.bind_mut().on_jump_limit_timeout()
@@ -358,10 +347,10 @@ impl MainCharacter {
     }
 
     fn update_camera(&mut self, previous_velocity: Vector2) {
-        if previous_velocity != self.movements.borrow().velocity() {
-            if self.movements.borrow().velocity().x > 5.0 {
+        if previous_velocity != self.movements.velocity() {
+            if self.movements.velocity().x > 5.0 {
                 self.camera.bind_mut().set_right(Some(true));
-            } else if self.movements.borrow().velocity().x < -5.0 {
+            } else if self.movements.velocity().x < -5.0 {
                 self.camera.bind_mut().set_right(Some(false));
             }
         }
@@ -391,7 +380,7 @@ impl MainCharacter {
     }
 
     pub fn get_direction(&mut self) -> Direction {
-        self.movements.borrow_mut().get_direction()
+        self.movements.get_direction()
     }
 
     fn on_death(&mut self) {

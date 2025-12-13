@@ -1,5 +1,3 @@
-use std::{cell::RefCell, rc::Rc};
-
 use godot::obj::Gd;
 use statig::blocking::*;
 
@@ -19,51 +17,6 @@ use crate::{
         input_hanlder::{Inputs, ModifierButton, MoveButton},
     },
 };
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-// Prevents the SM from switching states due to irrelavent timers emitting their `timeout` signal.
-pub enum Timers {
-    DodgeAnimation,
-    AttackAnimation,
-    Attack2Animation,
-    HealingAnimation,
-    HurtAnimation,
-    ParryAnimation,
-    JumpLimit,
-    ChargedAttack,
-    CastSpellAnimation,
-}
-
-pub struct SMContext {
-    timers: Rc<RefCell<PlayerTimers>>,
-    resources: Rc<RefCell<CombatResources>>,
-    hurtbox: Gd<Hurtbox>,
-    off: Offense,
-    movement: Rc<RefCell<Movement>>,
-    graphics: Rc<RefCell<Graphics>>,
-}
-
-impl SMContext {
-    pub fn new(
-        timers: Rc<RefCell<PlayerTimers>>,
-        resources: Rc<RefCell<CombatResources>>,
-        hurtbox: Gd<Hurtbox>,
-        off: Offense,
-        movement: Rc<RefCell<Movement>>,
-        graphics: Rc<RefCell<Graphics>>,
-    ) -> Self {
-        Self {
-            timers,
-            resources,
-            hurtbox,
-            off,
-            movement,
-            graphics,
-        }
-    }
-}
-#[derive(Default, Debug, Clone)]
-pub struct CharacterStateMachine;
 
 // Animation player uses the implementation of `Display` for animation names.
 impl std::fmt::Display for State {
@@ -92,6 +45,20 @@ impl Default for State {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+// Prevents the SM from switching states due to irrelavent timers emitting their `timeout` signal.
+pub enum Timers {
+    DodgeAnimation,
+    AttackAnimation,
+    Attack2Animation,
+    HealingAnimation,
+    HurtAnimation,
+    ParryAnimation,
+    JumpLimit,
+    ChargedAttack,
+    CastSpellAnimation,
+}
+
 #[derive(Debug, Default, PartialEq, Clone)]
 pub enum Event {
     InputChanged(Inputs),
@@ -107,13 +74,45 @@ pub enum Event {
     None,
 }
 
+pub struct SMContext<'a> {
+    timers: &'a mut PlayerTimers,
+    resources: &'a mut CombatResources,
+    hurtbox: Gd<Hurtbox>,
+    off: &'a Offense,
+    movement: &'a mut Movement,
+    graphics: &'a mut Graphics,
+}
+
+impl<'a> SMContext<'a> {
+    pub fn new(
+        timers: &'a mut PlayerTimers,
+        resources: &'a mut CombatResources,
+        hurtbox: Gd<Hurtbox>,
+        off: &'a Offense,
+        movement: &'a mut Movement,
+        graphics: &'a mut Graphics,
+    ) -> Self {
+        Self {
+            timers,
+            resources,
+            hurtbox,
+            off,
+            movement,
+            graphics,
+        }
+    }
+}
+
+#[derive(Default, Debug, Clone)]
+pub struct CharacterStateMachine;
+
 #[state_machine(
     initial = "State::idle()",
     state(derive(Debug, Clone, PartialEq, Copy))
 )]
 impl CharacterStateMachine {
     #[state]
-    fn idle(&mut self, event: &Event, context: &mut SMContext) -> Response<State> {
+    fn idle(&mut self, event: &Event, context: &mut SMContext<'_>) -> Response<State> {
         match event {
             Event::InputChanged(inputs) => {
                 if let Ok(res) = Self::try_dodging(inputs, context) {
@@ -142,7 +141,7 @@ impl CharacterStateMachine {
             }
             Event::FailedFloorCheck(inputs) => Self::to_falling(inputs, context),
             Event::Hurt => {
-                context.timers.borrow_mut().hurt_anim.start();
+                context.timers.hurt_anim.start();
                 Response::Transition(State::hurt())
             }
             Event::ForceDisabled => Response::Transition(State::forced_disabled()),
@@ -151,7 +150,7 @@ impl CharacterStateMachine {
     }
 
     #[state]
-    fn run(&mut self, event: &Event, context: &mut SMContext) -> Response<State> {
+    fn run(&mut self, event: &Event, context: &mut SMContext<'_>) -> Response<State> {
         match event {
             Event::InputChanged(inputs) => {
                 if let Ok(res) = Self::try_dodging(inputs, context) {
@@ -186,7 +185,7 @@ impl CharacterStateMachine {
     }
 
     #[state]
-    fn dodging(&mut self, event: &Event, context: &mut SMContext) -> Response<State> {
+    fn dodging(&mut self, event: &Event, context: &mut SMContext<'_>) -> Response<State> {
         match event {
             Event::TimerElapsed(timer, inputs) if *timer == Timers::DodgeAnimation => {
                 Self::to_moving(inputs, context)
@@ -198,7 +197,7 @@ impl CharacterStateMachine {
     }
 
     #[state]
-    fn jumping(&mut self, event: &Event, context: &mut SMContext) -> Response<State> {
+    fn jumping(&mut self, event: &Event, context: &mut SMContext<'_>) -> Response<State> {
         match event {
             Event::GrabbedWall(inputs) => Self::handle_wall_grab(inputs, context),
             Event::InputChanged(inputs) => {
@@ -212,20 +211,20 @@ impl CharacterStateMachine {
                 } else {
                     match (&inputs.0, &inputs.1) {
                         (_, Some(ModifierButton::ReleasedJump(time))) => {
-                            context.movement.borrow_mut().apply_early_gravity(*time);
+                            context.movement.apply_early_gravity(*time);
                             Response::Transition(State::falling())
                         }
 
                         (Some(MoveButton::Left), Some(ModifierButton::Jump)) => {
-                            context.movement.borrow_mut().jump_left();
+                            context.movement.jump_left();
                             Handled
                         }
                         (Some(MoveButton::Right), Some(ModifierButton::Jump)) => {
-                            context.movement.borrow_mut().jump_right();
+                            context.movement.jump_right();
                             Handled
                         }
                         (_, Some(ModifierButton::Jump)) => {
-                            context.movement.borrow_mut().jump();
+                            context.movement.jump();
                             Handled
                         }
                         _ => Self::to_falling(inputs, context),
@@ -243,7 +242,7 @@ impl CharacterStateMachine {
     }
 
     #[state]
-    fn falling(&mut self, event: &Event, context: &mut SMContext) -> Response<State> {
+    fn falling(&mut self, event: &Event, context: &mut SMContext<'_>) -> Response<State> {
         match event {
             Event::GrabbedWall(inputs) => Self::handle_wall_grab(inputs, context),
             Event::InputChanged(inputs) => {
@@ -265,20 +264,20 @@ impl CharacterStateMachine {
     }
 
     #[state]
-    fn attacking(&mut self, event: &Event, context: &mut SMContext) -> Response<State> {
+    fn attacking(&mut self, event: &Event, context: &mut SMContext<'_>) -> Response<State> {
         match event {
             Event::TimerElapsed(timer, inputs) if *timer == Timers::AttackAnimation => {
                 match (&inputs.0, &inputs.1) {
                     (_, Some(ModifierButton::Attack))
-                        if context.timers.borrow().attack_2_anim.is_stopped()
+                        if context.timers.attack_2_anim.is_stopped()
                             && let Ok(attack) = Offense::try_attack(
                                 PlayerAttacks::ChargedMelee,
-                                &mut context.resources.borrow_mut(),
+                                context.resources,
                                 1,
                             ) =>
                     {
                         context.hurtbox.bind_mut().set_attack(attack);
-                        context.timers.borrow_mut().attack_2_anim.start();
+                        context.timers.attack_2_anim.start();
                         Response::Transition(State::chain_attack())
                     }
                     _ => Self::to_moving(inputs, context),
@@ -293,7 +292,7 @@ impl CharacterStateMachine {
     }
 
     #[state]
-    fn chargedattack(&mut self, event: &Event, context: &mut SMContext) -> Response<State> {
+    fn chargedattack(&mut self, event: &Event, context: &mut SMContext<'_>) -> Response<State> {
         match event {
             Event::TimerElapsed(timer, inputs) if *timer == Timers::ChargedAttack => {
                 Self::to_moving(inputs, context)
@@ -303,7 +302,7 @@ impl CharacterStateMachine {
     }
 
     #[state]
-    fn chain_attack(&mut self, event: &Event, context: &mut SMContext) -> Response<State> {
+    fn chain_attack(&mut self, event: &Event, context: &mut SMContext<'_>) -> Response<State> {
         match event {
             Event::TimerElapsed(timer, inputs) if *timer == Timers::Attack2Animation => {
                 Self::to_moving(inputs, context)
@@ -315,7 +314,7 @@ impl CharacterStateMachine {
     }
 
     #[state]
-    fn hurt(&mut self, event: &Event, context: &mut SMContext) -> Response<State> {
+    fn hurt(&mut self, event: &Event, context: &mut SMContext<'_>) -> Response<State> {
         match event {
             Event::TimerElapsed(timer, inputs) if *timer == Timers::HurtAnimation => {
                 Self::to_moving(inputs, context)
@@ -326,10 +325,10 @@ impl CharacterStateMachine {
     }
 
     #[state]
-    fn healing(&mut self, event: &Event, context: &mut SMContext) -> Response<State> {
+    fn healing(&mut self, event: &Event, context: &mut SMContext<'_>) -> Response<State> {
         match event {
             Event::TimerElapsed(timer, inputs) if *timer == Timers::HealingAnimation => {
-                context.timers.borrow_mut().healing_cooldown.start();
+                context.timers.healing_cooldown.start();
                 Self::to_moving(inputs, context)
             }
             Event::ForceDisabled => Response::Transition(State::forced_disabled()),
@@ -338,7 +337,7 @@ impl CharacterStateMachine {
     }
 
     #[state]
-    fn parry(&mut self, event: &Event, context: &mut SMContext) -> Response<State> {
+    fn parry(&mut self, event: &Event, context: &mut SMContext<'_>) -> Response<State> {
         match event {
             Event::TimerElapsed(timer, inputs) if *timer == Timers::ParryAnimation => {
                 Self::to_moving(inputs, context)
@@ -357,21 +356,21 @@ impl CharacterStateMachine {
     }
 
     #[state]
-    fn wall_grab(event: &Event, context: &mut SMContext) -> Response<State> {
+    fn wall_grab(event: &Event, context: &mut SMContext<'_>) -> Response<State> {
         match event {
             Event::InputChanged(inputs) => match (&inputs.0, inputs.1) {
                 (Some(MoveButton::Left), Some(ModifierButton::Jump))
-                    if context.timers.borrow().wall_jump.is_stopped() =>
+                    if context.timers.wall_jump.is_stopped() =>
                 {
-                    context.timers.borrow_mut().wall_jump.start();
-                    context.movement.borrow_mut().jump_right();
+                    context.timers.wall_jump.start();
+                    context.movement.jump_right();
                     Response::Transition(State::jumping())
                 }
                 (Some(MoveButton::Right), Some(ModifierButton::Jump))
-                    if context.timers.borrow().wall_jump.is_stopped() =>
+                    if context.timers.wall_jump.is_stopped() =>
                 {
-                    context.timers.borrow_mut().wall_jump.start();
-                    context.movement.borrow_mut().jump_left();
+                    context.timers.wall_jump.start();
+                    context.movement.jump_left();
                     Response::Transition(State::jumping())
                 }
                 (Some(MoveButton::Right), _) => Response::Transition(State::falling()),
@@ -384,9 +383,9 @@ impl CharacterStateMachine {
     }
 
     #[state]
-    fn cast_spell(event: &Event, context: &mut SMContext) -> Response<State> {
-        context.movement.borrow_mut().stop_x();
-        context.movement.borrow_mut().stop_y();
+    fn cast_spell(event: &Event, context: &mut SMContext<'_>) -> Response<State> {
+        context.movement.stop_x();
+        context.movement.stop_y();
         match event {
             Event::TimerElapsed(timer, inputs) if *timer == Timers::CastSpellAnimation => {
                 Self::to_moving(inputs, context)
@@ -396,7 +395,7 @@ impl CharacterStateMachine {
     }
 
     #[state]
-    fn air_dash(event: &Event, context: &mut SMContext) -> Response<State> {
+    fn air_dash(event: &Event, context: &mut SMContext<'_>) -> Response<State> {
         match event {
             Event::GrabbedWall(inputs) => Self::handle_wall_grab(inputs, context),
             Event::TimerElapsed(timer, inputs) if *timer == Timers::DodgeAnimation => {
@@ -407,12 +406,14 @@ impl CharacterStateMachine {
         }
     }
 
-    fn try_cast_spell(context: &mut SMContext, hot_spell_index: HotSpellIndexer) -> Result<(), ()> {
+    fn try_cast_spell(
+        context: &mut SMContext<'_>,
+        hot_spell_index: HotSpellIndexer,
+    ) -> Result<(), ()> {
         let spell = context.off.get_spell(hot_spell_index);
         if let Some(spell) = spell {
             let mut attack = spell.attack(1);
-            if Offense::check_resources(attack.cost(), &mut context.resources.borrow_mut()).is_ok()
-            {
+            if Offense::check_resources(attack.cost(), context.resources).is_ok() {
                 let scene = spell.init_scene();
                 context.off.apply_buffs(&mut attack);
                 GlobalData::singleton()
@@ -420,7 +421,7 @@ impl CharacterStateMachine {
                     .get_player_mut()
                     .unwrap()
                     .add_sibling(&scene);
-                context.timers.borrow_mut().spell_cooldown.start();
+                context.timers.spell_cooldown.start();
                 Ok(())
             } else {
                 Err(())
@@ -430,68 +431,69 @@ impl CharacterStateMachine {
         }
     }
 
-    fn try_casting_spell(inputs: &Inputs, context: &mut SMContext) -> Result<Response<State>, ()> {
+    fn try_casting_spell(
+        inputs: &Inputs,
+        context: &mut SMContext<'_>,
+    ) -> Result<Response<State>, ()> {
         match (&inputs.1, &inputs.2) {
             (
                 Some(ModifierButton::Ability1 | ModifierButton::Jump),
-                Some(ModifierButton::Jump | ModifierButton::Ability1) | None,
-            ) if context.timers.borrow().spell_cooldown.is_stopped()
+                Some(ModifierButton::Jump | ModifierButton::Ability1),
+            ) if context.timers.spell_cooldown.is_stopped()
                 && Self::try_cast_spell(context, HotSpellIndexer::Ability1).is_ok() =>
             {
-                context.timers.borrow_mut().spell_cooldown.start();
-                context.timers.borrow_mut().cast_spell_anim.start();
+                context.timers.spell_cooldown.start();
+                context.timers.cast_spell_anim.start();
                 Ok(Response::Transition(State::cast_spell()))
             }
             (
                 Some(ModifierButton::Ability2 | ModifierButton::Jump),
-                Some(ModifierButton::Jump | ModifierButton::Ability2) | None,
-            ) if context.timers.borrow().spell_cooldown.is_stopped()
+                Some(ModifierButton::Jump | ModifierButton::Ability2),
+            ) if context.timers.spell_cooldown.is_stopped()
                 && Self::try_cast_spell(context, HotSpellIndexer::Ability2).is_ok() =>
             {
-                context.timers.borrow_mut().spell_cooldown.start();
-                context.timers.borrow_mut().cast_spell_anim.start();
+                context.timers.spell_cooldown.start();
+                context.timers.cast_spell_anim.start();
                 Ok(Response::Transition(State::cast_spell()))
             }
             (
                 Some(ModifierButton::Ability3 | ModifierButton::Jump),
-                Some(ModifierButton::Jump | ModifierButton::Ability3) | None,
-            ) if context.timers.borrow().spell_cooldown.is_stopped()
+                Some(ModifierButton::Jump | ModifierButton::Ability3),
+            ) if context.timers.spell_cooldown.is_stopped()
                 && Self::try_cast_spell(context, HotSpellIndexer::Ability3).is_ok() =>
             {
-                context.timers.borrow_mut().spell_cooldown.start();
-                context.timers.borrow_mut().cast_spell_anim.start();
+                context.timers.spell_cooldown.start();
+                context.timers.cast_spell_anim.start();
                 Ok(Response::Transition(State::cast_spell()))
             }
             _ => Err(()),
         }
     }
 
-    fn try_dodging(inputs: &Inputs, context: &mut SMContext) -> Result<Response<State>, ()> {
+    fn try_dodging(inputs: &Inputs, context: &mut SMContext<'_>) -> Result<Response<State>, ()> {
         match (&inputs.0, &inputs.1) {
             (Some(MoveButton::Left), Some(ModifierButton::Dodge))
-                if context.timers.borrow().dodge_cooldown.is_stopped() =>
+                if context.timers.dodge_cooldown.is_stopped() =>
             {
-                context.timers.borrow_mut().dodge_cooldown.start();
-                context.movement.borrow_mut().dodge_left();
+                context.timers.dodge_cooldown.start();
+                context.movement.dodge_left();
                 Ok(Response::Transition(State::dodging()))
             }
             (Some(MoveButton::Right), Some(ModifierButton::Dodge))
-                if context.timers.borrow().dodge_cooldown.is_stopped() =>
+                if context.timers.dodge_cooldown.is_stopped() =>
             {
-                context.timers.borrow_mut().dodge_cooldown.start();
-                context.movement.borrow_mut().dodge_right();
+                context.timers.dodge_cooldown.start();
+                context.movement.dodge_right();
                 Ok(Response::Transition(State::dodging()))
             }
-            (None, Some(ModifierButton::Dodge))
-                if context.timers.borrow().dodge_cooldown.is_stopped() =>
-            {
-                let dir = context.movement.borrow_mut().get_direction();
+            (None, Some(ModifierButton::Dodge)) if context.timers.dodge_cooldown.is_stopped() => {
+                let dir = context.movement.get_direction();
                 match dir {
-                    Direction::Right => context.movement.borrow_mut().dodge_right(),
-                    Direction::Left => context.movement.borrow_mut().dodge_left(),
+                    Direction::Right => context.movement.dodge_right(),
+                    Direction::Left => context.movement.dodge_left(),
                 }
-                context.timers.borrow_mut().dodge_cooldown.start();
-                context.timers.borrow_mut().dodge_anim.start();
+                context.timers.dodge_cooldown.start();
+                context.timers.dodge_anim.start();
                 Ok(Response::Transition(State::dodging()))
             }
 
@@ -499,22 +501,22 @@ impl CharacterStateMachine {
         }
     }
 
-    fn try_jumping(inputs: &Inputs, context: &mut SMContext) -> Result<Response<State>, ()> {
-        if context.timers.borrow().jump_limit.is_stopped() {
+    fn try_jumping(inputs: &Inputs, context: &mut SMContext<'_>) -> Result<Response<State>, ()> {
+        if context.timers.jump_limit.is_stopped() {
             match (&inputs.0, &inputs.1) {
                 (Some(MoveButton::Right), Some(ModifierButton::Jump)) => {
-                    context.movement.borrow_mut().jump_right();
-                    context.timers.borrow_mut().jump_limit.start();
+                    context.movement.jump_right();
+                    context.timers.jump_limit.start();
                     Ok(Response::Transition(State::jumping()))
                 }
                 (Some(MoveButton::Left), Some(ModifierButton::Jump)) => {
-                    context.movement.borrow_mut().jump_left();
-                    context.timers.borrow_mut().jump_limit.start();
+                    context.movement.jump_left();
+                    context.timers.jump_limit.start();
                     Ok(Response::Transition(State::jumping()))
                 }
                 (None, Some(ModifierButton::Jump)) => {
-                    context.movement.borrow_mut().jump();
-                    context.timers.borrow_mut().jump_limit.start();
+                    context.movement.jump();
+                    context.timers.jump_limit.start();
                     Ok(Response::Transition(State::jumping()))
                 }
                 _ => Err(()),
@@ -524,17 +526,16 @@ impl CharacterStateMachine {
         }
     }
 
-    fn try_healing(inputs: &Inputs, context: &mut SMContext) -> Result<Response<State>, ()> {
-        if context.timers.borrow().healing_anim.is_stopped()
-            && context.timers.borrow().healing_cooldown.is_stopped()
-            && context.resources.borrow().health().amount()
-                < context.resources.borrow().health().max()
+    fn try_healing(inputs: &Inputs, context: &mut SMContext<'_>) -> Result<Response<State>, ()> {
+        if context.timers.healing_anim.is_stopped()
+            && context.timers.healing_cooldown.is_stopped()
+            && context.resources.health().amount() < context.resources.health().max()
         {
             match (&inputs.0, &inputs.1) {
                 (_, Some(ModifierButton::Heal)) => {
-                    context.timers.borrow_mut().healing_anim.start();
-                    context.timers.borrow_mut().healing_cooldown.start();
-                    context.movement.borrow_mut().stop_x();
+                    context.timers.healing_anim.start();
+                    context.timers.healing_cooldown.start();
+                    context.movement.stop_x();
                     Ok(Response::Transition(State::healing()))
                 }
                 _ => Err(()),
@@ -543,127 +544,122 @@ impl CharacterStateMachine {
             Err(())
         }
     }
-    fn try_attacking(inputs: &Inputs, context: &mut SMContext) -> Result<Response<State>, ()> {
+    fn try_attacking(inputs: &Inputs, context: &mut SMContext<'_>) -> Result<Response<State>, ()> {
         match (&inputs.0, &inputs.1) {
             (_, Some(ModifierButton::Attack))
-                if context.timers.borrow().attack_anim.is_stopped()
-                    && let Ok(attack) = Offense::try_attack(
-                        PlayerAttacks::SimpleMelee,
-                        &mut context.resources.borrow_mut(),
-                        1,
-                    ) =>
+                if context.timers.attack_anim.is_stopped()
+                    && let Ok(attack) =
+                        Offense::try_attack(PlayerAttacks::SimpleMelee, context.resources, 1) =>
             {
                 context.hurtbox.bind_mut().set_attack(attack);
-                context.timers.borrow_mut().attack_anim.start();
+                context.timers.attack_anim.start();
                 Ok(Response::Transition(State::attacking()))
             }
             _ => Err(()),
         }
     }
 
-    fn try_parry(inputs: &Inputs, context: &mut SMContext) -> Result<Response<State>, ()> {
+    fn try_parry(inputs: &Inputs, context: &mut SMContext<'_>) -> Result<Response<State>, ()> {
         match (&inputs.0, &inputs.1) {
-            (_, Some(ModifierButton::Parry)) if context.timers.borrow().parry_anim.is_stopped() => {
-                context.movement.borrow_mut().stop_x();
-                let mut guard = context.timers.borrow_mut();
-                guard.parry_anim.start();
-                guard.perfect_parry.start();
-                guard.parry.start();
-                drop(guard);
+            (_, Some(ModifierButton::Parry)) if context.timers.parry_anim.is_stopped() => {
+                context.movement.stop_x();
+                context.timers.parry_anim.start();
+                context.timers.perfect_parry.start();
+                context.timers.parry.start();
                 Ok(Response::Transition(State::parry()))
             }
             _ => Err(()),
         }
     }
 
-    fn try_charged_attack(inputs: &Inputs, context: &mut SMContext) -> Result<Response<State>, ()> {
+    fn try_charged_attack(
+        inputs: &Inputs,
+        context: &mut SMContext<'_>,
+    ) -> Result<Response<State>, ()> {
         match (&inputs.0, &inputs.1) {
             (_, Some(ModifierButton::ChargedAttack))
-                if context.timers.borrow().charged_attack_anim.is_stopped()
-                    && let Ok(attack) = Offense::try_attack(
-                        PlayerAttacks::ChargedMelee,
-                        &mut context.resources.borrow_mut(),
-                        1,
-                    ) =>
+                if context.timers.charged_attack_anim.is_stopped()
+                    && let Ok(attack) =
+                        Offense::try_attack(PlayerAttacks::ChargedMelee, context.resources, 1) =>
             {
                 context.hurtbox.bind_mut().set_attack(attack);
-                context.timers.borrow_mut().charged_attack_anim.start();
+                context.timers.charged_attack_anim.start();
                 Ok(Response::Transition(State::chargedattack()))
             }
             _ => Err(()),
         }
     }
 
-    fn try_air_dash(inputs: &Inputs, context: &mut SMContext) -> Result<Response<State>, ()> {
+    fn try_air_dash(inputs: &Inputs, context: &mut SMContext<'_>) -> Result<Response<State>, ()> {
         match (&inputs.0, &inputs.1) {
             (Some(MoveButton::Left), Some(ModifierButton::Dodge))
-                if context.timers.borrow().dodge_cooldown.is_stopped() =>
+                if context.timers.dodge_cooldown.is_stopped() =>
             {
-                context.timers.borrow_mut().dodge_cooldown.start();
-                context.timers.borrow_mut().dodge_anim.start();
-                context.movement.borrow_mut().air_dash_left();
+                context.timers.dodge_cooldown.start();
+                context.timers.dodge_anim.start();
+                context.movement.air_dash_left();
                 Ok(Response::Transition(State::air_dash()))
             }
             (Some(MoveButton::Right), Some(ModifierButton::Dodge))
-                if context.timers.borrow().dodge_cooldown.is_stopped() =>
+                if context.timers.dodge_cooldown.is_stopped() =>
             {
-                context.movement.borrow_mut().air_dash_right();
-                context.timers.borrow_mut().dodge_cooldown.start();
-                context.timers.borrow_mut().dodge_anim.start();
+                context.movement.air_dash_right();
+                context.timers.dodge_cooldown.start();
+                context.timers.dodge_anim.start();
                 Ok(Response::Transition(State::air_dash()))
             }
             _ => Err(()),
         }
     }
 
-    fn to_falling(inputs: &Inputs, context: &mut SMContext) -> Response<State> {
+    fn to_falling(inputs: &Inputs, context: &mut SMContext<'_>) -> Response<State> {
         match (&inputs.0, &inputs.1) {
             (Some(MoveButton::Left), _) => {
-                context.movement.borrow_mut().run_left();
+                context.movement.run_left();
                 Response::Transition(State::falling())
             }
             (Some(MoveButton::Right), _) => {
-                context.movement.borrow_mut().run_right();
+                context.movement.run_right();
                 Response::Transition(State::falling())
             }
             (None, _) => {
-                context.movement.borrow_mut().stop_x();
+                context.movement.stop_x();
                 Response::Transition(State::falling())
             }
         }
     }
 
     /// Transitions the SM after checking movement input.
-    fn to_moving(inputs: &Inputs, context: &mut SMContext) -> Response<State> {
+    fn to_moving(inputs: &Inputs, context: &mut SMContext<'_>) -> Response<State> {
         match (&inputs.0, &inputs.1) {
             (Some(MoveButton::Left), _) => {
-                context.movement.borrow_mut().run_left();
+                context.movement.run_left();
                 Response::Transition(State::run())
             }
             (Some(MoveButton::Right), _) => {
-                context.movement.borrow_mut().run_right();
+                context.movement.run_right();
                 Response::Transition(State::run())
             }
             (_, _) => {
-                context.movement.borrow_mut().stop_x();
+                context.movement.stop_x();
                 Response::Transition(State::idle())
             }
         }
     }
 
     /// Checks inputs and updates velocity without changing state.
-    fn handled_movement_input(inputs: &Inputs, context: &mut SMContext) -> Response<State> {
+    fn handled_movement_input(inputs: &Inputs, context: &mut SMContext<'_>) -> Response<State> {
         match (&inputs.0, &inputs.1) {
             (Some(MoveButton::Left), _) => {
-                context.movement.borrow_mut().run_left();
+                context.movement.run_left();
                 Handled
             }
             (Some(MoveButton::Right), _) => {
-                context.movement.borrow_mut().run_right();
+                context.movement.run_right();
                 Handled
             }
             (_, _) => {
-                context.movement.borrow_mut().stop_x();
+                context.movement.stop_x();
                 Handled
             }
         }
@@ -671,22 +667,19 @@ impl CharacterStateMachine {
 
     fn try_airborne_attack(
         inputs: &Inputs,
-        context: &mut SMContext,
+        context: &mut SMContext<'_>,
     ) -> Result<Response<State>, ()> {
         match (&inputs.0, &inputs.1, &inputs.2) {
             (_, Some(ModifierButton::Attack), Some(ModifierButton::Jump))
             | (_, Some(ModifierButton::Attack), None) => {
-                if context.timers.borrow().air_attack_anim.is_stopped()
-                    && let Ok(attack) = Offense::try_attack(
-                        PlayerAttacks::SimpleMelee,
-                        &mut context.resources.borrow_mut(),
-                        1,
-                    )
+                if context.timers.air_attack_anim.is_stopped()
+                    && let Ok(attack) =
+                        Offense::try_attack(PlayerAttacks::SimpleMelee, context.resources, 1)
                 {
-                    let anim = format!("attack_{}", context.movement.borrow_mut().get_direction());
-                    context.graphics.borrow_mut().play_then_resume(&anim);
+                    let anim = format!("attack_{}", context.movement.get_direction());
+                    context.graphics.play_then_resume(&anim);
                     context.hurtbox.bind_mut().set_attack(attack);
-                    context.timers.borrow_mut().air_attack_anim.start();
+                    context.timers.air_attack_anim.start();
                     Ok(Handled)
                 } else {
                     Ok(Handled)
@@ -696,14 +689,14 @@ impl CharacterStateMachine {
         }
     }
 
-    fn handle_wall_grab(inputs: &Inputs, context: &mut SMContext) -> Response<State> {
+    fn handle_wall_grab(inputs: &Inputs, context: &mut SMContext<'_>) -> Response<State> {
         match &inputs.0 {
             Some(MoveButton::Left) => {
-                context.movement.borrow_mut().wall_grab_velocity();
+                context.movement.wall_grab_velocity();
                 Response::Transition(State::wall_grab())
             }
             Some(MoveButton::Right) => {
-                context.movement.borrow_mut().wall_grab_velocity();
+                context.movement.wall_grab_velocity();
                 Response::Transition(State::wall_grab())
             }
             _ => Handled,
