@@ -46,6 +46,7 @@ impl HealthBar {
 pub struct StaminaBar {
     #[init(node = "Control/CenterContainer/TextureProgressBar")]
     pub stamina_bar: OnReady<Gd<TextureProgressBar>>,
+    prev_player_stam: i64,
     base: Base<CanvasLayer>,
 }
 #[godot_api]
@@ -61,6 +62,18 @@ impl ICanvasLayer for StaminaBar {
                 .signals()
                 .stamina_changed()
                 .connect_other(&self.to_gd(), Self::on_player_stamina_changed);
+            self.prev_player_stam = player.bind().resources.stamina().amount();
+        }
+    }
+
+    fn process(&mut self, _delta: f32) {
+        let current = self.prev_player_stam;
+        if let Some(player) = GlobalData::singleton().bind().player.as_ref() {
+            let new = player.bind().resources.stamina().amount();
+            if new != current {
+                self.prev_player_stam = new;
+                self.stamina_bar.set_value(new as f64);
+            }
         }
     }
 }
