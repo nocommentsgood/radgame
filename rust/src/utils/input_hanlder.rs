@@ -63,7 +63,7 @@ impl InputHandler {
             if inputs.1.is_some() {
                 inputs.2 = Some(ModifierButton::Attack);
             } else {
-                inputs.1 = Some(ModifierButton::Attack)
+                inputs.1 = Some(ModifierButton::Attack);
             }
         }
         if input.is_action_pressed("attack") {
@@ -86,14 +86,14 @@ impl InputHandler {
             if inputs.1.is_some() {
                 inputs.2 = Some(ModifierButton::Jump);
             } else {
-                inputs.1 = Some(ModifierButton::Jump)
+                inputs.1 = Some(ModifierButton::Jump);
             }
         }
         if input.is_action_just_pressed("ability_1") {
             if inputs.1.is_some() {
                 inputs.2 = Some(ModifierButton::Ability1);
             } else {
-                inputs.1 = Some(ModifierButton::Ability1)
+                inputs.1 = Some(ModifierButton::Ability1);
             }
         } else if input.is_action_pressed("ability_2") {
             if inputs.1.is_some() {
@@ -103,7 +103,7 @@ impl InputHandler {
             }
         } else if input.is_action_pressed("ability_3") {
             if inputs.1.is_some() {
-                inputs.2 = Some(ModifierButton::Ability3)
+                inputs.2 = Some(ModifierButton::Ability3);
             } else {
                 inputs.1 = Some(ModifierButton::Ability3);
             }

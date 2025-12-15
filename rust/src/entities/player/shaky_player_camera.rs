@@ -4,7 +4,7 @@ use godot::{
     prelude::*,
 };
 
-#[allow(dead_code)]
+#[derive(Clone, Copy, Debug)]
 pub enum TraumaLevel {
     Low,
     Med,
@@ -147,22 +147,22 @@ pub struct CameraData {
 
     #[export]
     #[export_subgroup(name = "Limits")]
-    #[init(val = -10000000)]
+    #[init(val = -10_000_000)]
     left: i32,
 
     #[export]
     #[export_subgroup(name = "Limits")]
-    #[init(val = -10000000)]
+    #[init(val = -10_000_000)]
     top: i32,
 
     #[export]
     #[export_subgroup(name = "Limits")]
-    #[init(val = 10000000)]
+    #[init(val = 10_000_000)]
     right: i32,
 
     #[export]
     #[export_subgroup(name = "Limits")]
-    #[init(val = 10000000)]
+    #[init(val = 10_000_000)]
     bottom: i32,
 
     #[export]

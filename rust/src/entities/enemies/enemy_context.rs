@@ -135,7 +135,7 @@ pub struct EnemySensors {
 }
 
 impl EnemySensors {
-    /// Provides `Self` by obtaining the required nodes at the expected path in the SceneTree.
+    /// Provides `Self` by obtaining the required nodes at the expected path in the `SceneTree`.
     /// "Expected path" meaning: `EnemySensors/*`
     pub fn default_new(base_enemy: &Gd<Node>) -> Self {
         Self {

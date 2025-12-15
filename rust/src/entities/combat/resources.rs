@@ -1,5 +1,3 @@
-use godot::{meta::ByValue, prelude::GodotConvert};
-
 use crate::entities::combat::offense::Damage;
 
 pub enum ResourceChanged {
@@ -159,7 +157,7 @@ impl CombatResources {
         (cur, new)
     }
 
-    pub fn tick_resources(&mut self, delta: &f32) -> Result<ResourceChanged, ()> {
+    pub fn tick_resources(&mut self, delta: f32) -> Result<ResourceChanged, ()> {
         if self.mana.0.amount < self.mana.0.max {
             self.mana_counter += delta;
             if self.mana_counter >= 8.0 {

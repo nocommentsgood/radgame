@@ -19,21 +19,21 @@ impl Graphics {
         Self {
             sprite: node.get_node_as::<Sprite2D>("Sprite2D"),
             animation_player: node.get_node_as::<AnimationPlayer>("AnimationPlayer"),
-            previous_animation: "".to_string(),
+            previous_animation: String::new(),
         }
     }
 
     pub fn update<T: State<impl IntoStateMachine> + Display + PartialEq>(
         &mut self,
         state: &T,
-        dir: &Direction,
+        dir: Direction,
     ) {
         // Do not have an animation for casting a spell.
         if state.to_string() == "cast_spell" {
             // TODO: Tween player sprite or add shader for casting spells.
             return;
         }
-        let anim = format!("{}_{}", state, dir);
+        let anim = format!("{state}_{dir}");
         if anim != self.previous_animation {
             self.animation_player.play_ex().name(&anim).done();
             self.previous_animation = anim;
@@ -51,6 +51,6 @@ impl Graphics {
         let Some(anim) = self.animation_player.get_animation(name) else {
             return 0.0;
         };
-        anim.get_length() as f64
+        f64::from(anim.get_length())
     }
 }

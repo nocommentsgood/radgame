@@ -66,7 +66,7 @@ impl Display for State {
 #[state_machine(initial = "State::idle()", state(derive(Debug, Clone, PartialEq)))]
 impl EnemyStateMachine {
     #[state]
-    fn idle(&mut self, event: &EnemyEvent) -> Response<State> {
+    fn idle(event: &EnemyEvent) -> Response<State> {
         match event {
             EnemyEvent::TimerElapsed(EnemyTimers::Idle) => Response::Transition(State::patrol()),
             EnemyEvent::FoundPlayer => Response::Transition(State::chase_player()),
@@ -77,7 +77,7 @@ impl EnemyStateMachine {
     }
 
     #[state]
-    fn patrol(&mut self, event: &EnemyEvent) -> Response<State> {
+    fn patrol(event: &EnemyEvent) -> Response<State> {
         match event {
             EnemyEvent::RayCastFailed(dir) => {
                 if let Direction::Left = dir {

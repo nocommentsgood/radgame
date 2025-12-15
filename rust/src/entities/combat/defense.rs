@@ -15,15 +15,12 @@ impl Defense {
         Self { resistances }
     }
 
-    pub fn apply_resistances(&self, attack: Attack) -> Damage {
+    pub fn apply_resistances(&self, attack: &Attack) -> Damage {
         let mut amount = attack.damage().0;
 
         for resistance in &self.resistances {
             match (&attack.kind(), resistance) {
-                (AttackKind::Melee, Resistance::Physical(val)) => {
-                    amount -= val;
-                }
-                (AttackKind::ElementalMelee(_), Resistance::Physical(val)) => {
+                (AttackKind::Melee | AttackKind::ElementalMelee(_), Resistance::Physical(val)) => {
                     amount -= val;
                 }
                 (

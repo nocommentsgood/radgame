@@ -22,7 +22,7 @@ impl EntityStats {
 
     /// Panics
     /// Panics if the given `Stat` is not present.
-    pub fn get_raw(&self, stat: Stat) -> u32 {
+    pub fn get_raw(&self, stat: Stat) -> i64 {
         self.0.get(&stat).unwrap().0
     }
 
@@ -47,10 +47,10 @@ pub enum Stat {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 // The optional second tuple value is used for "caching" the value when a modification is applied.
 // When the modification is removed, the values are swapped and the second value is 'Option::None`.
-pub struct StatVal(pub u32, Option<u32>);
+pub struct StatVal(pub i64, Option<i64>);
 
 impl StatVal {
-    pub fn new(val: u32) -> Self {
+    pub fn new(val: i64) -> Self {
         StatVal(val, None)
     }
 
@@ -62,7 +62,7 @@ impl StatVal {
         }
 
         if let ModifierKind::Percent(val) = modifier.modifier {
-            let sum = (self.0 as f32 * val).round_ties_even() as u32;
+            let sum = (self.0 as f64 * val).round_ties_even() as i64;
             self.1 = Some(self.0);
             self.0 = sum;
         }
@@ -76,7 +76,7 @@ impl StatVal {
     }
 }
 
-#[derive(GodotClass, Clone, Debug, PartialEq)]
+#[derive(GodotClass, Clone, Copy, Debug, PartialEq)]
 #[class(no_init)]
 pub struct StatModifier {
     pub stat: Stat,
@@ -91,6 +91,6 @@ impl StatModifier {
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum ModifierKind {
-    Flat(u32),
-    Percent(f32),
+    Flat(i64),
+    Percent(f64),
 }

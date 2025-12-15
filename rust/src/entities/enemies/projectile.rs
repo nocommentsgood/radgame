@@ -35,11 +35,10 @@ impl INode2D for Projectile {
         self.start_pos = self.base().get_position();
     }
 
-    fn process(&mut self, delta: f64) {
+    fn process(&mut self, delta: f32) {
         let position = self.base().get_position();
         let velocity = position.direction_to(self.target) * self.speed;
-        self.base_mut()
-            .set_position(position + velocity * delta as f32);
+        self.base_mut().set_position(position + velocity * delta);
     }
 }
 

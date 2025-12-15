@@ -9,7 +9,7 @@ use crate::utils::global_data_singleton::GlobalData;
 #[class(init, base=CanvasLayer)]
 pub struct HealthBar {
     #[init(node = "Control/CenterContainer/TextureProgressBar")]
-    pub health_bar: OnReady<Gd<TextureProgressBar>>,
+    pub texture_bar: OnReady<Gd<TextureProgressBar>>,
     base: Base<CanvasLayer>,
 }
 
@@ -21,7 +21,7 @@ impl ICanvasLayer for HealthBar {
             let health = bind.resources.health().amount();
             let max = bind.resources.health().max();
             self.set_value(health as f64);
-            self.health_bar.set_max(max as f64);
+            self.texture_bar.set_max(max as f64);
             player
                 .signals()
                 .player_health_changed()
@@ -33,11 +33,11 @@ impl ICanvasLayer for HealthBar {
 #[godot_api]
 impl HealthBar {
     pub fn on_player_health_changed(&mut self, _previous_health: i64, current_health: i64) {
-        self.health_bar.set_value(current_health as f64);
+        self.texture_bar.set_value(current_health as f64);
     }
 
     pub fn set_value(&mut self, val: f64) {
-        self.health_bar.set_value(val);
+        self.texture_bar.set_value(val);
     }
 }
 
@@ -45,7 +45,7 @@ impl HealthBar {
 #[class(init, base=CanvasLayer)]
 pub struct StaminaBar {
     #[init(node = "Control/CenterContainer/TextureProgressBar")]
-    pub stamina_bar: OnReady<Gd<TextureProgressBar>>,
+    pub texture_bar: OnReady<Gd<TextureProgressBar>>,
     prev_player_stam: i64,
     base: Base<CanvasLayer>,
 }
@@ -57,7 +57,7 @@ impl ICanvasLayer for StaminaBar {
             let stam = bind.resources.stamina().amount();
             let max = bind.resources.stamina().max();
             self.set_value(stam as f64);
-            self.stamina_bar.set_max(max as f64);
+            self.texture_bar.set_max(max as f64);
             player
                 .signals()
                 .stamina_changed()
@@ -72,7 +72,7 @@ impl ICanvasLayer for StaminaBar {
             let new = player.bind().resources.stamina().amount();
             if new != current {
                 self.prev_player_stam = new;
-                self.stamina_bar.set_value(new as f64);
+                self.texture_bar.set_value(new as f64);
             }
         }
     }
@@ -81,10 +81,10 @@ impl ICanvasLayer for StaminaBar {
 #[godot_api]
 impl StaminaBar {
     pub fn on_player_stamina_changed(&mut self, _previous_stam: i64, current_stam: i64) {
-        self.stamina_bar.set_value(current_stam as f64);
+        self.texture_bar.set_value(current_stam as f64);
     }
 
     pub fn set_value(&mut self, val: f64) {
-        self.stamina_bar.set_value(val);
+        self.texture_bar.set_value(val);
     }
 }

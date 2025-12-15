@@ -88,12 +88,12 @@ mod test {
     fn test_damage_handling() {
         let mut dummy = Dummy::new(); // health is 10
         let attack = PlayerAttacks::SimpleMelee.build(1); // 10
-        let damage = dummy.defense.apply_resistances(attack); // dummy resistance is 10
+        let damage = dummy.defense.apply_resistances(&attack); // dummy resistance is 10
         dummy.resource.take_damage(damage);
         assert_eq!(dummy.resource.health().amount(), 10);
 
         let attack = PlayerAttacks::SimpleMelee.build(2); // 20
-        let damage = dummy.defense.apply_resistances(attack);
+        let damage = dummy.defense.apply_resistances(&attack);
         dummy.resource.take_damage(damage);
         assert_eq!(dummy.resource.health().amount(), 0);
     }

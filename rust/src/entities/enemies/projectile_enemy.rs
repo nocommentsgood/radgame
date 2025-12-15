@@ -152,12 +152,12 @@ impl INode2D for NewProjectileEnemy {
         );
         self.graphics.update(
             self.sm.state(),
-            &Direction::from_vel(&self.movement.velocity()),
+            Direction::from_vel(self.movement.velocity()),
         );
     }
 
     fn physics_process(&mut self, delta: f32) {
-        self.resources.tick_resources(&delta);
+        let _ = self.resources.tick_resources(delta);
     }
 }
 
@@ -173,7 +173,7 @@ impl NewProjectileEnemy {
         // - deferring the hitbox check to the next idle frame
         let attack = hurtbox.bind().attack.clone().unwrap();
 
-        let damage = self.def.apply_resistances(attack);
+        let damage = self.def.apply_resistances(&attack);
         self.resources.take_damage(damage);
         if self.resources.health().is_dead() {
             self.sm.handle(&esm::EnemyEvent::Death);

@@ -1,5 +1,5 @@
 use godot::obj::Gd;
-use statig::blocking::*;
+use statig::prelude::*;
 
 use crate::{
     entities::{
@@ -112,7 +112,7 @@ pub struct CharacterStateMachine;
 )]
 impl CharacterStateMachine {
     #[state]
-    fn idle(&mut self, event: &Event, context: &mut SMContext<'_>) -> Response<State> {
+    fn idle(event: &Event, context: &mut SMContext<'_>) -> Response<State> {
         match event {
             Event::InputChanged(inputs) => {
                 if let Ok(res) = Self::try_dodging(inputs, context) {
@@ -150,7 +150,7 @@ impl CharacterStateMachine {
     }
 
     #[state]
-    fn run(&mut self, event: &Event, context: &mut SMContext<'_>) -> Response<State> {
+    fn run(event: &Event, context: &mut SMContext<'_>) -> Response<State> {
         match event {
             Event::InputChanged(inputs) => {
                 if let Ok(res) = Self::try_dodging(inputs, context) {
@@ -185,7 +185,7 @@ impl CharacterStateMachine {
     }
 
     #[state]
-    fn dodging(&mut self, event: &Event, context: &mut SMContext<'_>) -> Response<State> {
+    fn dodging(event: &Event, context: &mut SMContext<'_>) -> Response<State> {
         match event {
             Event::TimerElapsed(timer, inputs) if *timer == Timers::DodgeAnimation => {
                 Self::to_moving(inputs, context)
@@ -197,7 +197,7 @@ impl CharacterStateMachine {
     }
 
     #[state]
-    fn jumping(&mut self, event: &Event, context: &mut SMContext<'_>) -> Response<State> {
+    fn jumping(event: &Event, context: &mut SMContext<'_>) -> Response<State> {
         match event {
             Event::GrabbedWall(inputs) => Self::handle_wall_grab(inputs, context),
             Event::InputChanged(inputs) => {
@@ -242,7 +242,7 @@ impl CharacterStateMachine {
     }
 
     #[state]
-    fn falling(&mut self, event: &Event, context: &mut SMContext<'_>) -> Response<State> {
+    fn falling(event: &Event, context: &mut SMContext<'_>) -> Response<State> {
         match event {
             Event::GrabbedWall(inputs) => Self::handle_wall_grab(inputs, context),
             Event::InputChanged(inputs) => {
@@ -264,7 +264,7 @@ impl CharacterStateMachine {
     }
 
     #[state]
-    fn attacking(&mut self, event: &Event, context: &mut SMContext<'_>) -> Response<State> {
+    fn attacking(event: &Event, context: &mut SMContext<'_>) -> Response<State> {
         match event {
             Event::TimerElapsed(timer, inputs) if *timer == Timers::AttackAnimation => {
                 match (&inputs.0, &inputs.1) {
@@ -292,7 +292,7 @@ impl CharacterStateMachine {
     }
 
     #[state]
-    fn chargedattack(&mut self, event: &Event, context: &mut SMContext<'_>) -> Response<State> {
+    fn chargedattack(event: &Event, context: &mut SMContext<'_>) -> Response<State> {
         match event {
             Event::TimerElapsed(timer, inputs) if *timer == Timers::ChargedAttack => {
                 Self::to_moving(inputs, context)
@@ -302,7 +302,7 @@ impl CharacterStateMachine {
     }
 
     #[state]
-    fn chain_attack(&mut self, event: &Event, context: &mut SMContext<'_>) -> Response<State> {
+    fn chain_attack(event: &Event, context: &mut SMContext<'_>) -> Response<State> {
         match event {
             Event::TimerElapsed(timer, inputs) if *timer == Timers::Attack2Animation => {
                 Self::to_moving(inputs, context)
@@ -314,7 +314,7 @@ impl CharacterStateMachine {
     }
 
     #[state]
-    fn hurt(&mut self, event: &Event, context: &mut SMContext<'_>) -> Response<State> {
+    fn hurt(event: &Event, context: &mut SMContext<'_>) -> Response<State> {
         match event {
             Event::TimerElapsed(timer, inputs) if *timer == Timers::HurtAnimation => {
                 Self::to_moving(inputs, context)
@@ -325,7 +325,7 @@ impl CharacterStateMachine {
     }
 
     #[state]
-    fn healing(&mut self, event: &Event, context: &mut SMContext<'_>) -> Response<State> {
+    fn healing(event: &Event, context: &mut SMContext<'_>) -> Response<State> {
         match event {
             Event::TimerElapsed(timer, inputs) if *timer == Timers::HealingAnimation => {
                 context.timers.healing_cooldown.start();
@@ -337,7 +337,7 @@ impl CharacterStateMachine {
     }
 
     #[state]
-    fn parry(&mut self, event: &Event, context: &mut SMContext<'_>) -> Response<State> {
+    fn parry(event: &Event, context: &mut SMContext<'_>) -> Response<State> {
         match event {
             Event::TimerElapsed(timer, inputs) if *timer == Timers::ParryAnimation => {
                 Self::to_moving(inputs, context)
@@ -670,8 +670,7 @@ impl CharacterStateMachine {
         context: &mut SMContext<'_>,
     ) -> Result<Response<State>, ()> {
         match (&inputs.0, &inputs.1, &inputs.2) {
-            (_, Some(ModifierButton::Attack), Some(ModifierButton::Jump))
-            | (_, Some(ModifierButton::Attack), None) => {
+            (_, Some(ModifierButton::Attack), Some(ModifierButton::Jump) | None) => {
                 if context.timers.air_attack_anim.is_stopped()
                     && let Ok(attack) =
                         Offense::try_attack(PlayerAttacks::SimpleMelee, context.resources, 1)
@@ -691,11 +690,7 @@ impl CharacterStateMachine {
 
     fn handle_wall_grab(inputs: &Inputs, context: &mut SMContext<'_>) -> Response<State> {
         match &inputs.0 {
-            Some(MoveButton::Left) => {
-                context.movement.wall_grab_velocity();
-                Response::Transition(State::wall_grab())
-            }
-            Some(MoveButton::Right) => {
+            Some(MoveButton::Left | MoveButton::Right) => {
                 context.movement.wall_grab_velocity();
                 Response::Transition(State::wall_grab())
             }

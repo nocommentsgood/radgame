@@ -65,7 +65,7 @@ pub enum PlayerAttacks {
 
 impl PlayerAttacks {
     // TODO: Refactor player_level
-    pub fn build(&self, player_level: i64) -> Attack {
+    pub fn build(self, player_level: i64) -> Attack {
         match self {
             PlayerAttacks::SimpleMelee => Attack {
                 damage: Damage(player_level * 10),
@@ -113,7 +113,7 @@ pub enum Spell {
 }
 
 impl Spell {
-    pub fn attack(&self, player_level: i64) -> Attack {
+    pub fn attack(self, player_level: i64) -> Attack {
         match self {
             Spell::TwinPillar => Attack {
                 damage: Damage(player_level * 5),
@@ -131,7 +131,7 @@ impl Spell {
         }
     }
 
-    pub fn init_scene(&self) -> Gd<Node2D> {
+    pub fn init_scene(self) -> Gd<Node2D> {
         match self {
             Spell::TwinPillar => {
                 let player_pos = GlobalData::singleton().bind().player_pos;

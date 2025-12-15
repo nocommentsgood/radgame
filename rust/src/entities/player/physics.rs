@@ -16,7 +16,7 @@ pub fn hit_ceiling(ent: &mut Gd<impl Inherits<CharacterBody2D>>, movement: &mut 
     if let Some(c) = collisions
         && ceiling
     {
-        movement.bounce_off_ceiling(c);
+        movement.bounce_off_ceiling(&c);
         true
     } else {
         false
@@ -96,12 +96,12 @@ impl Movement {
 
     pub fn get_direction(&mut self) -> Direction {
         let cur = self.direction;
-        if self.velocity.x != 0.0 {
-            let new = Direction::from_vel(&self.velocity);
+        if self.velocity.x == 0.0 {
+            cur
+        } else {
+            let new = Direction::from_vel(self.velocity);
             self.direction = new;
             new
-        } else {
-            cur
         }
     }
 
@@ -109,10 +109,10 @@ impl Movement {
         self.velocity
     }
 
-    pub fn bounce_off_ceiling(&mut self, collision: Gd<KinematicCollision2D>) {
+    pub fn bounce_off_ceiling(&mut self, collision: &Gd<KinematicCollision2D>) {
         self.velocity = self
             .velocity
-            .bounce(collision.get_normal().normalized_or_zero())
+            .bounce(collision.get_normal().normalized_or_zero());
     }
 
     pub fn apply_gravity(&mut self, frame: &PhysicsFrame) {

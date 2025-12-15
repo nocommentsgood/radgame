@@ -25,7 +25,7 @@ impl std::fmt::Display for Direction {
 }
 
 impl Direction {
-    pub fn from_vel(velocity: &Vector2) -> Direction {
+    pub fn from_vel(velocity: Vector2) -> Direction {
         if velocity.x < 0.0 {
             Direction::Left
         } else {
@@ -158,7 +158,7 @@ impl MovementBehavior for AlternatingMovement {
     }
 }
 
-/// Moves and collides a PhysicsBody2D, bouncing the body off of the collision normal.
+/// Moves and collides a `PhysicsBody2D`, bouncing the body off of the collision normal.
 pub fn move_bounce(phys: &mut Gd<PhysicsBody2D>, velocity: &mut Vector2, speed: f32, delta: f32) {
     let collision = phys.move_and_collide(*velocity * delta * speed);
 
@@ -169,7 +169,7 @@ pub fn move_bounce(phys: &mut Gd<PhysicsBody2D>, velocity: &mut Vector2, speed: 
     }
 }
 
-/// Moves a Node2D inheriting node to the left.
+/// Moves a `Node2D` inheriting node to the left.
 pub fn move_left<T>(node: &mut T, speed: f32, delta: f32)
 where
     T: WithBaseField<Base: Inherits<Node2D>>,

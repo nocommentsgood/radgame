@@ -61,17 +61,18 @@ impl INode for Main {
         let tree = self.base().get_tree().unwrap();
         tree.signals()
             .node_added()
-            .connect_other(&self.to_gd(), Self::on_player_entered_tree);
+            .connect(Main::on_player_entered_tree);
         tree.signals()
-            .node_removed()
-            .connect_other(&self.to_gd(), Self::on_player_exited_tree);
+            .node_added()
+            .connect(Main::on_player_exited_tree);
     }
 
     fn process(&mut self, _delta: f32) {
-        let path = GlobalData::singleton().bind().paths.player.clone().unwrap();
-        let mut player = self.base().get_node_as::<MainCharacter>(&path);
-        GlobalData::singleton().bind_mut().player_pos = player.get_global_position();
-        GlobalData::singleton().bind_mut().player_dir = player.bind_mut().get_direction();
+        if let Some(path) = GlobalData::singleton().bind().paths.player.clone() {
+            let mut player = self.base().get_node_as::<MainCharacter>(&path);
+            GlobalData::singleton().bind_mut().player_pos = player.get_global_position();
+            GlobalData::singleton().bind_mut().player_dir = player.bind_mut().get_direction();
+        }
     }
 }
 
@@ -81,7 +82,7 @@ impl Main {
     fn map_ready();
 
     // Update world data when player path changes.
-    fn on_player_entered_tree(&mut self, node: Gd<Node>) {
+    fn on_player_entered_tree(node: Gd<Node>) {
         if let Ok(player) = node.try_cast::<MainCharacter>() {
             GlobalData::singleton()
                 .bind_mut()
@@ -92,7 +93,7 @@ impl Main {
         }
     }
 
-    fn on_player_exited_tree(&mut self, node: Gd<Node>) {
+    fn on_player_exited_tree(node: Gd<Node>) {
         if let Ok(_p) = node.try_cast::<MainCharacter>() {
             GlobalData::singleton().bind_mut().paths.player.take();
         }
@@ -174,7 +175,7 @@ impl Main {
                 Self::connect_map_items(&mut new_map.bind_mut().items, &mut item_comp);
                 Self::give_camera_data_player_ref(
                     &mut new_map.bind_mut().camera_data,
-                    player.bind().camera.clone(),
+                    &player.bind().camera,
                 );
                 map.signals()
                     .propigate_map_trans()
@@ -241,7 +242,7 @@ impl Main {
 
     fn give_camera_data_player_ref(
         camera_data: &mut [Gd<CameraData>],
-        player_camera: Gd<PlayerCamera>,
+        player_camera: &Gd<PlayerCamera>,
     ) {
         for cam in camera_data {
             cam.bind_mut().player_camera = Some(player_camera.clone());

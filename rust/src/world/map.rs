@@ -59,10 +59,7 @@ impl INode for Map {
             .base()
             .get_node_as::<Node>("TileMapLayers")
             .get_children();
-        self.map_layers = layers
-            .iter_shared()
-            .map(|n| n.cast::<TileMapLayer>())
-            .collect();
+        self.map_layers = layers.iter_shared().map(Gd::cast).collect();
 
         let triggers = self
             .base()
@@ -75,19 +72,13 @@ impl INode for Map {
             .collect();
 
         let nav_regions = self.base().get_node_as::<Node>("NavRegions").get_children();
-        self.nav_regions = nav_regions
-            .iter_shared()
-            .map(|n| n.cast::<NavigationRegion2D>())
-            .collect();
+        self.nav_regions = nav_regions.iter_shared().map(Gd::cast).collect();
 
         let items = self.base().get_node_as::<Node>("Items").get_children();
-        self.items = items.iter_shared().map(|n| n.cast::<GameItem>()).collect();
+        self.items = items.iter_shared().map(Gd::cast).collect();
 
         let camera_data = self.base().get_node_as::<Node>("CameraData").get_children();
-        self.camera_data = camera_data
-            .iter_shared()
-            .map(|n| n.cast::<CameraData>())
-            .collect();
+        self.camera_data = camera_data.iter_shared().map(Gd::cast).collect();
     }
 }
 

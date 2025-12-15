@@ -22,7 +22,7 @@ pub struct Timers {
 }
 
 impl Timers {
-    /// Provides automatic collection of SceneTree nodes at the expected path.
+    /// Provides automatic collection of `SceneTree` nodes at the expected path.
     pub fn default_new(node: &Gd<Node>) -> Self {
         Self {
             attack: node.get_node_as::<Timer>("Attack"),

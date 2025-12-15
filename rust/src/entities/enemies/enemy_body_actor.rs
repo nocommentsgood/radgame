@@ -13,7 +13,7 @@ use crate::entities::{
     movements::Direction,
 };
 
-/// Basic enemy type with a base of type CharacterBody2D.
+/// Basic enemy type with a base of type `CharacterBody2D`.
 #[derive(GodotClass)]
 #[class(base = CharacterBody2D, init)]
 pub struct EnemyBodyActor {
@@ -114,10 +114,7 @@ impl ICharacterBody2D for EnemyBodyActor {
                 if self.sensors.are_raycasts_failing() =>
             {
                 match self.sensors.which() {
-                    ctx::Raycasts::Ground(dir) => {
-                        self.sm.handle(&esm::EnemyEvent::RayCastFailed(dir));
-                    }
-                    ctx::Raycasts::Wall(dir) => {
+                    ctx::Raycasts::Ground(dir) | ctx::Raycasts::Wall(dir) => {
                         self.sm.handle(&esm::EnemyEvent::RayCastFailed(dir));
                     }
                 }
@@ -138,7 +135,7 @@ impl ICharacterBody2D for EnemyBodyActor {
         );
         self.graphics.update(
             self.sm.state(),
-            &Direction::from_vel(&self.movement.velocity()),
+            Direction::from_vel(self.movement.velocity()),
         );
     }
 }

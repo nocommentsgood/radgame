@@ -123,17 +123,17 @@ impl ICharacterBody2D for MainCharacter {
     }
 
     fn physics_process(&mut self, delta: f32) {
-        let tick = self.resources.tick_resources(&delta);
+        let tick = self.resources.tick_resources(delta);
         if let Ok(tick) = tick {
             match tick {
                 ResourceChanged::Stamina { previous, new } => {
-                    self.signals().stamina_changed().emit(previous, new)
+                    self.signals().stamina_changed().emit(previous, new);
                 }
                 ResourceChanged::Mana { previous, new } => {
-                    self.signals().mana_changed().emit(previous, new)
+                    self.signals().mana_changed().emit(previous, new);
                 }
                 ResourceChanged::Health { previous, new } => {
-                    self.signals().player_health_changed().emit(previous, new)
+                    self.signals().player_health_changed().emit(previous, new);
                 }
             }
         }
@@ -205,7 +205,7 @@ impl MainCharacter {
                 proj.bind_mut().on_parried();
             }
         } else {
-            let damage = self.def.apply_resistances(attack);
+            let damage = self.def.apply_resistances(&attack);
             let res = self.resources.take_damage(damage);
             self.signals().player_health_changed().emit(res.0, res.1);
             if self.resources.health().is_dead() {
@@ -296,7 +296,7 @@ impl MainCharacter {
         );
         self.state.handle_with_context(event, &mut context);
         self.graphics
-            .update(self.state.state(), &self.movements.get_direction());
+            .update(self.state.state(), self.movements.get_direction());
     }
 
     /// Sets timer lengths, timer callbacks, and adds timers as children of the player.
@@ -358,14 +358,12 @@ impl MainCharacter {
 
     fn on_new_modifier(&mut self, modifier: Gd<StatModifier>) {
         let modif = modifier.bind();
-        self.stats.get_mut(modif.stat).apply_modifier(modif.clone());
+        self.stats.get_mut(modif.stat).apply_modifier(*modif);
     }
 
     fn on_modifier_removed(&mut self, modifier: Gd<StatModifier>) {
         let modif = modifier.bind();
-        self.stats
-            .get_mut(modif.stat)
-            .remove_modifier(modif.clone());
+        self.stats.get_mut(modif.stat).remove_modifier(*modif);
     }
 
     /// Transitions state machine from it's current state to `disabled`.

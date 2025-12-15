@@ -4,7 +4,7 @@ use godot::{
     prelude::{GodotClass, godot_api},
 };
 
-/// A oneshot, autostarting timer that frees the parent of the FreeTimer on timeout.
+/// A oneshot, autostarting timer that frees the parent of the `FreeTimer` on timeout.
 #[derive(GodotClass)]
 #[class(base = Timer, init)]
 pub struct FreeTimer {

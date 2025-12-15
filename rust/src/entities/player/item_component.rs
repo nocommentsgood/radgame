@@ -138,9 +138,9 @@ impl ItemComponent {
 
         if let Some(item) = item {
             if equipped_items.contains(item) {
-                return self.unequip_item(equipped_items, item.as_ref().unwrap());
+                return Self::unequip_item(equipped_items, item.as_ref().unwrap());
             }
-            if equipped_items.iter().all(|slot| slot.is_some()) {
+            if equipped_items.iter().all(Option::is_some) {
                 return Err(EquipErr::CapacityReached);
             }
             let (ItemKind::RosaryBead { effect: modifier } | ItemKind::Relic { effect: modifier }) =
@@ -155,7 +155,7 @@ impl ItemComponent {
                     .bind_mut()
                     .sig_handler()
                     .new_modifier()
-                    .emit(&Gd::from_object(modifier.clone()));
+                    .emit(&Gd::from_object(modifier));
                 Ok(item.to_owned().unwrap())
             } else {
                 Err(EquipErr::CapacityReached)
@@ -165,11 +165,7 @@ impl ItemComponent {
         }
     }
 
-    fn unequip_item(
-        &mut self,
-        equipped: &mut [Option<Item>],
-        item: &Item,
-    ) -> Result<Item, EquipErr> {
+    fn unequip_item(equipped: &mut [Option<Item>], item: &Item) -> Result<Item, EquipErr> {
         if let Some(slot) = equipped.iter_mut().find(|i| i.as_ref() == Some(item)) {
             if let Some(item) = slot.take() {
                 let (ItemKind::RosaryBead { effect: modifier }
@@ -182,7 +178,7 @@ impl ItemComponent {
                     .bind_mut()
                     .sig_handler()
                     .modifier_removed()
-                    .emit(&Gd::from_object(modifier.clone()));
+                    .emit(&Gd::from_object(*modifier));
                 Ok(item)
             } else {
                 Err(EquipErr::ItemNotFound)
