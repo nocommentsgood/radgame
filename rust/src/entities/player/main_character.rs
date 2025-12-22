@@ -21,6 +21,7 @@ use crate::{
         player::{
             character_state_machine::{self as csm, Timers},
             item_component::ItemComponent,
+            physics::{FloorState, StateInfo, WallCastCollision, WallState},
             shaky_player_camera::{PlayerCamera, TraumaLevel},
             time::PlayerTimers,
         },
@@ -137,47 +138,40 @@ impl ICharacterBody2D for MainCharacter {
                 }
             }
         }
-
-        // TODO: Get rid of this.
-        let frame = physics::PhysicsFrame::new(
-            *self.state.state(),
-            self.previous_state,
-            self.base().is_on_floor(),
-            self.base().is_on_floor_only(),
-            self.base().is_on_wall_only(),
+        let floor_state =
+            FloorState::from_something(self.base().is_on_floor(), self.base().is_on_floor_only());
+        let state_info = StateInfo::new(self.previous_state, *self.state.state());
+        let wall_collision = WallCastCollision::from_something(
             self.left_wall_cast.is_colliding(),
             self.right_wall_cast.is_colliding(),
-            delta,
         );
+        let wall_state =
+            WallState::from_something(self.base().is_on_wall(), self.base().is_on_wall_only());
         let input = DevInputHandler::handle_unhandled(&Input::singleton(), self);
 
         if self.inputs != input {
             self.inputs = input;
             self.transition_sm(&Event::InputChanged(input));
         }
-
-        if self.movements.not_on_floor(&frame) && self.state.state() != (&State::Jumping {}) {
+        if self.movements.not_on_floor(floor_state) && self.state.state() != (&State::Jumping {}) {
             self.transition_sm(&Event::FailedFloorCheck(input));
         }
-
-        if self.movements.landed(&frame) {
+        if self.movements.landed(floor_state, state_info) {
             self.timer.jump_limit.reset();
             self.transition_sm(&Event::Landed(input));
         }
-
-        if physics::Movement::wall_grab(&frame, &input) {
+        if let Some(wall_state) = wall_state
+            && physics::Movement::wall_grab(state_info, wall_state, &input, wall_collision)
+        {
             self.transition_sm(&Event::GrabbedWall(input));
         }
-
         if !matches!(self.state.state(), &State::WallGrab {} | &State::AirDash {}) {
-            self.movements.apply_gravity(&frame);
+            self.movements.apply_gravity(state_info, delta);
         }
-
         let v = self.movements.velocity();
         self.update_camera(v);
         self.base_mut().set_velocity(v);
         self.base_mut().move_and_slide();
-
         if physics::hit_ceiling(&mut self.to_gd(), &mut self.movements) {
             self.transition_sm(&Event::HitCeiling(input));
         }

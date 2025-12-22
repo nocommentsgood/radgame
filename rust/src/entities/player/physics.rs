@@ -6,7 +6,7 @@ use godot::{
 
 use crate::{
     entities::{movements::Direction, player::character_state_machine::State},
-    utils::input_hanlder::Inputs,
+    utils::input_hanlder::{self, Inputs},
 };
 
 /// Ceiling collision handling and response.
@@ -24,9 +24,9 @@ pub fn hit_ceiling(ent: &mut Gd<impl Inherits<CharacterBody2D>>, movement: &mut 
 }
 
 /// Whether the entity is or was previously in an airborne state.
-fn is_airborne(frame: &PhysicsFrame) -> bool {
-    (matches!(frame.state, State::Falling {} | State::AirDash {})
-        || matches!(frame.previous_state, State::Jumping {}))
+fn is_airborne(state: StateInfo) -> bool {
+    (matches!(state.current, State::Falling {} | State::AirDash {})
+        || matches!(state.previous, State::Jumping {}))
 }
 
 #[derive(Default, Clone, Copy)]
@@ -115,18 +115,26 @@ impl Movement {
             .bounce(collision.get_normal().normalized_or_zero());
     }
 
-    pub fn apply_gravity(&mut self, frame: &PhysicsFrame) {
+    pub fn apply_gravity(&mut self, state: StateInfo, delta: f32) {
         const GRAVITY: f32 = 900.0;
         const TERMINAL_VELOCITY: f32 = 1300.0;
 
-        if frame.state == (State::Jumping {}) {
-            self.early_gravity += frame.delta;
+        match state.current {
+            State::Jumping {} | State::Falling {} if self.velocity.y < TERMINAL_VELOCITY => {
+                self.velocity.y += GRAVITY * delta
+            }
+            State::Jumping {} => self.early_gravity += delta,
+            _ => (),
         }
-        if matches!(frame.state, State::Jumping {} | State::Falling {})
-            && self.velocity.y < TERMINAL_VELOCITY
-        {
-            self.velocity.y += GRAVITY * frame.delta;
-        }
+
+        // if frame.state == (State::Jumping {}) {
+        //     self.early_gravity += frame.delta;
+        // }
+        // if matches!(frame.state, State::Jumping {} | State::Falling {})
+        //     && self.velocity.y < TERMINAL_VELOCITY
+        // {
+        //     self.velocity.y += GRAVITY * frame.delta;
+        // }
     }
 
     // Jump was released early, apply more gravity.
@@ -142,65 +150,108 @@ impl Movement {
 
     /// Checks if the entity was airborne in the previous physics frame and if the entity has since
     /// landed on the floor.
-    pub fn landed(&mut self, frame: &PhysicsFrame) -> bool {
-        if frame.on_floor_only && is_airborne(frame) {
-            self.velocity.y = 0.0;
-            self.early_gravity = 0.0;
-            true
-        } else {
-            false
-        }
-    }
-
-    pub fn wall_grab(frame: &PhysicsFrame, input: &Inputs) -> bool {
-        if frame.on_wall_only && !matches!(frame.state, State::WallGrab {}) {
-            match input.0 {
-                Some(crate::utils::input_hanlder::MoveButton::Left) => frame.left_wall_colliding,
-                Some(crate::utils::input_hanlder::MoveButton::Right) => frame.right_wall_colliding,
-                _ => false,
+    pub fn landed(&mut self, floor: FloorState, state: StateInfo) -> bool {
+        match floor {
+            FloorState::OnlyOnFloor if is_airborne(state) => {
+                self.velocity.y = 0.0;
+                self.early_gravity = 0.0;
+                true
             }
-        } else {
-            false
+            _ => false,
         }
     }
 
-    pub fn not_on_floor(&self, frame: &PhysicsFrame) -> bool {
-        !frame.on_floor && self.velocity.y.is_sign_positive()
+    pub fn wall_grab(
+        state: StateInfo,
+        wall: WallState,
+        input: &Inputs,
+        wallcast: Option<WallCastCollision>,
+    ) -> bool {
+        match wall {
+            WallState::OnWallOnly if !matches!(state.current, State::WallGrab {}) => {
+                match input.0 {
+                    Some(input_hanlder::MoveButton::Left) => {
+                        wallcast.is_some_and(|v| WallCastCollision::Left == v)
+                    }
+                    Some(input_hanlder::MoveButton::Right) => {
+                        wallcast.is_some_and(|v| WallCastCollision::Right == v)
+                    }
+                    _ => false,
+                }
+            }
+            _ => false,
+        }
+    }
+
+    pub fn not_on_floor(&self, floor: FloorState) -> bool {
+        matches!(floor, FloorState::NotOnFloor if self.velocity.y.is_sign_positive())
+        // !frame.on_floor && self.velocity.y.is_sign_positive()
     }
 }
 
-pub struct PhysicsFrame {
-    state: State,
-    previous_state: State,
-    on_floor: bool,
-    on_floor_only: bool,
-    on_wall_only: bool,
-    left_wall_colliding: bool,
-    right_wall_colliding: bool,
-    delta: f32,
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum WallState {
+    OnWallOnly,
+    OnWall,
+    Both,
 }
 
-impl PhysicsFrame {
-    #[allow(clippy::too_many_arguments)]
-    pub fn new(
-        state: State,
-        previous_state: State,
-        on_floor: bool,
-        on_floor_only: bool,
-        on_wall_only: bool,
-        left_wall_colliding: bool,
-        right_wall_colliding: bool,
-        delta: f32,
-    ) -> Self {
-        Self {
-            state,
-            previous_state,
-            on_floor,
-            on_floor_only,
-            on_wall_only,
-            left_wall_colliding,
-            right_wall_colliding,
-            delta,
+impl WallState {
+    pub fn from_something(on_wall: bool, on_wall_only: bool) -> Option<Self> {
+        match (on_wall, on_wall_only) {
+            (true, true) => Some(Self::Both),
+            (true, false) => Some(Self::OnWall),
+            (false, true) => Some(Self::OnWallOnly),
+            (false, false) => None,
         }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum FloorState {
+    OnFloor,
+    OnlyOnFloor,
+    Both,
+    NotOnFloor,
+}
+
+impl FloorState {
+    pub fn from_something(on_floor: bool, on_floor_only: bool) -> Self {
+        match (on_floor, on_floor_only) {
+            (true, true) => Self::Both,
+            (true, false) => Self::OnFloor,
+            (false, true) => Self::OnlyOnFloor,
+            (false, false) => Self::NotOnFloor,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum WallCastCollision {
+    Left,
+    Right,
+    Both,
+}
+
+impl WallCastCollision {
+    pub fn from_something(left_cast: bool, right_cast: bool) -> Option<Self> {
+        match (left_cast, right_cast) {
+            (true, true) => Some(Self::Both),
+            (true, false) => Some(Self::Left),
+            (false, true) => Some(Self::Right),
+            (false, false) => None,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct StateInfo {
+    previous: State,
+    current: State,
+}
+
+impl StateInfo {
+    pub fn new(previous: State, current: State) -> Self {
+        Self { previous, current }
     }
 }
