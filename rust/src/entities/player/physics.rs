@@ -152,7 +152,7 @@ impl Movement {
     /// landed on the floor.
     pub fn landed(&mut self, floor: FloorState, state: StateInfo) -> bool {
         match floor {
-            FloorState::OnlyOnFloor if is_airborne(state) => {
+            FloorState::OnlyOnFloor | FloorState::Both if is_airborne(state) => {
                 self.velocity.y = 0.0;
                 self.early_gravity = 0.0;
                 true
